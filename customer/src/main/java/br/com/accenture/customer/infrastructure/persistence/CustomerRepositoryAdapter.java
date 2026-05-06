@@ -2,7 +2,6 @@ package br.com.accenture.customer.infrastructure.persistence;
 
 import br.com.accenture.customer.domain.model.Customer;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
-import br.com.accenture.customer.infrastructure.persistence.entity.CustomerJpaEntity;
 import br.com.accenture.customer.infrastructure.persistence.mapper.CustomerPersistenceMapper;
 import org.springframework.stereotype.Component;
 
@@ -21,17 +20,7 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public Customer save(Customer customer) {
-        CustomerJpaEntity entity;
-        if (customer.getId() == null) {
-            entity = CustomerPersistenceMapper.toEntity(customer);
-        } else {
-            entity = jpaRepository.findById(customer.getId())
-                    .orElseGet(() -> CustomerPersistenceMapper.toEntity(customer));
-            entity.setName(customer.getName());
-            entity.setEmail(customer.getEmail());
-            entity.setPassword(customer.getPassword());
-            entity.setPhone(customer.getPhone());
-        }
+        var entity = CustomerPersistenceMapper.toEntity(customer);
         var saved = jpaRepository.save(entity);
         return CustomerPersistenceMapper.toDomain(saved);
     }

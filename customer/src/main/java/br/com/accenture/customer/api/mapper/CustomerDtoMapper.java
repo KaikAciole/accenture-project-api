@@ -13,13 +13,13 @@ public final class CustomerDtoMapper {
         if (request == null) {
             return null;
         }
-        return Customer.builder()
-                .name(request.name())
-                .email(request.email())
-                .cpf(request.cpf())
-                .password(request.password())
-                .phone(request.phone())
-                .build();
+        return Customer.createNew(
+                request.name(),
+                request.email(),
+                request.cpf(),
+                request.password(),
+                request.phone()
+        );
     }
 
     public static CustomerResponse toResponse(Customer customer) {

@@ -7,7 +7,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,9 +49,6 @@ public class CustomerJpaEntity {
 
     @Column(nullable = false, unique = true, length = 11)
     private String phone;
-
-    @Version
-    private Long version;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)

@@ -48,10 +48,12 @@ public class CustomerService {
 
         validateUniquenessOnUpdate(existing, updated);
 
-        existing.setName(updated.getName());
-        existing.setEmail(updated.getEmail());
-        existing.setPassword(updated.getPassword());
-        existing.setPhone(updated.getPhone());
+        existing.update(
+                updated.getName(),
+                updated.getEmail(),
+                updated.getPassword(),
+                updated.getPhone()
+        );
 
         return customerRepository.save(existing);
     }

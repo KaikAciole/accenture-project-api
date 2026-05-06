@@ -26,16 +26,16 @@ public final class CustomerPersistenceMapper {
         if (entity == null) {
             return null;
         }
-        return Customer.builder()
-                .id(entity.getId())
-                .name(entity.getName())
-                .email(entity.getEmail())
-                .cpf(entity.getCpf())
-                .password(entity.getPassword())
-                .phone(entity.getPhone())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
+        return Customer.restore(
+                entity.getId(),
+                entity.getName(),
+                entity.getEmail(),
+                entity.getCpf(),
+                entity.getPassword(),
+                entity.getPhone(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+        );
     }
 
 }

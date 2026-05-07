@@ -1,8 +1,8 @@
 package br.com.accenture.customer.domain.repository;
 
 import br.com.accenture.customer.domain.model.Customer;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -23,9 +23,9 @@ public interface CustomerRepository {
 
     boolean existsByPhone(String phone);
 
-    Page<Customer> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    PageResult<Customer> findByNameContainingIgnoreCase(String name, PageRequest pageRequest);
 
-    Page<Customer> findAll(Pageable pageable);
+    PageResult<Customer> findAll(PageRequest pageRequest);
 
     void deleteById(UUID id);
 

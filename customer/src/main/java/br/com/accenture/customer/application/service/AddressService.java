@@ -3,10 +3,10 @@ package br.com.accenture.customer.application.service;
 import br.com.accenture.customer.domain.exception.AddressNotFoundException;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.model.Address;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.repository.AddressRepository;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,9 +41,9 @@ public class AddressService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Address> findByCustomerId(UUID customerId, Pageable pageable) {
+    public PageResult<Address> findByCustomerId(UUID customerId, PageRequest pageRequest) {
         validateCustomerExists(customerId);
-        return addressRepository.findByCustomerId(customerId, pageable);
+        return addressRepository.findByCustomerId(customerId, pageRequest);
     }
 
     @Transactional

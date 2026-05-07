@@ -2,11 +2,14 @@ package br.com.accenture.customer.api.controller;
 
 import br.com.accenture.customer.api.dto.CustomerRequest;
 import br.com.accenture.customer.api.dto.CustomerResponse;
+import br.com.accenture.customer.api.dto.PageResponse;
 import br.com.accenture.customer.api.mapper.CustomerDtoMapper;
+import br.com.accenture.customer.api.mapper.PageRequestMapper;
 import br.com.accenture.customer.application.service.CustomerService;
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,12 +47,13 @@ public class CustomerController {
     }
 
     @GetMapping
-    public Page<CustomerResponse> list(@RequestParam(required = false) String name,
-                                       Pageable pageable) {
-        Page<Customer> customers = (name == null || name.isBlank())
-                ? customerService.findAll(pageable)
-                : customerService.findByName(name, pageable);
-        return customers.map(CustomerDtoMapper::toResponse);
+    public PageResponse<CustomerResponse> list(@RequestParam(required = false) String name,
+                                               Pageable pageable) {
+        PageRequest pageRequest = PageRequestMapper.toDomain(pageable);
+        PageResult<Customer> customers = (name == null || name.isBlank())
+                ? customerService.findAll(pageRequest)
+                : customerService.findByName(name, pageRequest);
+        return PageResponse.from(customers.map(CustomerDtoMapper::toResponse));
     }
 
     @GetMapping("/{id}")

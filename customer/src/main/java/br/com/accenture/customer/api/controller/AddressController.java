@@ -2,11 +2,13 @@ package br.com.accenture.customer.api.controller;
 
 import br.com.accenture.customer.api.dto.AddressRequest;
 import br.com.accenture.customer.api.dto.AddressResponse;
+import br.com.accenture.customer.api.dto.PageResponse;
 import br.com.accenture.customer.api.mapper.AddressDtoMapper;
+import br.com.accenture.customer.api.mapper.PageRequestMapper;
 import br.com.accenture.customer.application.service.AddressService;
 import br.com.accenture.customer.domain.model.Address;
+import br.com.accenture.customer.domain.pagination.PageRequest;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,9 +46,12 @@ public class AddressController {
     }
 
     @GetMapping
-    public Page<AddressResponse> list(@PathVariable UUID customerId, Pageable pageable) {
-        return addressService.findByCustomerId(customerId, pageable)
-                .map(AddressDtoMapper::toResponse);
+    public PageResponse<AddressResponse> list(@PathVariable UUID customerId, Pageable pageable) {
+        PageRequest pageRequest = PageRequestMapper.toDomain(pageable);
+        return PageResponse.from(
+                addressService.findByCustomerId(customerId, pageRequest)
+                        .map(AddressDtoMapper::toResponse)
+        );
     }
 
     @GetMapping("/{addressId}")

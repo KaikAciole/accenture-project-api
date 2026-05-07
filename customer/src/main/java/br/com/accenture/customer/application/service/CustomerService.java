@@ -5,10 +5,11 @@ import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import br.com.accenture.customer.domain.model.Customer;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -27,8 +28,13 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public List<Customer> findAll() {
-        return customerRepository.findAll();
+    public Page<Customer> findAll(Pageable pageable) {
+        return customerRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Customer> findByName(String name, Pageable pageable) {
+        return customerRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
     @Transactional(readOnly = true)

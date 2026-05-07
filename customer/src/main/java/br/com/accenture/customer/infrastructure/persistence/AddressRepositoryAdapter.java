@@ -5,6 +5,8 @@ import br.com.accenture.customer.domain.repository.AddressRepository;
 import br.com.accenture.customer.infrastructure.persistence.entity.CustomerJpaEntity;
 import br.com.accenture.customer.infrastructure.persistence.mapper.AddressPersistenceMapper;
 import jakarta.persistence.EntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -36,10 +38,9 @@ public class AddressRepositoryAdapter implements AddressRepository {
     }
 
     @Override
-    public List<Address> findByCustomerId(UUID customerId) {
-        return jpaRepository.findByCustomerId(customerId).stream()
-                .map(AddressPersistenceMapper::toDomain)
-                .toList();
+    public Page<Address> findByCustomerId(UUID customerId, Pageable pageable) {
+        return jpaRepository.findByCustomerId(customerId, pageable)
+                .map(AddressPersistenceMapper::toDomain);
     }
 
     @Override

@@ -3,9 +3,10 @@ package br.com.accenture.customer.infrastructure.persistence;
 import br.com.accenture.customer.domain.model.Customer;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
 import br.com.accenture.customer.infrastructure.persistence.mapper.CustomerPersistenceMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -56,17 +57,15 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
     }
 
     @Override
-    public List<Customer> findByNameContainingIgnoreCase(String name) {
-        return jpaRepository.findByNameContainingIgnoreCase(name).stream()
-                .map(CustomerPersistenceMapper::toDomain)
-                .toList();
+    public Page<Customer> findByNameContainingIgnoreCase(String name, Pageable pageable) {
+        return jpaRepository.findByNameContainingIgnoreCase(name, pageable)
+                .map(CustomerPersistenceMapper::toDomain);
     }
 
     @Override
-    public List<Customer> findAll() {
-        return jpaRepository.findAll().stream()
-                .map(CustomerPersistenceMapper::toDomain)
-                .toList();
+    public Page<Customer> findAll(Pageable pageable) {
+        return jpaRepository.findAll(pageable)
+                .map(CustomerPersistenceMapper::toDomain);
     }
 
     @Override

@@ -1,6 +1,8 @@
 package br.com.accenture.customer.api.exception;
 
 import br.com.accenture.customer.domain.exception.AddressNotFoundException;
+import br.com.accenture.customer.domain.exception.CepLookupException;
+import br.com.accenture.customer.domain.exception.CepNotFoundException;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
@@ -34,6 +36,23 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleAddressNotFound(AddressNotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         problem.setTitle("Address not found");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(CepNotFoundException.class)
+    public ProblemDetail handleCepNotFound(CepNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("CEP not found");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(CepLookupException.class)
+    public ProblemDetail handleCepLookupError(CepLookupException ex) {
+        log.error("CEP lookup failed", ex);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
+        problem.setTitle("CEP lookup error");
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }

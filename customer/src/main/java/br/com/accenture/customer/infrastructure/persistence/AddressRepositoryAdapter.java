@@ -1,10 +1,15 @@
 package br.com.accenture.customer.infrastructure.persistence;
 
 import br.com.accenture.customer.domain.model.Address;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.repository.AddressRepository;
+import br.com.accenture.customer.infrastructure.pagination.SpringPaginationConverter;
 import br.com.accenture.customer.infrastructure.persistence.entity.CustomerJpaEntity;
 import br.com.accenture.customer.infrastructure.persistence.mapper.AddressPersistenceMapper;
 import jakarta.persistence.EntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -36,10 +41,11 @@ public class AddressRepositoryAdapter implements AddressRepository {
     }
 
     @Override
-    public List<Address> findByCustomerId(UUID customerId) {
-        return jpaRepository.findByCustomerId(customerId).stream()
-                .map(AddressPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<Address> findByCustomerId(UUID customerId, PageRequest pageRequest) {
+        Pageable pageable = SpringPaginationConverter.toPageable(pageRequest);
+        Page<Address> page = jpaRepository.findByCustomerId(customerId, pageable)
+                .map(AddressPersistenceMapper::toDomain);
+        return SpringPaginationConverter.toPageResult(page);
     }
 
     @Override

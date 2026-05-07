@@ -1,6 +1,8 @@
 package br.com.accenture.customer.domain.repository;
 
 import br.com.accenture.customer.domain.model.Address;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +14,7 @@ public interface AddressRepository {
 
     Optional<Address> findById(UUID id);
 
-    List<Address> findByCustomerId(UUID customerId);
+    PageResult<Address> findByCustomerId(UUID customerId, PageRequest pageRequest);
 
     List<Address> findAll();
 

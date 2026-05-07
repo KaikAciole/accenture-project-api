@@ -1,8 +1,9 @@
 package br.com.accenture.customer.domain.repository;
 
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,9 +23,9 @@ public interface CustomerRepository {
 
     boolean existsByPhone(String phone);
 
-    List<Customer> findByNameContainingIgnoreCase(String name);
+    PageResult<Customer> findByNameContainingIgnoreCase(String name, PageRequest pageRequest);
 
-    List<Customer> findAll();
+    PageResult<Customer> findAll(PageRequest pageRequest);
 
     void deleteById(UUID id);
 

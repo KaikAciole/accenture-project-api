@@ -4,11 +4,12 @@ import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -27,8 +28,13 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public List<Customer> findAll() {
-        return customerRepository.findAll();
+    public PageResult<Customer> findAll(PageRequest pageRequest) {
+        return customerRepository.findAll(pageRequest);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<Customer> findByName(String name, PageRequest pageRequest) {
+        return customerRepository.findByNameContainingIgnoreCase(name, pageRequest);
     }
 
     @Transactional(readOnly = true)

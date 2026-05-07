@@ -2,8 +2,9 @@ package br.com.accenture.customer.application.service;
 
 import br.com.accenture.customer.domain.exception.AddressNotFoundException;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
-import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import br.com.accenture.customer.domain.model.Address;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.repository.AddressRepository;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
@@ -35,26 +36,19 @@ public class AddressService {
     }
 
     @Transactional(readOnly = true)
-    public Address findById(UUID id) {
-        return addressRepository.findById(id)
-                .orElseThrow(() -> new AddressNotFoundException(id));
+    public Address findByCustomerAndId(UUID customerId, UUID addressId) {
+        return loadOwned(customerId, addressId);
     }
 
     @Transactional(readOnly = true)
-    public List<Address> findByCustomerId(UUID customerId) {
+    public PageResult<Address> findByCustomerId(UUID customerId, PageRequest pageRequest) {
         validateCustomerExists(customerId);
-        return addressRepository.findByCustomerId(customerId);
+        return addressRepository.findByCustomerId(customerId, pageRequest);
     }
 
     @Transactional
-    public Address update(UUID id, Address updated) {
-        Address existing = addressRepository.findById(id)
-                .orElseThrow(() -> new AddressNotFoundException(id));
-
-        if (!existing.getCustomerId().equals(updated.getCustomerId())) {
-            throw new ImmutableFieldException("customerId");
-        }
-
+    public Address update(UUID customerId, UUID addressId, Address updated) {
+        Address existing = loadOwned(customerId, addressId);
         existing.update(
                 updated.getStreet(),
                 updated.getNumber(),
@@ -64,16 +58,22 @@ public class AddressService {
                 updated.getState(),
                 updated.getZipCode()
         );
-
         return addressRepository.save(existing);
     }
 
     @Transactional
-    public void delete(UUID id) {
-        if (addressRepository.findById(id).isEmpty()) {
-            throw new AddressNotFoundException(id);
+    public void delete(UUID customerId, UUID addressId) {
+        loadOwned(customerId, addressId);
+        addressRepository.deleteById(addressId);
+    }
+
+    private Address loadOwned(UUID customerId, UUID addressId) {
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new AddressNotFoundException(addressId));
+        if (!address.getCustomerId().equals(customerId)) {
+            throw new AddressNotFoundException(addressId);
         }
-        addressRepository.deleteById(id);
+        return address;
     }
 
     private void validateCustomerExists(UUID customerId) {

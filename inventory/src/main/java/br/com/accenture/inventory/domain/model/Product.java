@@ -1,5 +1,6 @@
 package br.com.accenture.inventory.domain.model;
 
+import br.com.accenture.inventory.domain.exception.InsufficientStockException;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -40,8 +41,8 @@ public class Product {
         requireNotBlank(sku, "sku");
         requireNotBlank(name, "name");
         requireNotBlank(category, "category");
-        requirePositive(basePrice, "basePrice");
-        requirePositiveOrZero(stockQuantity, "stockQuantity");
+        requirePositive(basePrice);
+        requirePositiveOrZero(stockQuantity);
 
         return new Product(null, sku, name, category, basePrice, stockQuantity, null);
     }
@@ -62,8 +63,8 @@ public class Product {
                        Integer stockQuantity) {
         requireNotBlank(name, "name");
         requireNotBlank(category, "category");
-        requirePositive(basePrice, "basePrice");
-        requirePositiveOrZero(stockQuantity, "stockQuantity");
+        requirePositive(basePrice);
+        requirePositiveOrZero(stockQuantity);
 
         this.name = name;
         this.category = category;
@@ -72,17 +73,17 @@ public class Product {
     }
 
     public void decreaseStock(Integer quantity) {
-        requirePositive(quantity, "quantity");
+        requirePositive(quantity);
 
         if (this.stockQuantity < quantity) {
-            throw new IllegalArgumentException("Insufficient stock");
+            throw new InsufficientStockException(this.sku, quantity, this.stockQuantity);
         }
 
         this.stockQuantity -= quantity;
     }
 
     public void increaseStock(Integer quantity) {
-        requirePositive(quantity, "quantity");
+        requirePositive(quantity);
 
         this.stockQuantity += quantity;
     }
@@ -93,21 +94,21 @@ public class Product {
         }
     }
 
-    private static void requirePositive(BigDecimal value, String field) {
+    private static void requirePositive(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(field + " must be positive");
+            throw new IllegalArgumentException("basePrice must be positive");
         }
     }
 
-    private static void requirePositive(Integer value, String field) {
+    private static void requirePositive(Integer value) {
         if (value == null || value <= 0) {
-            throw new IllegalArgumentException(field + " must be positive");
+            throw new IllegalArgumentException("quantity must be positive");
         }
     }
 
-    private static void requirePositiveOrZero(Integer value, String field) {
+    private static void requirePositiveOrZero(Integer value) {
         if (value == null || value < 0) {
-            throw new IllegalArgumentException(field + " must be positive or zero");
+            throw new IllegalArgumentException("stockQuantity must be positive or zero");
         }
     }
 }

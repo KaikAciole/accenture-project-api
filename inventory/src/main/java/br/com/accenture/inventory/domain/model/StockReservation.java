@@ -1,6 +1,7 @@
 package br.com.accenture.inventory.domain.model;
 
 import br.com.accenture.inventory.domain.enums.ReservationStatus;
+import br.com.accenture.inventory.domain.exception.InvalidReservationStatusException;
 import lombok.Getter;
 
 import java.util.UUID;
@@ -59,29 +60,29 @@ public class StockReservation {
     }
 
     public void confirm() {
-        if (this.status != ReservationStatus.ACTIVE) {
-            throw new IllegalStateException("Only active reservations can be confirmed");
-        }
+        validateActive("confirm");
 
         this.status = ReservationStatus.CONFIRMED;
     }
 
     public void cancel() {
-        if (this.status != ReservationStatus.ACTIVE) {
-            throw new IllegalStateException("Only active reservations can be canceled");
-        }
+        validateActive("cancel");
 
         this.product.increaseStock(this.reservedQuantity);
         this.status = ReservationStatus.CANCELED;
     }
 
     public void expire() {
-        if (this.status != ReservationStatus.ACTIVE) {
-            throw new IllegalStateException("Only active reservations can be expired");
-        }
+        validateActive("expire");
 
         this.product.increaseStock(this.reservedQuantity);
         this.status = ReservationStatus.EXPIRED;
+    }
+
+    private void validateActive(String action) {
+        if (this.status != ReservationStatus.ACTIVE) {
+            throw new InvalidReservationStatusException(this.status, action);
+        }
     }
 
     private static void requireNotNull(Object value, String field) {

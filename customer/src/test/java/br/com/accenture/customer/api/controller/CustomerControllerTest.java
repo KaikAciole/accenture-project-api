@@ -184,6 +184,32 @@ class CustomerControllerTest {
     }
 
     @Test
+    void update_shouldReturn409WhenEmailAlreadyTaken() throws Exception {
+        when(customerService.update(eq(existingId), any()))
+                .thenThrow(new DuplicateCustomerException("email", "taken@example.com"));
+
+        mockMvc.perform(put("/customers/{id}", existingId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Duplicate customer"))
+                .andExpect(jsonPath("$.detail").value("Customer already exists with email: taken@example.com"));
+    }
+
+    @Test
+    void update_shouldReturn409WhenPhoneAlreadyTaken() throws Exception {
+        when(customerService.update(eq(existingId), any()))
+                .thenThrow(new DuplicateCustomerException("phone", "11900000000"));
+
+        mockMvc.perform(put("/customers/{id}", existingId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Duplicate customer"))
+                .andExpect(jsonPath("$.detail").value("Customer already exists with phone: 11900000000"));
+    }
+
+    @Test
     void delete_shouldReturn204() throws Exception {
         doNothing().when(customerService).delete(existingId);
 

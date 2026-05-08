@@ -2,6 +2,8 @@ package br.com.accenture.customer;
 
 import br.com.accenture.customer.api.dto.AddressRequest;
 import br.com.accenture.customer.api.dto.CustomerRequest;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,8 +14,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -27,6 +31,9 @@ class CustomerLifecycleE2eTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Test
     void shouldCreateCustomerAndRetrieveItById() throws Exception {
@@ -103,6 +110,98 @@ class CustomerLifecycleE2eTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Duplicate customer"))
                 .andExpect(jsonPath("$.detail").value("Customer already exists with cpf: 99988877766"));
+    }
+
+    @Test
+    void shouldUpdateCustomerMutableFields() throws Exception {
+        CustomerRequest request = new CustomerRequest(
+                "Carlos E2E", "carlos.e2e@example.com", "12312312312", "secret123", "11900000040"
+        );
+        String customerId = createCustomer(request);
+
+        CustomerRequest updateRequest = new CustomerRequest(
+                "Carlos Updated", "carlos.updated@example.com", "12312312312", "newpass12", "11900000041"
+        );
+        mockMvc.perform(put("/customers/{id}", customerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Carlos Updated"))
+                .andExpect(jsonPath("$.email").value("carlos.updated@example.com"))
+                .andExpect(jsonPath("$.phone").value("11900000041"))
+                .andExpect(jsonPath("$.cpf").value("12312312312"))
+                .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    void shouldReturn422WhenUpdatingCpf() throws Exception {
+        CustomerRequest request = new CustomerRequest(
+                "Diana E2E", "diana.e2e@example.com", "32132132132", "secret123", "11900000050"
+        );
+        String customerId = createCustomer(request);
+
+        CustomerRequest changingCpf = new CustomerRequest(
+                "Diana E2E", "diana.e2e@example.com", "99999999999", "secret123", "11900000050"
+        );
+        mockMvc.perform(put("/customers/{id}", customerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changingCpf)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.title").value("Immutable field"))
+                .andExpect(jsonPath("$.detail").value("Field 'cpf' cannot be changed after creation"));
+    }
+
+    @Test
+    void shouldDeleteCustomerAndReturn404OnSubsequentGet() throws Exception {
+        CustomerRequest request = new CustomerRequest(
+                "Eduardo E2E", "eduardo.e2e@example.com", "45645645645", "secret123", "11900000060"
+        );
+        String customerId = createCustomer(request);
+
+        mockMvc.perform(delete("/customers/{id}", customerId))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/customers/{id}", customerId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Customer not found"));
+    }
+
+    @Test
+    void shouldCascadeDeleteAddressesWhenCustomerIsDeleted() throws Exception {
+        CustomerRequest request = new CustomerRequest(
+                "Fabio E2E", "fabio.e2e@example.com", "78978978978", "secret123", "11900000070"
+        );
+        String customerId = createCustomer(request);
+
+        AddressRequest addressRequest = new AddressRequest(
+                "Rua das Flores", "123", null, "Centro", "São Paulo", "SP", "01001000"
+        );
+        MvcResult addressResult = mockMvc.perform(post("/customers/{customerId}/addresses", customerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(addressRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String addressId = objectMapper.readTree(addressResult.getResponse().getContentAsString())
+                .get("id").asString();
+
+        mockMvc.perform(delete("/customers/{id}", customerId))
+                .andExpect(status().isNoContent());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/customers/{customerId}/addresses/{addressId}", customerId, addressId))
+                .andExpect(status().isNotFound());
+    }
+
+    private String createCustomer(CustomerRequest request) throws Exception {
+        MvcResult result = mockMvc.perform(post("/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("id").asString();
     }
 
 }

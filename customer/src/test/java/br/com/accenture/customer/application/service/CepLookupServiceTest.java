@@ -1,5 +1,6 @@
 package br.com.accenture.customer.application.service;
 
+import br.com.accenture.customer.domain.exception.CepLookupException;
 import br.com.accenture.customer.domain.exception.CepNotFoundException;
 import br.com.accenture.customer.domain.gateway.CepLookupGateway;
 import br.com.accenture.customer.domain.model.CepLookupResult;
@@ -42,6 +43,16 @@ class CepLookupServiceTest {
 
         assertThatThrownBy(() -> service.lookup("00000000"))
                 .isInstanceOf(CepNotFoundException.class);
+    }
+
+    @Test
+    void lookup_shouldPropagateCepLookupException() {
+        when(gateway.lookup("01001000"))
+                .thenThrow(new CepLookupException("Failed to reach ViaCEP", new RuntimeException()));
+
+        assertThatThrownBy(() -> service.lookup("01001000"))
+                .isInstanceOf(CepLookupException.class)
+                .hasMessageContaining("Failed to reach ViaCEP");
     }
 
 }

@@ -2,11 +2,15 @@ package br.com.accenture.inventory.infrastructure.persistence;
 
 import br.com.accenture.inventory.domain.enums.ReservationStatus;
 import br.com.accenture.inventory.domain.model.StockReservation;
+import br.com.accenture.inventory.domain.pagination.PageRequest;
+import br.com.accenture.inventory.domain.pagination.PageResult;
 import br.com.accenture.inventory.domain.repository.StockReservationRepository;
+import br.com.accenture.inventory.infrastructure.persistence.entity.StockReservationJpaEntity;
+import br.com.accenture.inventory.infrastructure.persistence.mapper.PageableMapper;
 import br.com.accenture.inventory.infrastructure.persistence.mapper.StockReservationPersistenceMapper;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,35 +37,61 @@ public class StockReservationRepositoryAdapter implements StockReservationReposi
     }
 
     @Override
-    public List<StockReservation> findByOrderId(UUID orderId) {
-        return jpaRepository.findByOrderId(orderId).stream()
-                .map(StockReservationPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<StockReservation> findByOrderId(UUID orderId, PageRequest pageRequest) {
+        Page<StockReservationJpaEntity> page = jpaRepository.findByOrderId(
+                orderId,
+                PageableMapper.toPageable(pageRequest)
+        );
+
+        return toPageResult(page);
     }
 
     @Override
-    public List<StockReservation> findByOrderIdAndStatus(UUID orderId, ReservationStatus status) {
-        return jpaRepository.findByOrderIdAndStatus(orderId, status).stream()
-                .map(StockReservationPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<StockReservation> findByOrderIdAndStatus(UUID orderId,
+                                                               ReservationStatus status,
+                                                               PageRequest pageRequest) {
+        Page<StockReservationJpaEntity> page = jpaRepository.findByOrderIdAndStatus(
+                orderId,
+                status,
+                PageableMapper.toPageable(pageRequest)
+        );
+
+        return toPageResult(page);
     }
 
     @Override
-    public List<StockReservation> findByProductId(UUID productId) {
-        return jpaRepository.findByProductId(productId).stream()
-                .map(StockReservationPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<StockReservation> findByProductId(UUID productId, PageRequest pageRequest) {
+        Page<StockReservationJpaEntity> page = jpaRepository.findByProductId(
+                productId,
+                PageableMapper.toPageable(pageRequest)
+        );
+
+        return toPageResult(page);
     }
 
     @Override
-    public List<StockReservation> findAll() {
-        return jpaRepository.findAll().stream()
-                .map(StockReservationPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<StockReservation> findAll(PageRequest pageRequest) {
+        Page<StockReservationJpaEntity> page = jpaRepository.findAll(
+                PageableMapper.toPageable(pageRequest)
+        );
+
+        return toPageResult(page);
     }
 
     @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
+    }
+
+    private PageResult<StockReservation> toPageResult(Page<StockReservationJpaEntity> page) {
+        return new PageResult<>(
+                page.getContent().stream()
+                        .map(StockReservationPersistenceMapper::toDomain)
+                        .toList(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 }

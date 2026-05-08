@@ -5,12 +5,13 @@ import br.com.accenture.inventory.domain.exception.ProductNotFoundException;
 import br.com.accenture.inventory.domain.exception.StockReservationNotFoundException;
 import br.com.accenture.inventory.domain.model.Product;
 import br.com.accenture.inventory.domain.model.StockReservation;
+import br.com.accenture.inventory.domain.pagination.PageRequest;
+import br.com.accenture.inventory.domain.pagination.PageResult;
 import br.com.accenture.inventory.domain.repository.ProductRepository;
 import br.com.accenture.inventory.domain.repository.StockReservationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -48,23 +49,25 @@ public class StockReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<StockReservation> findAll() {
-        return stockReservationRepository.findAll();
+    public PageResult<StockReservation> findAll(PageRequest pageRequest) {
+        return stockReservationRepository.findAll(pageRequest);
     }
 
     @Transactional(readOnly = true)
-    public List<StockReservation> findByOrderId(UUID orderId) {
-        return stockReservationRepository.findByOrderId(orderId);
+    public PageResult<StockReservation> findByOrderId(UUID orderId, PageRequest pageRequest) {
+        return stockReservationRepository.findByOrderId(orderId, pageRequest);
     }
 
     @Transactional(readOnly = true)
-    public List<StockReservation> findByOrderIdAndStatus(UUID orderId, ReservationStatus status) {
-        return stockReservationRepository.findByOrderIdAndStatus(orderId, status);
+    public PageResult<StockReservation> findByOrderIdAndStatus(UUID orderId,
+                                                               ReservationStatus status,
+                                                               PageRequest pageRequest) {
+        return stockReservationRepository.findByOrderIdAndStatus(orderId, status, pageRequest);
     }
 
     @Transactional(readOnly = true)
-    public List<StockReservation> findByProductId(UUID productId) {
-        return stockReservationRepository.findByProductId(productId);
+    public PageResult<StockReservation> findByProductId(UUID productId, PageRequest pageRequest) {
+        return stockReservationRepository.findByProductId(productId, pageRequest);
     }
 
     @Transactional

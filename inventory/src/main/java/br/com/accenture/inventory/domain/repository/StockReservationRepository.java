@@ -2,8 +2,9 @@ package br.com.accenture.inventory.domain.repository;
 
 import br.com.accenture.inventory.domain.enums.ReservationStatus;
 import br.com.accenture.inventory.domain.model.StockReservation;
+import br.com.accenture.inventory.domain.pagination.PageRequest;
+import br.com.accenture.inventory.domain.pagination.PageResult;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,13 +14,15 @@ public interface StockReservationRepository {
 
     Optional<StockReservation> findById(UUID id);
 
-    List<StockReservation> findByOrderId(UUID orderId);
+    PageResult<StockReservation> findByOrderId(UUID orderId, PageRequest pageRequest);
 
-    List<StockReservation> findByOrderIdAndStatus(UUID orderId, ReservationStatus status);
+    PageResult<StockReservation> findByOrderIdAndStatus(UUID orderId,
+                                                        ReservationStatus status,
+                                                        PageRequest pageRequest);
 
-    List<StockReservation> findByProductId(UUID productId);
+    PageResult<StockReservation> findByProductId(UUID productId, PageRequest pageRequest);
 
-    List<StockReservation> findAll();
+    PageResult<StockReservation> findAll(PageRequest pageRequest);
 
     void deleteById(UUID id);
 }

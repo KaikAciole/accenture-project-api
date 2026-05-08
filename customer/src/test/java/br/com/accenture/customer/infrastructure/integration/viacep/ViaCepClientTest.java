@@ -128,4 +128,14 @@ class ViaCepClientTest {
                 .hasMessageContaining("Failed to reach ViaCEP");
     }
 
+    @Test
+    void lookup_shouldThrowCepNotFoundWhenResponseBodyIsNull() {
+        server.expect(requestTo(BASE_URL + "/01001000/json/"))
+                .andRespond(withStatus(HttpStatus.OK));
+
+        assertThatThrownBy(() -> client.lookup("01001000"))
+                .isInstanceOf(CepNotFoundException.class)
+                .hasMessageContaining("01001000");
+    }
+
 }

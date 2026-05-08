@@ -6,6 +6,7 @@ import br.com.accenture.customer.domain.pagination.PageRequest;
 import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.pagination.Sort;
 import br.com.accenture.customer.infrastructure.config.JpaConfig;
+import br.com.accenture.customer.infrastructure.persistence.entity.AddressJpaEntity;
 import br.com.accenture.customer.infrastructure.persistence.entity.CustomerJpaEntity;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -215,6 +216,19 @@ class CustomerRepositoryAdapterTest {
     }
 
     @Test
+    void findAll_shouldRespectSortAscending() {
+        persistDirect("Carlos", "c@example.com", "10000000003", "11900000003");
+        persistDirect("Ana", "a@example.com", "10000000001", "11900000001");
+        persistDirect("Bruno", "b@example.com", "10000000002", "11900000002");
+
+        PageResult<Customer> page = adapter.findAll(
+                PageRequest.of(0, 10, List.of(new Sort("name", Direction.ASC)))
+        );
+
+        assertThat(page.content()).extracting(Customer::getName).containsExactly("Ana", "Bruno", "Carlos");
+    }
+
+    @Test
     void deleteById_shouldRemoveExisting() {
         Customer saved = adapter.save(baseCustomer);
         em.flush();
@@ -224,6 +238,46 @@ class CustomerRepositoryAdapterTest {
         em.clear();
 
         assertThat(adapter.findById(saved.getId())).isEmpty();
+    }
+
+    @Test
+    void deleteById_shouldCascadeAssociatedAddresses() {
+        Customer saved = adapter.save(baseCustomer);
+        em.flush();
+
+        CustomerJpaEntity customerRef = em.find(CustomerJpaEntity.class, saved.getId());
+        AddressJpaEntity firstAddress = AddressJpaEntity.builder()
+                .customer(customerRef)
+                .street("Rua A")
+                .number("100")
+                .neighborhood("Centro")
+                .city("São Paulo")
+                .state("SP")
+                .zipCode("01001000")
+                .build();
+        AddressJpaEntity secondAddress = AddressJpaEntity.builder()
+                .customer(customerRef)
+                .street("Rua B")
+                .number("200")
+                .neighborhood("Centro")
+                .city("São Paulo")
+                .state("SP")
+                .zipCode("01001001")
+                .build();
+        em.persist(firstAddress);
+        em.persist(secondAddress);
+        em.flush();
+        UUID firstAddressId = firstAddress.getId();
+        UUID secondAddressId = secondAddress.getId();
+        em.clear();
+
+        adapter.deleteById(saved.getId());
+        em.flush();
+        em.clear();
+
+        assertThat(adapter.findById(saved.getId())).isEmpty();
+        assertThat(em.find(AddressJpaEntity.class, firstAddressId)).isNull();
+        assertThat(em.find(AddressJpaEntity.class, secondAddressId)).isNull();
     }
 
     @Test

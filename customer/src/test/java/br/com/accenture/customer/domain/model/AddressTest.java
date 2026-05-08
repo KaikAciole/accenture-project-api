@@ -151,4 +151,48 @@ class AddressTest {
                 .hasMessageContaining("zipCode");
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    void update_shouldRejectBlankNumber(String value) {
+        Address address = Address.createNew(
+                CUSTOMER_ID, "Rua A", "100", null, "Centro", "São Paulo", "SP", "01001000"
+        );
+        assertThatThrownBy(() -> address.update("Rua B", value, null, "Centro", "São Paulo", "SP", "01001000"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("number");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void update_shouldRejectBlankNeighborhood(String value) {
+        Address address = Address.createNew(
+                CUSTOMER_ID, "Rua A", "100", null, "Centro", "São Paulo", "SP", "01001000"
+        );
+        assertThatThrownBy(() -> address.update("Rua B", "200", null, value, "São Paulo", "SP", "01001000"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("neighborhood");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void update_shouldRejectBlankCity(String value) {
+        Address address = Address.createNew(
+                CUSTOMER_ID, "Rua A", "100", null, "Centro", "São Paulo", "SP", "01001000"
+        );
+        assertThatThrownBy(() -> address.update("Rua B", "200", null, "Centro", value, "SP", "01001000"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("city");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void update_shouldRejectBlankState(String value) {
+        Address address = Address.createNew(
+                CUSTOMER_ID, "Rua A", "100", null, "Centro", "São Paulo", "SP", "01001000"
+        );
+        assertThatThrownBy(() -> address.update("Rua B", "200", null, "Centro", "São Paulo", value, "01001000"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("state");
+    }
+
 }

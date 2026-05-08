@@ -1,6 +1,7 @@
 package br.com.accenture.order.application.service;
 
 import br.com.accenture.order.application.dto.OrderItemCommand;
+import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.model.OrderItem;
@@ -39,16 +40,16 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
-    @Transactional(readOnly = true)
-    public List<Order> findByCustomerId(String customerId) {
-        return orderRepository.findByCustomerId(customerId);
-    }
-
     @Transactional
     public void confirmOrderReservation(UUID id) {
         Order order = findById(id);
         order.confirmReservation();
 
         orderRepository.save(order);
+    }
+
+    @Transactional(readOnly = true)
+    public PaginatedResult<Order> findByCustomerId(String customerId, int page, int size) {
+        return orderRepository.findByCustomerId(customerId, page, size);
     }
 }

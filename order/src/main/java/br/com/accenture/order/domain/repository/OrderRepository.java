@@ -1,5 +1,6 @@
 package br.com.accenture.order.domain.repository;
 
+import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.domain.model.Order;
 
 import java.util.List;
@@ -12,8 +13,8 @@ public interface OrderRepository {
 
     Optional<Order> findById(UUID id);
 
-    List<Order> findByCustomerId(String customerId);
-
     void deleteById(UUID id);
+
+    PaginatedResult<Order> findByCustomerId(String customerId, int page, int size);
 
 }

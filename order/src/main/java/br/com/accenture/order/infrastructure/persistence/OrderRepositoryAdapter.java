@@ -1,7 +1,9 @@
 package br.com.accenture.order.infrastructure.persistence;
 
+import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.repository.OrderRepository;
+import br.com.accenture.order.infrastructure.persistence.entity.OrderJpaEntity;
 import br.com.accenture.order.infrastructure.persistence.mapper.OrderPersistenceMapper;
 import org.springframework.stereotype.Component;
 
@@ -31,15 +33,29 @@ public class OrderRepositoryAdapter implements OrderRepository {
     }
 
     @Override
-    public List<Order> findByCustomerId(String customerId) {
-        return jpaRepository.findByCustomerId(customerId).stream()
-                .map(OrderPersistenceMapper::toDomain)
-                .toList();
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
     }
 
     @Override
-    public void deleteById(UUID id) {
-        jpaRepository.deleteById(id);
+    public PaginatedResult<Order> findByCustomerId(String customerId, int page, int size) {
+        org.springframework.data.domain.PageRequest pageRequest =
+                org.springframework.data.domain.PageRequest.of(page, size);
+
+        org.springframework.data.domain.Page<OrderJpaEntity> entityPage =
+                jpaRepository.findByCustomerId(customerId, pageRequest);
+
+        List<Order> domainOrders = entityPage.getContent().stream()
+                .map(OrderPersistenceMapper::toDomain)
+                .toList();
+
+        return new PaginatedResult<>(
+                domainOrders,
+                entityPage.getNumber(),
+                entityPage.getSize(),
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages()
+        );
     }
 
 }

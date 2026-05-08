@@ -38,6 +38,9 @@ class StockReservationTest {
                 .isThrownBy(() -> StockReservation.createNew(UUID.randomUUID(), null, 1))
                 .withMessage("product must not be null");
         assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> StockReservation.createNew(UUID.randomUUID(), product, null))
+                .withMessage("reservedQuantity must be positive");
+        assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> StockReservation.createNew(UUID.randomUUID(), product, 0))
                 .withMessage("reservedQuantity must be positive");
     }

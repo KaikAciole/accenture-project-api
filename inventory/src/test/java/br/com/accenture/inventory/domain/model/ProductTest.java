@@ -35,8 +35,14 @@ class ProductTest {
                 .isThrownBy(() -> Product.createNew("SKU-001", "Notebook", null, BigDecimal.TEN, 5))
                 .withMessage("category must not be blank");
         assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Product.createNew("SKU-001", "Notebook", "Electronics", null, 5))
+                .withMessage("basePrice must be positive");
+        assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.ZERO, 5))
                 .withMessage("basePrice must be positive");
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, null))
+                .withMessage("stockQuantity must be positive or zero");
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, -1))
                 .withMessage("stockQuantity must be positive or zero");
@@ -70,10 +76,25 @@ class ProductTest {
         Product product = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> product.decreaseStock(null))
+                .withMessage("quantity must be positive");
+        assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> product.decreaseStock(0))
                 .withMessage("quantity must be positive");
         assertThatExceptionOfType(InsufficientStockException.class)
                 .isThrownBy(() -> product.decreaseStock(6))
                 .withMessage("Insufficient stock for product sku: SKU-001. Requested: 6, available: 5");
+    }
+
+    @Test
+    void increaseStockRejectsInvalidQuantity() {
+        Product product = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5);
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> product.increaseStock(null))
+                .withMessage("quantity must be positive");
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> product.increaseStock(0))
+                .withMessage("quantity must be positive");
     }
 }

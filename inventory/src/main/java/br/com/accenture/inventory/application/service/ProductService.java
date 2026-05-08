@@ -3,11 +3,12 @@ package br.com.accenture.inventory.application.service;
 import br.com.accenture.inventory.domain.exception.DuplicateProductException;
 import br.com.accenture.inventory.domain.exception.ProductNotFoundException;
 import br.com.accenture.inventory.domain.model.Product;
+import br.com.accenture.inventory.domain.pagination.PageRequest;
+import br.com.accenture.inventory.domain.pagination.PageResult;
 import br.com.accenture.inventory.domain.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,8 +27,13 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<Product> findAll() {
-        return productRepository.findAll();
+    public PageResult<Product> findAll(PageRequest pageRequest) {
+        return productRepository.findAll(pageRequest);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<Product> findByName(String name, PageRequest pageRequest) {
+        return productRepository.findByNameContainingIgnoreCase(name, pageRequest);
     }
 
     @Transactional(readOnly = true)
@@ -40,11 +46,6 @@ public class ProductService {
     public Product findBySku(String sku) {
         return productRepository.findBySku(sku)
                 .orElseThrow(() -> new ProductNotFoundException(sku));
-    }
-
-    @Transactional(readOnly = true)
-    public List<Product> findByName(String name) {
-        return productRepository.findByNameContainingIgnoreCase(name);
     }
 
     @Transactional

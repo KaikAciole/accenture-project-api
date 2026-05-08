@@ -1,8 +1,9 @@
 package br.com.accenture.inventory.domain.repository;
 
 import br.com.accenture.inventory.domain.model.Product;
+import br.com.accenture.inventory.domain.pagination.PageRequest;
+import br.com.accenture.inventory.domain.pagination.PageResult;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,9 +17,9 @@ public interface ProductRepository {
 
     boolean existsBySku(String sku);
 
-    List<Product> findByNameContainingIgnoreCase(String name);
+    PageResult<Product> findByNameContainingIgnoreCase(String name, PageRequest pageRequest);
 
-    List<Product> findAll();
+    PageResult<Product> findAll(PageRequest pageRequest);
 
     void deleteById(UUID id);
 }

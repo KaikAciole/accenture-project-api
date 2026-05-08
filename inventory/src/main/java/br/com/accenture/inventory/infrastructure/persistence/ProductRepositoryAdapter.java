@@ -1,11 +1,15 @@
 package br.com.accenture.inventory.infrastructure.persistence;
 
 import br.com.accenture.inventory.domain.model.Product;
+import br.com.accenture.inventory.domain.pagination.PageRequest;
+import br.com.accenture.inventory.domain.pagination.PageResult;
 import br.com.accenture.inventory.domain.repository.ProductRepository;
+import br.com.accenture.inventory.infrastructure.persistence.entity.ProductJpaEntity;
+import br.com.accenture.inventory.infrastructure.persistence.mapper.PageableMapper;
 import br.com.accenture.inventory.infrastructure.persistence.mapper.ProductPersistenceMapper;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,21 +47,38 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
-    public List<Product> findByNameContainingIgnoreCase(String name) {
-        return jpaRepository.findByNameContainingIgnoreCase(name).stream()
-                .map(ProductPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<Product> findByNameContainingIgnoreCase(String name, PageRequest pageRequest) {
+        Page<ProductJpaEntity> page = jpaRepository.findByNameContainingIgnoreCase(
+                name,
+                PageableMapper.toPageable(pageRequest)
+        );
+
+        return toPageResult(page);
     }
 
     @Override
-    public List<Product> findAll() {
-        return jpaRepository.findAll().stream()
-                .map(ProductPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<Product> findAll(PageRequest pageRequest) {
+        Page<ProductJpaEntity> page = jpaRepository.findAll(
+                PageableMapper.toPageable(pageRequest)
+        );
+
+        return toPageResult(page);
     }
 
     @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
+    }
+
+    private PageResult<Product> toPageResult(Page<ProductJpaEntity> page) {
+        return new PageResult<>(
+                page.getContent().stream()
+                        .map(ProductPersistenceMapper::toDomain)
+                        .toList(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 }

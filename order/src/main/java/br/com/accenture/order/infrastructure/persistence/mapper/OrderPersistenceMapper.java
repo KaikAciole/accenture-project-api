@@ -29,7 +29,7 @@ public final class OrderPersistenceMapper {
         var itemEntities = order.getItems().stream()
                 .map(item -> OrderItemJpaEntity.builder()
                         .id(item.getId())
-                        .order(orderEntity) // Vinculando a chave estrangeira aqui!
+                        .order(orderEntity)
                         .sku(item.getSku())
                         .quantity(item.getQuantity())
                         .unitPrice(item.getUnitPrice())
@@ -38,7 +38,6 @@ public final class OrderPersistenceMapper {
                         .build())
                 .toList();
 
-        // O Spring Data precisa que a lista seja mutável para gerenciar o estado
         orderEntity.setItems(new ArrayList<>(itemEntities));
 
         return orderEntity;

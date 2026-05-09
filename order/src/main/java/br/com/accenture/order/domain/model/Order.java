@@ -65,7 +65,6 @@ public class Order {
 
     public void updateStatus(OrderStatus newStatus) {
         requireNotNull(newStatus, "newStatus");
-        // Aqui entrariam validações de máquina de estado (ex: não pode ir de CANCELED para PAID)
         this.status = newStatus;
     }
 

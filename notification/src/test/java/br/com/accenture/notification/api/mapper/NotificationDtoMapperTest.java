@@ -8,15 +8,13 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class NotificationApiMapperTest {
-
-    private final NotificationApiMapper mapper = new NotificationApiMapper();
+class NotificationDtoMapperTest {
 
     @Test
     void toResponseMapsAllFieldsForSentNotification() {
         Notification notification = TestFixtures.restoredSentNotification();
 
-        NotificationResponse response = mapper.toResponse(notification);
+        NotificationResponse response = NotificationDtoMapper.toResponse(notification);
 
         assertThat(response.id()).isEqualTo(TestFixtures.NOTIFICATION_ID);
         assertThat(response.recipient()).isEqualTo(TestFixtures.RECIPIENT);
@@ -31,9 +29,14 @@ class NotificationApiMapperTest {
     void toResponseMapsPendingNotificationWithNullSentAt() {
         Notification notification = TestFixtures.restoredPendingNotification();
 
-        NotificationResponse response = mapper.toResponse(notification);
+        NotificationResponse response = NotificationDtoMapper.toResponse(notification);
 
         assertThat(response.status()).isEqualTo(NotificationStatus.PENDING);
         assertThat(response.sentAt()).isNull();
+    }
+
+    @Test
+    void toResponseReturnsNullWhenNotificationIsNull() {
+        assertThat(NotificationDtoMapper.toResponse(null)).isNull();
     }
 }

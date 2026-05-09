@@ -2,6 +2,7 @@ package br.com.accenture.payment.domain.model;
 
 import br.com.accenture.payment.domain.enums.PaymentMethod;
 import br.com.accenture.payment.domain.enums.PaymentStatus;
+import br.com.accenture.payment.domain.exception.InvalidPaymentStatusException;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -56,7 +57,7 @@ public class Payment {
                                     PaymentMethod method) {
         requireNotNull(orderId, "orderId");
         requireNotNull(customerId, "customerId");
-        requirePositive(amount, "amount");
+        requirePositive(amount);
         requireNotNull(method, "method");
 
         return new Payment(
@@ -87,6 +88,13 @@ public class Payment {
                                   Instant createdAt,
                                   Instant updatedAt,
                                   Long version) {
+        requireNotNull(id, "id");
+        requireNotNull(orderId, "orderId");
+        requireNotNull(customerId, "customerId");
+        requirePositive(amount);
+        requireNotNull(method, "method");
+        requireNotNull(status, "status");
+
         return new Payment(
                 id,
                 orderId,
@@ -122,10 +130,7 @@ public class Payment {
 
     public void refuse(String failureReason) {
         requireNotBlank(failureReason, "failureReason");
-
-        if (this.status != PaymentStatus.PENDING && this.status != PaymentStatus.PROCESSING) {
-            throw new IllegalStateException("Cannot refuse payment from current state: " + this.status);
-        }
+        validatePendingOrProcessing("refuse");
 
         this.status = PaymentStatus.REFUSED;
         this.failureReason = failureReason;
@@ -133,9 +138,7 @@ public class Payment {
     }
 
     public void cancel(String failureReason) {
-        if (this.status != PaymentStatus.PENDING && this.status != PaymentStatus.PROCESSING) {
-            throw new IllegalStateException("Cannot cancel payment from current state: " + this.status);
-        }
+        validatePendingOrProcessing("cancel");
 
         this.status = PaymentStatus.CANCELED;
         this.failureReason = failureReason;
@@ -150,7 +153,13 @@ public class Payment {
 
     private void validateStatus(PaymentStatus expectedStatus, String action) {
         if (this.status != expectedStatus) {
-            throw new IllegalStateException("Cannot " + action + " payment from current state: " + this.status);
+            throw new InvalidPaymentStatusException(this.status, action);
+        }
+    }
+
+    private void validatePendingOrProcessing(String action) {
+        if (this.status != PaymentStatus.PENDING && this.status != PaymentStatus.PROCESSING) {
+            throw new InvalidPaymentStatusException(this.status, action);
         }
     }
 
@@ -166,9 +175,9 @@ public class Payment {
         }
     }
 
-    private static void requirePositive(BigDecimal value, String field) {
+    private static void requirePositive(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(field + " must be greater than zero");
+            throw new IllegalArgumentException("amount must be greater than zero");
         }
     }
 }

@@ -58,10 +58,10 @@ public class PaymentJpaEntity {
     @Column(nullable = false, length = 30)
     private PaymentStatus status;
 
-    @Column(name = "external_transaction_id")
+    @Column(name = "external_transaction_id", length = 100)
     private String externalTransactionId;
 
-    @Column(name = "failure_reason")
+    @Column(name = "failure_reason", length = 255)
     private String failureReason;
 
     @Column(name = "paid_at")

@@ -3,9 +3,15 @@ package br.com.accenture.notification.api.mapper;
 import br.com.accenture.notification.api.dto.NotificationResponse;
 import br.com.accenture.notification.domain.model.Notification;
 
-public class NotificationApiMapper {
+public final class NotificationDtoMapper {
 
-    public NotificationResponse toResponse(Notification notification) {
+    private NotificationDtoMapper() {
+    }
+
+    public static NotificationResponse toResponse(Notification notification) {
+        if (notification == null) {
+            return null;
+        }
         return new NotificationResponse(
                 notification.getId(),
                 notification.getRecipient(),
@@ -16,4 +22,5 @@ public class NotificationApiMapper {
                 notification.getSentAt()
         );
     }
+
 }

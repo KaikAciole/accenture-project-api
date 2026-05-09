@@ -1,5 +1,8 @@
 package br.com.accenture.payment.application.service;
 
+
+import br.com.accenture.payment.domain.pagination.PageRequest;
+import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.enums.PaymentMethod;
 import br.com.accenture.payment.domain.exception.DuplicatePaymentException;
 import br.com.accenture.payment.domain.exception.PaymentNotFoundException;
@@ -101,5 +104,10 @@ public class PaymentService {
         if (paymentRepository.existsByOrderId(orderId)) {
             throw new DuplicatePaymentException(orderId);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<Payment> findAll(PageRequest pageRequest) {
+        return paymentRepository.findAll(pageRequest);
     }
 }

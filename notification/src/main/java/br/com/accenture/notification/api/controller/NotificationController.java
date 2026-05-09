@@ -1,7 +1,7 @@
 package br.com.accenture.notification.api.controller;
 
 import br.com.accenture.notification.api.dto.NotificationResponse;
-import br.com.accenture.notification.api.mapper.NotificationApiMapper;
+import br.com.accenture.notification.api.mapper.NotificationDtoMapper;
 import br.com.accenture.notification.application.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,7 +24,6 @@ import java.util.UUID;
 public class NotificationController {
 
     private final NotificationService service;
-    private final NotificationApiMapper mapper = new NotificationApiMapper();
 
     public NotificationController(NotificationService service) {
         this.service = service;
@@ -49,6 +48,6 @@ public class NotificationController {
             @Parameter(description = "Identificador único da notificação",
                     example = "550e8400-e29b-41d4-a716-446655440000")
             @PathVariable UUID id) {
-        return mapper.toResponse(service.findById(id));
+        return NotificationDtoMapper.toResponse(service.findById(id));
     }
 }

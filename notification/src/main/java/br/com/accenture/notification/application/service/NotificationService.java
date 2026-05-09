@@ -17,6 +17,7 @@ public class NotificationService {
         this.repository = repository;
     }
 
+    @Transactional
     public Notification create(String recipient, String subject, String body) {
         Notification notification = Notification.create(recipient, subject, body);
         return repository.save(notification);

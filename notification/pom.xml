@@ -39,6 +39,11 @@
 			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>3.0.3</version>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
@@ -112,6 +117,47 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<configuration>
+							<includes>
+								<include>br/com/accenture/notification/*</include>
+							</includes>
+							<excludes>
+								<exclude>**/*$HibernateProxy*</exclude>
+								<exclude>**/*$HibernateInstantiator*</exclude>
+								<exclude>**/*$MockitoMock*</exclude>
+							</excludes>
+						</configuration>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<configuration>
+							<includes>
+								<include>br/com/accenture/notification/**/*.class</include>
+							</includes>
+							<excludes>
+								<exclude>**/*$HibernateProxy*</exclude>
+								<exclude>**/*$HibernateInstantiator*</exclude>
+								<exclude>**/*$MockitoMock*</exclude>
+							</excludes>
+						</configuration>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>

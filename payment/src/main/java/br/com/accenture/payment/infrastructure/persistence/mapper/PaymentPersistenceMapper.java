@@ -25,6 +25,7 @@ public final class PaymentPersistenceMapper {
                 .paidAt(payment.getPaidAt())
                 .createdAt(payment.getCreatedAt())
                 .updatedAt(payment.getUpdatedAt())
+                .version(payment.getVersion())
                 .build();
     }
 
@@ -44,7 +45,8 @@ public final class PaymentPersistenceMapper {
                 entity.getFailureReason(),
                 entity.getPaidAt(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVersion()
         );
     }
 }

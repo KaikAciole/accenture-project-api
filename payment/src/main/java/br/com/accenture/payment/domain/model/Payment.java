@@ -13,7 +13,7 @@ public class Payment {
 
     private UUID id;
     private UUID orderId;
-    private String customerId;
+    private UUID customerId;
     private BigDecimal amount;
     private PaymentMethod method;
     private PaymentStatus status;
@@ -22,10 +22,11 @@ public class Payment {
     private Instant paidAt;
     private Instant createdAt;
     private Instant updatedAt;
+    private Long version;
 
     private Payment(UUID id,
                     UUID orderId,
-                    String customerId,
+                    UUID customerId,
                     BigDecimal amount,
                     PaymentMethod method,
                     PaymentStatus status,
@@ -33,7 +34,8 @@ public class Payment {
                     String failureReason,
                     Instant paidAt,
                     Instant createdAt,
-                    Instant updatedAt) {
+                    Instant updatedAt,
+                    Long version) {
         this.id = id;
         this.orderId = orderId;
         this.customerId = customerId;
@@ -45,14 +47,15 @@ public class Payment {
         this.paidAt = paidAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.version = version;
     }
 
     public static Payment createNew(UUID orderId,
-                                    String customerId,
+                                    UUID customerId,
                                     BigDecimal amount,
                                     PaymentMethod method) {
         requireNotNull(orderId, "orderId");
-        requireNotBlank(customerId, "customerId");
+        requireNotNull(customerId, "customerId");
         requirePositive(amount, "amount");
         requireNotNull(method, "method");
 
@@ -67,13 +70,14 @@ public class Payment {
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }
 
     public static Payment restore(UUID id,
                                   UUID orderId,
-                                  String customerId,
+                                  UUID customerId,
                                   BigDecimal amount,
                                   PaymentMethod method,
                                   PaymentStatus status,
@@ -81,7 +85,8 @@ public class Payment {
                                   String failureReason,
                                   Instant paidAt,
                                   Instant createdAt,
-                                  Instant updatedAt) {
+                                  Instant updatedAt,
+                                  Long version) {
         return new Payment(
                 id,
                 orderId,
@@ -93,7 +98,8 @@ public class Payment {
                 failureReason,
                 paidAt,
                 createdAt,
-                updatedAt
+                updatedAt,
+                version
         );
     }
 

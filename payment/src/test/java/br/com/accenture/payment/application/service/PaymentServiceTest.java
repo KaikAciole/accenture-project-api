@@ -3,22 +3,24 @@ package br.com.accenture.payment.application.service;
 import br.com.accenture.payment.domain.enums.PaymentMethod;
 import br.com.accenture.payment.domain.enums.PaymentStatus;
 import br.com.accenture.payment.domain.exception.DuplicatePaymentException;
+import br.com.accenture.payment.domain.exception.InvalidPaymentStatusException;
 import br.com.accenture.payment.domain.exception.PaymentNotFoundException;
 import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.pagination.PageRequest;
+import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.repository.PaymentRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 class PaymentServiceTest {
 
@@ -27,38 +29,40 @@ class PaymentServiceTest {
     private static final UUID CUSTOMER_ID = UUID.fromString("2a497a58-b4e5-44ac-a79b-797ca294865e");
     private static final BigDecimal AMOUNT = new BigDecimal("149.90");
 
-    private final PaymentRepository paymentRepository = mock(PaymentRepository.class);
+    private final FakePaymentRepository paymentRepository = new FakePaymentRepository();
     private final PaymentService service = new PaymentService(paymentRepository);
 
     @Test
     void createPersistsNewPaymentWhenOrderDoesNotHavePayment() {
         Payment saved = pendingPayment();
-        when(paymentRepository.existsByOrderId(ORDER_ID)).thenReturn(false);
-        when(paymentRepository.save(any(Payment.class))).thenReturn(saved);
+        paymentRepository.existsByOrderId = false;
+        paymentRepository.nextSavedPayment = saved;
 
         Payment result = service.create(ORDER_ID, CUSTOMER_ID, AMOUNT, PaymentMethod.PIX);
 
         assertThat(result).isSameAs(saved);
-        verify(paymentRepository).existsByOrderId(ORDER_ID);
-        verify(paymentRepository).save(any(Payment.class));
+        assertThat(paymentRepository.existsByOrderIdCalls).containsExactly(ORDER_ID);
+        assertThat(paymentRepository.savedPayments).hasSize(1);
     }
 
     @Test
     void createThrowsWhenOrderAlreadyHasPayment() {
-        when(paymentRepository.existsByOrderId(ORDER_ID)).thenReturn(true);
+        paymentRepository.existsByOrderId = true;
 
         assertThatExceptionOfType(DuplicatePaymentException.class)
                 .isThrownBy(() -> service.create(ORDER_ID, CUSTOMER_ID, AMOUNT, PaymentMethod.PIX))
                 .withMessage("Payment already exists for order id: " + ORDER_ID);
-        verify(paymentRepository).existsByOrderId(ORDER_ID);
-        verifyNoMoreInteractions(paymentRepository);
+        assertThat(paymentRepository.existsByOrderIdCalls).containsExactly(ORDER_ID);
+        assertThat(paymentRepository.savedPayments).isEmpty();
     }
 
     @Test
     void findByIdAndOrderIdReturnPaymentOrThrowWhenMissing() {
         Payment payment = pendingPayment();
-        when(paymentRepository.findById(PAYMENT_ID)).thenReturn(Optional.of(payment), Optional.empty());
-        when(paymentRepository.findByOrderId(ORDER_ID)).thenReturn(Optional.of(payment), Optional.empty());
+        paymentRepository.findByIdResponses.add(Optional.of(payment));
+        paymentRepository.findByIdResponses.add(Optional.empty());
+        paymentRepository.findByOrderIdResponses.add(Optional.of(payment));
+        paymentRepository.findByOrderIdResponses.add(Optional.empty());
 
         assertThat(service.findById(PAYMENT_ID)).isSameAs(payment);
         assertThat(service.findByOrderId(ORDER_ID)).isSameAs(payment);
@@ -72,20 +76,11 @@ class PaymentServiceTest {
 
     @Test
     void processApproveRefuseCancelAndRefundApplyStateChanges() {
-        Payment toProcess = pendingPayment();
-        Payment toApprove = processingPayment();
-        Payment toRefuse = processingPayment();
-        Payment toCancel = pendingPayment();
-        Payment toRefund = approvedPayment();
-        when(paymentRepository.findById(PAYMENT_ID))
-                .thenReturn(
-                        Optional.of(toProcess),
-                        Optional.of(toApprove),
-                        Optional.of(toRefuse),
-                        Optional.of(toCancel),
-                        Optional.of(toRefund)
-                );
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        paymentRepository.findByIdResponses.add(Optional.of(pendingPayment()));
+        paymentRepository.findByIdResponses.add(Optional.of(processingPayment()));
+        paymentRepository.findByIdResponses.add(Optional.of(processingPayment()));
+        paymentRepository.findByIdResponses.add(Optional.of(pendingPayment()));
+        paymentRepository.findByIdResponses.add(Optional.of(approvedPayment()));
 
         Payment processing = service.process(PAYMENT_ID, "tx-123");
         Payment approved = service.approve(PAYMENT_ID);
@@ -102,18 +97,42 @@ class PaymentServiceTest {
         assertThat(canceled.getStatus()).isEqualTo(PaymentStatus.CANCELED);
         assertThat(canceled.getFailureReason()).isEqualTo("Customer requested");
         assertThat(refunded.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(paymentRepository.savedPayments).hasSize(5);
     }
 
     @Test
     void deleteRequiresExistingPayment() {
-        when(paymentRepository.findById(PAYMENT_ID)).thenReturn(Optional.of(pendingPayment()), Optional.empty());
+        paymentRepository.findByIdResponses.add(Optional.of(pendingPayment()));
+        paymentRepository.findByIdResponses.add(Optional.empty());
 
         service.delete(PAYMENT_ID);
 
-        verify(paymentRepository).deleteById(PAYMENT_ID);
+        assertThat(paymentRepository.deletedIds).containsExactly(PAYMENT_ID);
         assertThatExceptionOfType(PaymentNotFoundException.class)
                 .isThrownBy(() -> service.delete(PAYMENT_ID))
                 .withMessage("Payment not found with id: " + PAYMENT_ID);
+    }
+
+    @Test
+    void findAllDelegatesToRepository() {
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        PageResult<Payment> page = new PageResult<>(List.of(pendingPayment()), 0, 10, 1, 1);
+        paymentRepository.pageResult = page;
+
+        PageResult<Payment> result = service.findAll(pageRequest);
+
+        assertThat(result).isSameAs(page);
+        assertThat(paymentRepository.findAllRequests).containsExactly(pageRequest);
+    }
+
+    @Test
+    void statusOperationsPropagateDomainExceptionsAndDoNotSaveInvalidState() {
+        paymentRepository.findByIdResponses.add(Optional.of(approvedPayment()));
+
+        assertThatExceptionOfType(InvalidPaymentStatusException.class)
+                .isThrownBy(() -> service.process(PAYMENT_ID, "tx-999"))
+                .withMessage("Cannot process payment from current status: APPROVED");
+        assertThat(paymentRepository.savedPayments).isEmpty();
     }
 
     private static Payment pendingPayment() {
@@ -165,5 +184,51 @@ class PaymentServiceTest {
                 null,
                 null
         );
+    }
+
+    private static final class FakePaymentRepository implements PaymentRepository {
+
+        private boolean existsByOrderId;
+        private Payment nextSavedPayment;
+        private PageResult<Payment> pageResult;
+        private final List<UUID> existsByOrderIdCalls = new ArrayList<>();
+        private final List<Payment> savedPayments = new ArrayList<>();
+        private final List<UUID> deletedIds = new ArrayList<>();
+        private final List<PageRequest> findAllRequests = new ArrayList<>();
+        private final Queue<Optional<Payment>> findByIdResponses = new ArrayDeque<>();
+        private final Queue<Optional<Payment>> findByOrderIdResponses = new ArrayDeque<>();
+
+        @Override
+        public Payment save(Payment payment) {
+            savedPayments.add(payment);
+            return nextSavedPayment != null ? nextSavedPayment : payment;
+        }
+
+        @Override
+        public Optional<Payment> findById(UUID id) {
+            return findByIdResponses.isEmpty() ? Optional.empty() : findByIdResponses.remove();
+        }
+
+        @Override
+        public Optional<Payment> findByOrderId(UUID orderId) {
+            return findByOrderIdResponses.isEmpty() ? Optional.empty() : findByOrderIdResponses.remove();
+        }
+
+        @Override
+        public boolean existsByOrderId(UUID orderId) {
+            existsByOrderIdCalls.add(orderId);
+            return existsByOrderId;
+        }
+
+        @Override
+        public PageResult<Payment> findAll(PageRequest pageRequest) {
+            findAllRequests.add(pageRequest);
+            return pageResult;
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            deletedIds.add(id);
+        }
     }
 }

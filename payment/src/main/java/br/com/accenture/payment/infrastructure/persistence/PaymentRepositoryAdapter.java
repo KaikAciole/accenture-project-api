@@ -2,6 +2,7 @@ package br.com.accenture.payment.infrastructure.persistence;
 
 import br.com.accenture.payment.domain.model.Payment;
 import br.com.accenture.payment.domain.pagination.PageRequest;
+import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.repository.PaymentRepository;
 import br.com.accenture.payment.infrastructure.persistence.entity.PaymentJpaEntity;
 import br.com.accenture.payment.infrastructure.persistence.mapper.PageableMapper;

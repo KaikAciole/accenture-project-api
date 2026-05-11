@@ -1,7 +1,8 @@
 package br.com.accenture.customer.api.mapper;
 
-import br.com.accenture.customer.api.dto.CustomerRequest;
+import br.com.accenture.customer.api.dto.CreateCustomerInternalRequest;
 import br.com.accenture.customer.api.dto.CustomerResponse;
+import br.com.accenture.customer.api.dto.UpdateProfileRequest;
 import br.com.accenture.customer.domain.model.Customer;
 
 public final class CustomerDtoMapper {
@@ -9,16 +10,25 @@ public final class CustomerDtoMapper {
     private CustomerDtoMapper() {
     }
 
-    public static Customer toDomain(CustomerRequest request) {
+    public static Customer toDomain(CreateCustomerInternalRequest request) {
         if (request == null) {
             return null;
         }
-        return Customer.createNew(
+        return Customer.createMinimal(request.email());
+    }
+
+    public static Customer toDomainForUpdate(UpdateProfileRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return Customer.restore(
+                null,
                 request.name(),
-                request.email(),
+                null,
                 request.cpf(),
-                request.password(),
-                request.phone()
+                request.phone(),
+                null,
+                null
         );
     }
 

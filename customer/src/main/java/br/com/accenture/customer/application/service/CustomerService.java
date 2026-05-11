@@ -1,12 +1,11 @@
 package br.com.accenture.customer.application.service;
 
+import br.com.accenture.customer.domain.event.CustomerCreatedEvent;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
-import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import br.com.accenture.customer.domain.model.Customer;
-import br.com.accenture.customer.domain.pagination.PageRequest;
-import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,31 +15,21 @@ import java.util.UUID;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public CustomerService(CustomerRepository customerRepository) {
+    public CustomerService(CustomerRepository customerRepository, ApplicationEventPublisher eventPublisher) {
         this.customerRepository = customerRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
     public Customer create(Customer customer) {
-        validateUniqueness(customer);
-        return customerRepository.save(customer);
-    }
-
-    @Transactional(readOnly = true)
-    public PageResult<Customer> findAll(PageRequest pageRequest) {
-        return customerRepository.findAll(pageRequest);
-    }
-
-    @Transactional(readOnly = true)
-    public PageResult<Customer> findByName(String name, PageRequest pageRequest) {
-        return customerRepository.findByNameContainingIgnoreCase(name, pageRequest);
-    }
-
-    @Transactional(readOnly = true)
-    public Customer findById(UUID id) {
-        return customerRepository.findById(id)
-                .orElseThrow(() -> new CustomerNotFoundException(id));
+        if (customerRepository.existsByEmail(customer.getEmail())) {
+            throw new DuplicateCustomerException("email", customer.getEmail());
+        }
+        Customer saved = customerRepository.save(customer);
+        eventPublisher.publishEvent(CustomerCreatedEvent.of(saved.getId(), saved.getEmail()));
+        return saved;
     }
 
     @Transactional
@@ -48,48 +37,25 @@ public class CustomerService {
         Customer existing = customerRepository.findById(id)
                 .orElseThrow(() -> new CustomerNotFoundException(id));
 
-        if (!existing.getCpf().equals(updated.getCpf())) {
-            throw new ImmutableFieldException("cpf");
-        }
-
         validateUniquenessOnUpdate(existing, updated);
 
-        existing.update(
+        existing.updateProfile(
                 updated.getName(),
-                updated.getEmail(),
-                updated.getPassword(),
+                updated.getCpf(),
                 updated.getPhone()
         );
 
         return customerRepository.save(existing);
     }
 
-    @Transactional
-    public void delete(UUID id) {
-        if (customerRepository.findById(id).isEmpty()) {
-            throw new CustomerNotFoundException(id);
-        }
-        customerRepository.deleteById(id);
-    }
-
-    private void validateUniqueness(Customer customer) {
-        if (customerRepository.existsByCpf(customer.getCpf())) {
-            throw new DuplicateCustomerException("cpf", customer.getCpf());
-        }
-        if (customerRepository.existsByEmail(customer.getEmail())) {
-            throw new DuplicateCustomerException("email", customer.getEmail());
-        }
-        if (customerRepository.existsByPhone(customer.getPhone())) {
-            throw new DuplicateCustomerException("phone", customer.getPhone());
-        }
-    }
-
     private void validateUniquenessOnUpdate(Customer existing, Customer updated) {
-        if (!existing.getEmail().equals(updated.getEmail())
-                && customerRepository.existsByEmail(updated.getEmail())) {
-            throw new DuplicateCustomerException("email", updated.getEmail());
+        if (updated.getCpf() != null
+                && !updated.getCpf().equals(existing.getCpf())
+                && customerRepository.existsByCpf(updated.getCpf())) {
+            throw new DuplicateCustomerException("cpf", updated.getCpf());
         }
-        if (!existing.getPhone().equals(updated.getPhone())
+        if (updated.getPhone() != null
+                && !updated.getPhone().equals(existing.getPhone())
                 && customerRepository.existsByPhone(updated.getPhone())) {
             throw new DuplicateCustomerException("phone", updated.getPhone());
         }

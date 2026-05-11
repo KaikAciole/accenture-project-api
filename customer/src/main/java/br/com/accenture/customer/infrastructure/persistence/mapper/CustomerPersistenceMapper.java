@@ -17,7 +17,6 @@ public final class CustomerPersistenceMapper {
                 .name(customer.getName())
                 .email(customer.getEmail())
                 .cpf(customer.getCpf())
-                .password(customer.getPassword())
                 .phone(customer.getPhone())
                 .build();
     }
@@ -31,7 +30,6 @@ public final class CustomerPersistenceMapper {
                 entity.getName(),
                 entity.getEmail(),
                 entity.getCpf(),
-                entity.getPassword(),
                 entity.getPhone(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()

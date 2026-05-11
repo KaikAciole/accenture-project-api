@@ -15,7 +15,7 @@ class CustomerPersistenceMapperTest {
     void toEntity_shouldMapAllFields() {
         UUID id = UUID.randomUUID();
         Customer customer = Customer.restore(
-                id, "Maria", "maria@example.com", "12345678901", "secret123", "11999998888",
+                id, "Maria", "maria@example.com", "12345678901", "11999998888",
                 Instant.now(), Instant.now()
         );
 
@@ -25,13 +25,24 @@ class CustomerPersistenceMapperTest {
         assertThat(entity.getName()).isEqualTo("Maria");
         assertThat(entity.getEmail()).isEqualTo("maria@example.com");
         assertThat(entity.getCpf()).isEqualTo("12345678901");
-        assertThat(entity.getPassword()).isEqualTo("secret123");
         assertThat(entity.getPhone()).isEqualTo("11999998888");
     }
 
     @Test
     void toEntity_shouldReturnNullForNullInput() {
         assertThat(CustomerPersistenceMapper.toEntity(null)).isNull();
+    }
+
+    @Test
+    void toEntity_shouldMapMinimalCustomerWithOnlyEmail() {
+        Customer customer = Customer.createMinimal("maria@example.com");
+
+        CustomerJpaEntity entity = CustomerPersistenceMapper.toEntity(customer);
+
+        assertThat(entity.getEmail()).isEqualTo("maria@example.com");
+        assertThat(entity.getName()).isNull();
+        assertThat(entity.getCpf()).isNull();
+        assertThat(entity.getPhone()).isNull();
     }
 
     @Test
@@ -44,7 +55,6 @@ class CustomerPersistenceMapperTest {
                 .name("Maria")
                 .email("maria@example.com")
                 .cpf("12345678901")
-                .password("secret123")
                 .phone("11999998888")
                 .createdAt(created)
                 .updatedAt(updated)

@@ -155,7 +155,6 @@ class AddressRepositoryAdapterTest {
                 .name(name)
                 .email(email)
                 .cpf(cpf)
-                .password("secret123")
                 .phone(phone)
                 .build();
         em.persist(entity);

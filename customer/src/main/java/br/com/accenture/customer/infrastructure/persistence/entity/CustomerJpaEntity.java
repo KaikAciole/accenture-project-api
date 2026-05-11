@@ -39,19 +39,16 @@ public class CustomerJpaEntity {
     @Setter(AccessLevel.NONE)
     private UUID id;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String name;
 
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(nullable = false, unique = true, length = 11, updatable = false)
+    @Column(unique = true, length = 11)
     private String cpf;
 
-    @Column(nullable = false)
-    private String password;
-
-    @Column(nullable = false, unique = true, length = 11)
+    @Column(unique = true, length = 11)
     private String phone;
 
     @CreatedDate

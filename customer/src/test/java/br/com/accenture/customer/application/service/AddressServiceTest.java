@@ -49,7 +49,7 @@ class AddressServiceTest {
         customerId = UUID.randomUUID();
         addressId = UUID.randomUUID();
         existingCustomer = Customer.restore(
-                customerId, "Maria", "maria@example.com", "12345678901", "secret123", "11999998888",
+                customerId, "Maria", "maria@example.com", "12345678901", "11999998888",
                 Instant.now(), Instant.now()
         );
         existingAddress = Address.restore(

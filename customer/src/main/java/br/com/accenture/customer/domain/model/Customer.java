@@ -1,5 +1,6 @@
 package br.com.accenture.customer.domain.model;
 
+import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -12,7 +13,6 @@ public class Customer {
     private String name;
     private String email;
     private String cpf;
-    private String password;
     private String phone;
     private Instant createdAt;
     private Instant updatedAt;
@@ -21,7 +21,6 @@ public class Customer {
                      String name,
                      String email,
                      String cpf,
-                     String password,
                      String phone,
                      Instant createdAt,
                      Instant updatedAt) {
@@ -29,45 +28,42 @@ public class Customer {
         this.name = name;
         this.email = email;
         this.cpf = cpf;
-        this.password = password;
         this.phone = phone;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
-    public static Customer createNew(String name,
-                                     String email,
-                                     String cpf,
-                                     String password,
-                                     String phone) {
-        requireNotBlank(name, "name");
+    public static Customer createMinimal(String email) {
         requireNotBlank(email, "email");
-        requireNotBlank(cpf, "cpf");
-        requireNotBlank(password, "password");
-        requireNotBlank(phone, "phone");
-        return new Customer(null, name, email, cpf, password, phone, null, null);
+        return new Customer(null, null, email, null, null, null, null);
     }
 
     public static Customer restore(UUID id,
                                    String name,
                                    String email,
                                    String cpf,
-                                   String password,
                                    String phone,
                                    Instant createdAt,
                                    Instant updatedAt) {
-        return new Customer(id, name, email, cpf, password, phone, createdAt, updatedAt);
+        return new Customer(id, name, email, cpf, phone, createdAt, updatedAt);
     }
 
-    public void update(String name, String email, String password, String phone) {
-        requireNotBlank(name, "name");
-        requireNotBlank(email, "email");
-        requireNotBlank(password, "password");
-        requireNotBlank(phone, "phone");
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.phone = phone;
+    public void updateProfile(String name, String cpf, String phone) {
+        if (name != null) {
+            requireNotBlank(name, "name");
+            this.name = name;
+        }
+        if (cpf != null) {
+            requireNotBlank(cpf, "cpf");
+            if (this.cpf != null && !this.cpf.equals(cpf)) {
+                throw new ImmutableFieldException("cpf");
+            }
+            this.cpf = cpf;
+        }
+        if (phone != null) {
+            requireNotBlank(phone, "phone");
+            this.phone = phone;
+        }
     }
 
     private static void requireNotBlank(String value, String field) {

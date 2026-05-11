@@ -8,8 +8,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BCryptPasswordEncoderAdapter implements PasswordEncoder {
 
-
-    private final PasswordEncoder springPasswordEncoder;
+    private final org.springframework.security.crypto.password.PasswordEncoder springPasswordEncoder;
 
     @Override
     public String encode(String rawPassword) {

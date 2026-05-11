@@ -155,4 +155,33 @@ class CustomerRepositoryAdapterTest {
         assertThat(adapter.existsByPhone("00000000000")).isFalse();
     }
 
+    @Test
+    void deleteById_shouldRemoveCustomer() {
+        Customer saved = adapter.save(baseCustomer);
+        em.flush();
+        em.clear();
+
+        adapter.deleteById(saved.getId());
+        em.flush();
+
+        assertThat(adapter.findById(saved.getId())).isEmpty();
+        assertThat(adapter.existsByEmail("maria@example.com")).isFalse();
+    }
+
+    @Test
+    void deleteById_shouldAllowSubsequentReinsertionOfSameEmail() {
+        Customer saved = adapter.save(baseCustomer);
+        em.flush();
+
+        adapter.deleteById(saved.getId());
+        em.flush();
+        em.clear();
+
+        Customer reinserted = adapter.save(Customer.createMinimal("maria@example.com"));
+        em.flush();
+
+        assertThat(reinserted.getId()).isNotNull();
+        assertThat(reinserted.getId()).isNotEqualTo(saved.getId());
+    }
+
 }

@@ -11,6 +11,8 @@ public interface CustomerRepository {
 
     Optional<Customer> findById(UUID id);
 
+    void deleteById(UUID id);
+
     boolean existsByCpf(String cpf);
 
     boolean existsByEmail(String email);

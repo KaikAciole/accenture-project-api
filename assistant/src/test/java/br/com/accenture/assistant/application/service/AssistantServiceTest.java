@@ -10,6 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,47 +31,48 @@ class AssistantServiceTest {
 
     @Test
     void ask_shouldDelegateToGateway() {
-        when(gateway.ask("Como funciona a recarga?")).thenReturn("Vai em Carteira > Recarga");
+        when(gateway.ask("Como funciona a recarga?"))
+                .thenReturn(Flux.just("Vai em ", "Carteira > Recarga"));
 
-        String result = service.ask("Como funciona a recarga?");
+        List<String> chunks = service.ask("Como funciona a recarga?").collectList().block();
 
-        assertThat(result).isEqualTo("Vai em Carteira > Recarga");
+        assertThat(chunks).containsExactly("Vai em ", "Carteira > Recarga");
         verify(gateway).ask("Como funciona a recarga?");
     }
 
     @Test
     void ask_shouldPropagateRateLimitException() {
         when(gateway.ask(anyString()))
-                .thenThrow(new AssistantRateLimitException("limit hit", 18L, new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantRateLimitException("limit hit", 18L, new RuntimeException())));
 
-        assertThatThrownBy(() -> service.ask("qualquer"))
+        assertThatThrownBy(() -> service.ask("qualquer").blockLast())
                 .isInstanceOf(AssistantRateLimitException.class);
     }
 
     @Test
     void ask_shouldPropagateTimeoutException() {
         when(gateway.ask(anyString()))
-                .thenThrow(new AssistantTimeoutException("timeout", new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantTimeoutException("timeout", new RuntimeException())));
 
-        assertThatThrownBy(() -> service.ask("qualquer"))
+        assertThatThrownBy(() -> service.ask("qualquer").blockLast())
                 .isInstanceOf(AssistantTimeoutException.class);
     }
 
     @Test
     void ask_shouldPropagateUnavailableException() {
         when(gateway.ask(anyString()))
-                .thenThrow(new AssistantUnavailableException("unavailable", new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantUnavailableException("unavailable", new RuntimeException())));
 
-        assertThatThrownBy(() -> service.ask("qualquer"))
+        assertThatThrownBy(() -> service.ask("qualquer").blockLast())
                 .isInstanceOf(AssistantUnavailableException.class);
     }
 
     @Test
     void ask_shouldPropagateAuthenticationException() {
         when(gateway.ask(anyString()))
-                .thenThrow(new AssistantAuthenticationException("auth failed", new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantAuthenticationException("auth failed", new RuntimeException())));
 
-        assertThatThrownBy(() -> service.ask("qualquer"))
+        assertThatThrownBy(() -> service.ask("qualquer").blockLast())
                 .isInstanceOf(AssistantAuthenticationException.class);
     }
 }

@@ -13,12 +13,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import reactor.core.publisher.Flux;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AssistantController.class)
@@ -34,15 +39,17 @@ class AssistantControllerTest {
     private AssistantService assistantService;
 
     @Test
-    void ask_shouldReturn200OnHappyPath() throws Exception {
+    void ask_shouldStreamChunksAndCompleteWithDone() throws Exception {
         when(assistantService.ask("Como funciona a recarga?"))
-                .thenReturn("Vai em Carteira > Recarga.");
+                .thenReturn(Flux.just("Vai em ", "Carteira > ", "Recarga."));
 
-        mockMvc.perform(post("/assistant/ask")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("Como funciona a recarga?"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.answer").value("Vai em Carteira > Recarga."));
+        String body = performStreaming(new AskRequest("Como funciona a recarga?"));
+
+        assertThat(body).contains("event:chunk");
+        assertThat(body).contains("\"content\":\"Vai em \"");
+        assertThat(body).contains("\"content\":\"Carteira > \"");
+        assertThat(body).contains("\"content\":\"Recarga.\"");
+        assertThat(body).contains("event:done");
     }
 
     @Test
@@ -56,52 +63,62 @@ class AssistantControllerTest {
     }
 
     @Test
-    void ask_shouldReturn503WithRetryAfterOnRateLimit() throws Exception {
+    void ask_shouldEmitErrorEventOnRateLimit() throws Exception {
         when(assistantService.ask(anyString()))
-                .thenThrow(new AssistantRateLimitException("quota exceeded", 18L, new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantRateLimitException("quota exceeded", 18L, new RuntimeException())));
 
-        mockMvc.perform(post("/assistant/ask")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("test"))))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(header().string("Retry-After", "18"))
-                .andExpect(jsonPath("$.title").value("Rate limit exceeded"))
-                .andExpect(jsonPath("$.retryAfterSeconds").value(18));
+        String body = performStreaming(new AskRequest("test"));
+
+        assertThat(body).contains("event:error");
+        assertThat(body).contains("\"title\":\"Rate limit exceeded\"");
+        assertThat(body).contains("\"retryAfterSeconds\":18");
+        assertThat(body).doesNotContain("event:done");
     }
 
     @Test
-    void ask_shouldReturn504OnTimeout() throws Exception {
+    void ask_shouldEmitErrorEventOnTimeout() throws Exception {
         when(assistantService.ask(anyString()))
-                .thenThrow(new AssistantTimeoutException("timeout", new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantTimeoutException("timeout", new RuntimeException())));
 
-        mockMvc.perform(post("/assistant/ask")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("test"))))
-                .andExpect(status().isGatewayTimeout())
-                .andExpect(jsonPath("$.title").value("Assistant timeout"));
+        String body = performStreaming(new AskRequest("test"));
+
+        assertThat(body).contains("event:error");
+        assertThat(body).contains("\"title\":\"Assistant timeout\"");
     }
 
     @Test
-    void ask_shouldReturn502OnUnavailable() throws Exception {
+    void ask_shouldEmitErrorEventOnUnavailable() throws Exception {
         when(assistantService.ask(anyString()))
-                .thenThrow(new AssistantUnavailableException("provider down", new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantUnavailableException("provider down", new RuntimeException())));
 
-        mockMvc.perform(post("/assistant/ask")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("test"))))
-                .andExpect(status().isBadGateway())
-                .andExpect(jsonPath("$.title").value("Assistant unavailable"));
+        String body = performStreaming(new AskRequest("test"));
+
+        assertThat(body).contains("event:error");
+        assertThat(body).contains("\"title\":\"Assistant unavailable\"");
     }
 
     @Test
-    void ask_shouldReturn500OnAuthFailure() throws Exception {
+    void ask_shouldEmitGenericErrorEventOnAuthFailure() throws Exception {
         when(assistantService.ask(anyString()))
-                .thenThrow(new AssistantAuthenticationException("invalid key", new RuntimeException()));
+                .thenReturn(Flux.error(new AssistantAuthenticationException("invalid key", new RuntimeException())));
 
-        mockMvc.perform(post("/assistant/ask")
+        String body = performStreaming(new AskRequest("test"));
+
+        assertThat(body).contains("event:error");
+        assertThat(body).contains("\"title\":\"Internal server error\"");
+    }
+
+    private String performStreaming(AskRequest request) throws Exception {
+        MvcResult result = mockMvc.perform(post("/assistant/ask")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("test"))))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.title").value("Internal server error"));
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        return mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+                .andReturn().getResponse().getContentAsString();
     }
 }

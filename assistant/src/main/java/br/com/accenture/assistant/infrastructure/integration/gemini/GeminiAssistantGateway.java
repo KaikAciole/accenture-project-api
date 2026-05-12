@@ -10,10 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,24 +29,19 @@ public class GeminiAssistantGateway implements AssistantGateway {
     private final AssistantProperties properties;
 
     @Override
-    public String ask(String question) {
-        try {
-            return CompletableFuture
-                    .supplyAsync(() -> chatClient.prompt().user(question).call().content())
-                    .orTimeout(properties.timeoutSeconds(), TimeUnit.SECONDS)
-                    .join();
-        } catch (CompletionException ex) {
-            Throwable inner = ex.getCause() != null ? ex.getCause() : ex;
-            throw translate(inner);
-        } catch (RuntimeException ex) {
-            throw translate(ex);
-        }
+    public Flux<String> ask(String question) {
+        return chatClient.prompt()
+                .user(question)
+                .stream()
+                .content()
+                .timeout(Duration.ofSeconds(properties.chunkIdleTimeoutSeconds()))
+                .onErrorMap(this::translate);
     }
 
     private RuntimeException translate(Throwable t) {
         if (t instanceof TimeoutException) {
-            log.warn("Gemini call timed out after {}s", properties.timeoutSeconds());
-            return new AssistantTimeoutException("Gemini call timed out", t);
+            log.warn("Gemini stream idle for more than {}s", properties.chunkIdleTimeoutSeconds());
+            return new AssistantTimeoutException("Gemini stream idle timeout", t);
         }
 
         Throwable target = (t.getCause() != null) ? t.getCause() : t;

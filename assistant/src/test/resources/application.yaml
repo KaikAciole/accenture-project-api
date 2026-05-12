@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: assistant
+  ai:
+    google:
+      genai:
+        api-key: test-key-not-used
+        chat:
+          options:
+            model: gemini-2.5-flash
+
+assistant:
+  gemini:
+    timeout-seconds: 30

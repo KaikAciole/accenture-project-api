@@ -1,5 +1,6 @@
 package br.com.accenture.payment.application.service;
 
+import br.com.accenture.payment.application.service.payment.PaymentService;
 import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
 import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
 import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentException;

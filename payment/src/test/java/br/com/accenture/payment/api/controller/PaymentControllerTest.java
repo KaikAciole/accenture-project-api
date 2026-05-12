@@ -3,7 +3,7 @@ package br.com.accenture.payment.api.controller;
 import br.com.accenture.payment.api.dto.request.PaymentFailureRequest;
 import br.com.accenture.payment.api.dto.request.PaymentProcessRequest;
 import br.com.accenture.payment.api.dto.request.PaymentRequest;
-import br.com.accenture.payment.application.service.PaymentService;
+import br.com.accenture.payment.application.service.payment.PaymentService;
 import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;

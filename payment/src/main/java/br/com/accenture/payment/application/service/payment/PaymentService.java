@@ -1,4 +1,4 @@
-package br.com.accenture.payment.application.service;
+package br.com.accenture.payment.application.service.payment;
 
 
 import br.com.accenture.payment.domain.pagination.PageRequest;

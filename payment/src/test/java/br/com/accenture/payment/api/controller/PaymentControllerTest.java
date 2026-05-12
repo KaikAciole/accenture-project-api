@@ -4,10 +4,11 @@ import br.com.accenture.payment.api.dto.request.PaymentFailureRequest;
 import br.com.accenture.payment.api.dto.request.PaymentProcessRequest;
 import br.com.accenture.payment.api.dto.request.PaymentRequest;
 import br.com.accenture.payment.application.service.PaymentService;
-import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
-import br.com.accenture.payment.domain.repository.PaymentRepository;
+import br.com.accenture.payment.domain.payment.model.Payment;
+import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
 import br.com.accenture.payment.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 
@@ -106,15 +107,15 @@ class PaymentControllerTest {
 
     private static final class FakePaymentService extends PaymentService {
 
-        private br.com.accenture.payment.domain.model.Payment createResult;
-        private br.com.accenture.payment.domain.model.Payment findByIdResult;
-        private br.com.accenture.payment.domain.model.Payment findByOrderIdResult;
-        private br.com.accenture.payment.domain.model.Payment processResult;
-        private br.com.accenture.payment.domain.model.Payment approveResult;
-        private br.com.accenture.payment.domain.model.Payment refuseResult;
-        private br.com.accenture.payment.domain.model.Payment cancelResult;
-        private br.com.accenture.payment.domain.model.Payment refundResult;
-        private PageResult<br.com.accenture.payment.domain.model.Payment> findAllResult;
+        private Payment createResult;
+        private Payment findByIdResult;
+        private Payment findByOrderIdResult;
+        private Payment processResult;
+        private Payment approveResult;
+        private Payment refuseResult;
+        private Payment cancelResult;
+        private Payment refundResult;
+        private PageResult<Payment> findAllResult;
         private final List<PaymentRequest> createCalls = new ArrayList<>();
         private final List<UUID> findByIdCalls = new ArrayList<>();
         private final List<UUID> findByOrderIdCalls = new ArrayList<>();
@@ -126,54 +127,54 @@ class PaymentControllerTest {
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment create(UUID orderId,
-                                                                    UUID customerId,
-                                                                    java.math.BigDecimal amount,
-                                                                    PaymentMethod method) {
+        public Payment create(UUID orderId,
+                              UUID customerId,
+                              java.math.BigDecimal amount,
+                              PaymentMethod method) {
             createCalls.add(new PaymentRequest(orderId, customerId, amount, method));
             return createResult;
         }
 
         @Override
-        public PageResult<br.com.accenture.payment.domain.model.Payment> findAll(PageRequest pageRequest) {
+        public PageResult<Payment> findAll(PageRequest pageRequest) {
             findAllRequests.add(pageRequest);
             return findAllResult;
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment findById(UUID id) {
+        public Payment findById(UUID id) {
             findByIdCalls.add(id);
             return findByIdResult;
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment findByOrderId(UUID orderId) {
+        public Payment findByOrderId(UUID orderId) {
             findByOrderIdCalls.add(orderId);
             return findByOrderIdResult;
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment process(UUID id, String externalTransactionId) {
+        public Payment process(UUID id, String externalTransactionId) {
             return processResult;
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment approve(UUID id) {
+        public Payment approve(UUID id) {
             return approveResult;
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment refuse(UUID id, String failureReason) {
+        public Payment refuse(UUID id, String failureReason) {
             return refuseResult;
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment cancel(UUID id, String failureReason) {
+        public Payment cancel(UUID id, String failureReason) {
             return cancelResult;
         }
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment refund(UUID id) {
+        public Payment refund(UUID id) {
             return refundResult;
         }
 
@@ -186,17 +187,17 @@ class PaymentControllerTest {
     private static final class NoopPaymentRepository implements PaymentRepository {
 
         @Override
-        public br.com.accenture.payment.domain.model.Payment save(br.com.accenture.payment.domain.model.Payment payment) {
+        public Payment save(Payment payment) {
             return payment;
         }
 
         @Override
-        public java.util.Optional<br.com.accenture.payment.domain.model.Payment> findById(UUID id) {
+        public java.util.Optional<Payment> findById(UUID id) {
             return java.util.Optional.empty();
         }
 
         @Override
-        public java.util.Optional<br.com.accenture.payment.domain.model.Payment> findByOrderId(UUID orderId) {
+        public java.util.Optional<Payment> findByOrderId(UUID orderId) {
             return java.util.Optional.empty();
         }
 
@@ -206,7 +207,7 @@ class PaymentControllerTest {
         }
 
         @Override
-        public PageResult<br.com.accenture.payment.domain.model.Payment> findAll(PageRequest pageRequest) {
+        public PageResult<Payment> findAll(PageRequest pageRequest) {
             return new PageResult<>(List.of(), pageRequest.page(), pageRequest.size(), 0, 0);
         }
 

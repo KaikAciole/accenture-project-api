@@ -1,8 +1,8 @@
 package br.com.accenture.payment.api.exception;
 
-import br.com.accenture.payment.domain.exception.payment.DuplicatePaymentException;
-import br.com.accenture.payment.domain.exception.payment.InvalidPaymentStatusException;
-import br.com.accenture.payment.domain.exception.payment.PaymentNotFoundException;
+import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentException;
+import br.com.accenture.payment.domain.payment.exception.InvalidPaymentStatusException;
+import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;

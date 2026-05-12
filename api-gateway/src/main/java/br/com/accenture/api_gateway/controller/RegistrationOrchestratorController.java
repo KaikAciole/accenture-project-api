@@ -1,6 +1,7 @@
 package br.com.accenture.api_gateway.controller;
 
 import br.com.accenture.api_gateway.dto.GatewayRegisterRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/gateway")
 public class RegistrationOrchestratorController {
@@ -27,6 +29,7 @@ public class RegistrationOrchestratorController {
     @PostMapping("/register-flow")
     public Mono<ResponseEntity<Void>> orchestrateRegistration(@RequestBody GatewayRegisterRequest request) {
 
+        log.info("Iniciando fluxo de registro minimo para: {}", request.email());
         var customerMinimalRequest = Map.of("email", request.email());
 
         return webClientBuilder.build().post()
@@ -38,6 +41,7 @@ public class RegistrationOrchestratorController {
 
                     String customerIdStr = (String) customerResponse.get("id");
                     UUID customerId = UUID.fromString(customerIdStr);
+                    log.info("Perfil criado. ID: {}. Registrando no Auth...", customerId);
 
                     var authRequest = Map.of(
                             "customerId", customerId,
@@ -51,9 +55,11 @@ public class RegistrationOrchestratorController {
                             .bodyValue(authRequest)
                             .retrieve()
                             .toBodilessEntity()
+                            .doOnSuccess(res -> log.info("Credenciais criadas com sucesso no Auth!"))
                             .onErrorResume(throwable -> {
+                                log.error("Erro no Auth. Executando Rollback no Customer ID: {}", customerId);
                                 return webClientBuilder.build().delete()
-                                        .uri("http://localhost:8082/internal/customers/" + customerId)
+                                        .uri("http://localhost:8082/customers/" + customerId)
                                         .retrieve()
                                         .toBodilessEntity()
                                         .then(Mono.error(new RuntimeException("Registration failed")));

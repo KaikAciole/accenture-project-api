@@ -3,6 +3,11 @@ package br.com.accenture.payment.api.exception;
 import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentException;
 import br.com.accenture.payment.domain.payment.exception.InvalidPaymentStatusException;
 import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundException;
+import br.com.accenture.payment.domain.wallet.exception.DuplicateWalletException;
+import br.com.accenture.payment.domain.wallet.exception.InsufficientWalletBalanceException;
+import br.com.accenture.payment.domain.wallet.exception.InvalidWalletTransactionException;
+import br.com.accenture.payment.domain.wallet.exception.WalletNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -47,6 +52,47 @@ public class GlobalExceptionHandler {
 
         return problemDetail;
     }
+
+    @ExceptionHandler(WalletNotFoundException.class)
+    public ProblemDetail handleWalletNotFound(WalletNotFoundException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+        problemDetail.setTitle("Wallet not found");
+        problemDetail.setDetail(exception.getMessage());
+        problemDetail.setType(URI.create("/errors/wallet-not-found"));
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(DuplicateWalletException.class)
+    public ProblemDetail handleDuplicateWallet(DuplicateWalletException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problemDetail.setTitle("Duplicate wallet");
+        problemDetail.setDetail(exception.getMessage());
+        problemDetail.setType(URI.create("/errors/duplicate-wallet"));
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InsufficientWalletBalanceException.class)
+    public ProblemDetail handleInsufficientWalletBalance(InsufficientWalletBalanceException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+        problemDetail.setTitle("Insufficient wallet balance");
+        problemDetail.setDetail(exception.getMessage());
+        problemDetail.setType(URI.create("/errors/insufficient-wallet-balance"));
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InvalidWalletTransactionException.class)
+    public ProblemDetail handleInvalidWalletTransaction(InvalidWalletTransactionException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setTitle("Invalid wallet transaction");
+        problemDetail.setDetail(exception.getMessage());
+        problemDetail.setType(URI.create("/errors/invalid-wallet-transaction"));
+
+        return problemDetail;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException exception) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
@@ -75,6 +121,16 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolation(ConstraintViolationException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setTitle("Constraint violation");
+        problemDetail.setDetail(exception.getMessage());
+        problemDetail.setType(URI.create("/errors/constraint-violation"));
+
+        return problemDetail;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException exception) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
@@ -88,9 +144,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ProblemDetail handleOptimisticLocking(OptimisticLockingFailureException exception) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.CONFLICT);
-        problemDetail.setTitle("Payment update conflict");
-        problemDetail.setDetail("The payment was updated by another transaction. Please try again.");
-        problemDetail.setType(URI.create("/errors/payment-update-conflict"));
+        problemDetail.setTitle("Resource update conflict");
+        problemDetail.setDetail("The resource was updated by another transaction. Please try again.");
+        problemDetail.setType(URI.create("/errors/resource-update-conflict"));
 
         return problemDetail;
     }

@@ -1,5 +1,7 @@
 package br.com.accenture.payment.application.service.wallet;
 
+import br.com.accenture.payment.domain.pagination.PageRequest;
+import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
 import br.com.accenture.payment.domain.wallet.enums.WalletTransactionReason;
 import br.com.accenture.payment.domain.wallet.exception.DuplicateWalletException;
@@ -12,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -53,10 +54,10 @@ public class WalletService {
     }
 
     @Transactional(readOnly = true)
-    public List<WalletTransaction> findTransactions(UUID walletId) {
+    public PageResult<WalletTransaction> findTransactions(UUID walletId, PageRequest pageRequest) {
         findById(walletId);
 
-        return walletTransactionRepository.findByWalletId(walletId);
+        return walletTransactionRepository.findByWalletId(walletId, pageRequest);
     }
 
     @Transactional

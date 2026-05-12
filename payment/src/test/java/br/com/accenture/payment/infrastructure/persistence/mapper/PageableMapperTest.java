@@ -3,7 +3,6 @@ package br.com.accenture.payment.infrastructure.persistence.mapper;
 import br.com.accenture.payment.domain.pagination.Direction;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.Sort;
-import br.com.accenture.payment.infrastructure.persistence.payment.mapper.PageableMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

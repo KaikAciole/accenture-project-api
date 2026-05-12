@@ -1,7 +1,7 @@
 package br.com.accenture.payment.infrastructure.persistence.entity;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
-import br.com.accenture.payment.domain.enums.PaymentStatus;
+import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
+import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;

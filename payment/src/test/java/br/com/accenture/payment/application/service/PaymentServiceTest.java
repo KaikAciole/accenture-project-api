@@ -1,10 +1,10 @@
 package br.com.accenture.payment.application.service;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
-import br.com.accenture.payment.domain.enums.PaymentStatus;
-import br.com.accenture.payment.domain.exception.DuplicatePaymentException;
-import br.com.accenture.payment.domain.exception.InvalidPaymentStatusException;
-import br.com.accenture.payment.domain.exception.PaymentNotFoundException;
+import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
+import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
+import br.com.accenture.payment.domain.exception.payment.DuplicatePaymentException;
+import br.com.accenture.payment.domain.exception.payment.InvalidPaymentStatusException;
+import br.com.accenture.payment.domain.exception.payment.PaymentNotFoundException;
 import br.com.accenture.payment.domain.model.Payment;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;

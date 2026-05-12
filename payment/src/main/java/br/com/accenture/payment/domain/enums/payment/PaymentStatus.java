@@ -1,4 +1,4 @@
-package br.com.accenture.payment.domain.enums;
+package br.com.accenture.payment.domain.enums.payment;
 
 public enum PaymentStatus {
     PENDING,

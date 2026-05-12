@@ -1,7 +1,7 @@
 package br.com.accenture.payment.infrastructure.persistence;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
-import br.com.accenture.payment.domain.enums.PaymentStatus;
+import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
+import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
 import br.com.accenture.payment.domain.model.Payment;
 import br.com.accenture.payment.domain.pagination.Direction;
 import br.com.accenture.payment.domain.pagination.PageRequest;

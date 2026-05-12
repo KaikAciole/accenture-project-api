@@ -1,8 +1,8 @@
 package br.com.accenture.payment.domain.model;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
-import br.com.accenture.payment.domain.enums.PaymentStatus;
-import br.com.accenture.payment.domain.exception.InvalidPaymentStatusException;
+import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
+import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
+import br.com.accenture.payment.domain.exception.payment.InvalidPaymentStatusException;
 import br.com.accenture.payment.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 

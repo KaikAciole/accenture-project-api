@@ -4,7 +4,7 @@ import br.com.accenture.payment.api.dto.request.PaymentFailureRequest;
 import br.com.accenture.payment.api.dto.request.PaymentProcessRequest;
 import br.com.accenture.payment.api.dto.request.PaymentRequest;
 import br.com.accenture.payment.application.service.PaymentService;
-import br.com.accenture.payment.domain.enums.PaymentMethod;
+import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.repository.PaymentRepository;

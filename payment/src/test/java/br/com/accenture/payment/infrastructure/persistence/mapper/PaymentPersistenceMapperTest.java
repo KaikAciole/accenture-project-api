@@ -1,7 +1,7 @@
 package br.com.accenture.payment.infrastructure.persistence.mapper;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
-import br.com.accenture.payment.domain.enums.PaymentStatus;
+import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
+import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
 import br.com.accenture.payment.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 

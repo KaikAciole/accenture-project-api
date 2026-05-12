@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -88,6 +89,26 @@ public class CustomerController {
             @Valid @RequestBody UpdateProfileRequest request) {
         Customer updated = customerService.update(id, CustomerDtoMapper.toDomainForUpdate(request));
         return CustomerDtoMapper.toResponse(updated);
+    }
+
+    @DeleteMapping("/customers/{id}")
+    @Operation(
+            summary = "Remove um cliente pelo id",
+            description = "Exclui o cliente identificado. Endereços vinculados ao cliente também são removidos."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Cliente removido com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Cliente não encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Erro interno inesperado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "Identificador único do cliente",
+                    example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id) {
+        customerService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
 }

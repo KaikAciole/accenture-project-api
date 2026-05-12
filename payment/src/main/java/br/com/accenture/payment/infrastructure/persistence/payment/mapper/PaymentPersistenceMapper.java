@@ -1,7 +1,7 @@
-package br.com.accenture.payment.infrastructure.persistence.mapper;
+package br.com.accenture.payment.infrastructure.persistence.payment.mapper;
 
-import br.com.accenture.payment.domain.model.Payment;
-import br.com.accenture.payment.infrastructure.persistence.entity.PaymentJpaEntity;
+import br.com.accenture.payment.domain.payment.model.Payment;
+import br.com.accenture.payment.infrastructure.persistence.payment.entity.PaymentJpaEntity;
 
 public final class PaymentPersistenceMapper {
 

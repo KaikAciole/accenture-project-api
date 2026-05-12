@@ -1,6 +1,6 @@
 package br.com.accenture.payment.api.dto.request;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 

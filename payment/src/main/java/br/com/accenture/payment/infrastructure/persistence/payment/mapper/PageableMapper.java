@@ -1,4 +1,4 @@
-package br.com.accenture.payment.infrastructure.persistence.mapper;
+package br.com.accenture.payment.infrastructure.persistence.payment.mapper;
 
 import br.com.accenture.payment.domain.pagination.Direction;
 import br.com.accenture.payment.domain.pagination.PageRequest;

@@ -22,7 +22,11 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -190,6 +194,25 @@ class CustomerControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Duplicate customer"));
+    }
+
+    @Test
+    void delete_shouldReturn204WhenSuccess() throws Exception {
+        doNothing().when(customerService).delete(existingId);
+
+        mockMvc.perform(delete("/customers/{id}", existingId))
+                .andExpect(status().isNoContent());
+
+        verify(customerService).delete(existingId);
+    }
+
+    @Test
+    void delete_shouldReturn404WhenCustomerNotFound() throws Exception {
+        doThrow(new CustomerNotFoundException(existingId)).when(customerService).delete(existingId);
+
+        mockMvc.perform(delete("/customers/{id}", existingId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Customer not found"));
     }
 
     @Test

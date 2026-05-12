@@ -1,6 +1,6 @@
-package br.com.accenture.payment.domain.repository;
+package br.com.accenture.payment.domain.payment.repository;
 
-import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
 

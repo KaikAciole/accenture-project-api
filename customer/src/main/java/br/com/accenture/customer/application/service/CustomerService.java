@@ -48,6 +48,13 @@ public class CustomerService {
         return customerRepository.save(existing);
     }
 
+    @Transactional
+    public void delete(UUID id) {
+        Customer existing = customerRepository.findById(id)
+                .orElseThrow(() -> new CustomerNotFoundException(id));
+        customerRepository.deleteById(existing.getId());
+    }
+
     private void validateUniquenessOnUpdate(Customer existing, Customer updated) {
         if (updated.getCpf() != null
                 && !updated.getCpf().equals(existing.getCpf())

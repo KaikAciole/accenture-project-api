@@ -1,8 +1,8 @@
-package br.com.accenture.payment.domain.model;
+package br.com.accenture.payment.domain.payment.model;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
-import br.com.accenture.payment.domain.enums.PaymentStatus;
-import br.com.accenture.payment.domain.exception.InvalidPaymentStatusException;
+import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
+import br.com.accenture.payment.domain.payment.exception.InvalidPaymentStatusException;
 import lombok.Getter;
 
 import java.math.BigDecimal;

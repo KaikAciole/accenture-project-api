@@ -1,4 +1,4 @@
-package br.com.accenture.payment.domain.exception;
+package br.com.accenture.payment.domain.payment.exception;
 
 import java.util.UUID;
 

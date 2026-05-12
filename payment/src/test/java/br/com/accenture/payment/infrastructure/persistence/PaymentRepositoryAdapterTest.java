@@ -1,13 +1,14 @@
 package br.com.accenture.payment.infrastructure.persistence;
 
-import br.com.accenture.payment.domain.enums.PaymentMethod;
-import br.com.accenture.payment.domain.enums.PaymentStatus;
-import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
+import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.pagination.Direction;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.Sort;
 import br.com.accenture.payment.infrastructure.config.JpaConfig;
-import br.com.accenture.payment.infrastructure.persistence.entity.PaymentJpaEntity;
+import br.com.accenture.payment.infrastructure.persistence.payment.entity.PaymentJpaEntity;
+import br.com.accenture.payment.infrastructure.persistence.payment.PaymentRepositoryAdapter;
 import br.com.accenture.payment.support.TestFixtures;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;

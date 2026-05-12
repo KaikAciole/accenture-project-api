@@ -197,4 +197,25 @@ class CustomerServiceTest {
         verify(eventPublisher, never()).publishEvent(any());
     }
 
+    @Test
+    void delete_shouldRemoveExistingCustomer() {
+        when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
+
+        customerService.delete(existingId);
+
+        verify(customerRepository).deleteById(existingId);
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void delete_shouldThrowWhenCustomerNotFound() {
+        UUID id = UUID.randomUUID();
+        when(customerRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> customerService.delete(id))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerRepository, never()).deleteById(any());
+    }
+
 }

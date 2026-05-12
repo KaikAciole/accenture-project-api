@@ -2,7 +2,7 @@ package br.com.accenture.payment.api.mapper;
 
 import br.com.accenture.payment.api.dto.request.PaymentRequest;
 import br.com.accenture.payment.api.dto.response.PaymentResponse;
-import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.payment.model.Payment;
 
 public final class PaymentDtoMapper {
 

@@ -1,12 +1,12 @@
-package br.com.accenture.payment.infrastructure.persistence;
+package br.com.accenture.payment.infrastructure.persistence.payment;
 
-import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
-import br.com.accenture.payment.domain.repository.PaymentRepository;
-import br.com.accenture.payment.infrastructure.persistence.entity.PaymentJpaEntity;
-import br.com.accenture.payment.infrastructure.persistence.mapper.PageableMapper;
-import br.com.accenture.payment.infrastructure.persistence.mapper.PaymentPersistenceMapper;
+import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
+import br.com.accenture.payment.infrastructure.persistence.payment.entity.PaymentJpaEntity;
+import br.com.accenture.payment.infrastructure.persistence.payment.mapper.PageableMapper;
+import br.com.accenture.payment.infrastructure.persistence.payment.mapper.PaymentPersistenceMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 

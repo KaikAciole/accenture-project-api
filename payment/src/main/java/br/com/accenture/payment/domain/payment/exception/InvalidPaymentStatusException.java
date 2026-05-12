@@ -1,6 +1,6 @@
-package br.com.accenture.payment.domain.exception;
+package br.com.accenture.payment.domain.payment.exception;
 
-import br.com.accenture.payment.domain.enums.PaymentStatus;
+import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
 
 public class InvalidPaymentStatusException extends RuntimeException {
 

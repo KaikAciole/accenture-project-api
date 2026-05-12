@@ -1,6 +1,6 @@
-package br.com.accenture.payment.infrastructure.persistence;
+package br.com.accenture.payment.infrastructure.persistence.payment;
 
-import br.com.accenture.payment.infrastructure.persistence.entity.PaymentJpaEntity;
+import br.com.accenture.payment.infrastructure.persistence.payment.entity.PaymentJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

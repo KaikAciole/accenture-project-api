@@ -30,6 +30,11 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
     }
 
     @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public boolean existsByCpf(String cpf) {
         return jpaRepository.existsByCpf(cpf);
     }

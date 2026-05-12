@@ -1,11 +1,16 @@
 package br.com.accenture.payment.infrastructure.persistence.wallet;
 
+import br.com.accenture.payment.domain.pagination.PageRequest;
+import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
 import br.com.accenture.payment.domain.wallet.repository.WalletTransactionRepository;
+import br.com.accenture.payment.infrastructure.persistence.mapper.PageableMapper;
+import br.com.accenture.payment.infrastructure.persistence.wallet.entity.WalletTransactionJpaEntity;
 import br.com.accenture.payment.infrastructure.persistence.wallet.mapper.WalletTransactionPersistenceMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -27,10 +32,23 @@ public class WalletTransactionRepositoryAdapter implements WalletTransactionRepo
     }
 
     @Override
-    public List<WalletTransaction> findByWalletId(UUID walletId) {
-        return walletTransactionJpaRepository.findByWalletId(walletId)
-                .stream()
-                .map(WalletTransactionPersistenceMapper::toDomain)
-                .toList();
+    public PageResult<WalletTransaction> findByWalletId(UUID walletId, PageRequest pageRequest) {
+        Pageable pageable = PageableMapper.toPageable(pageRequest);
+
+        Page<WalletTransactionJpaEntity> page = walletTransactionJpaRepository.findByWalletId(
+                walletId,
+                pageable
+        );
+
+        return new PageResult<>(
+                page.getContent()
+                        .stream()
+                        .map(WalletTransactionPersistenceMapper::toDomain)
+                        .toList(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 }

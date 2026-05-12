@@ -7,7 +7,7 @@ import br.com.accenture.payment.api.dto.response.PaymentResponse;
 import br.com.accenture.payment.api.mapper.PageRequestMapper;
 import br.com.accenture.payment.api.mapper.PaymentDtoMapper;
 import br.com.accenture.payment.application.service.PaymentService;
-import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

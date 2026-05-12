@@ -1,9 +1,9 @@
 package br.com.accenture.payment.api.mapper;
 
 import br.com.accenture.payment.api.dto.request.PaymentRequest;
-import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
-import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
-import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
+import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 

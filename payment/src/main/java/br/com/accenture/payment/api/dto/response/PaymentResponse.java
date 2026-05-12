@@ -1,7 +1,7 @@
 package br.com.accenture.payment.api.dto.response;
 
-import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
-import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
+import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;

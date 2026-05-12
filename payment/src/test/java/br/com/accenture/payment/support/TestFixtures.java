@@ -1,8 +1,8 @@
 package br.com.accenture.payment.support;
 
-import br.com.accenture.payment.domain.enums.payment.PaymentMethod;
-import br.com.accenture.payment.domain.enums.payment.PaymentStatus;
-import br.com.accenture.payment.domain.model.Payment;
+import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
+import br.com.accenture.payment.domain.payment.model.Payment;
 
 import java.math.BigDecimal;
 import java.time.Instant;

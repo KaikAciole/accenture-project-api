@@ -17,6 +17,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -38,6 +39,9 @@ class OrderEndToEndTest {
 
     @Autowired
     private OrderJpaRepository jpaRepository;
+
+    @MockitoBean
+    private br.com.accenture.order.application.publisher.OrderEventPublisher eventPublisher;
 
     private RestClient restClient;
 

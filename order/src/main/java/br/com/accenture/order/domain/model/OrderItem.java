@@ -37,7 +37,9 @@ public class OrderItem {
         requirePositive(quantity, "quantity");
         requirePositiveOrZero(unitPrice, "unitPrice");
 
-        return new OrderItem(null, sku, quantity, unitPrice, null, null);
+        Instant now = Instant.now();
+
+        return new OrderItem(null, sku, quantity, unitPrice, now, now);
     }
 
     public static OrderItem restore(UUID id,
@@ -53,6 +55,7 @@ public class OrderItem {
         requireNotNull(newQuantity, "newQuantity");
         requirePositive(newQuantity, "newQuantity");
         this.quantity = newQuantity;
+        this.updatedAt = Instant.now();
     }
 
     public BigDecimal getTotalPrice() {

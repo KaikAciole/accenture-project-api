@@ -19,6 +19,8 @@ import java.util.UUID;
 @Service
 public class PaymentService {
 
+    private static final String WALLET_TRANSACTION_PREFIX = "WALLET-";
+
     private final PaymentRepository paymentRepository;
     private final WalletService walletService;
     private final UUID companyWalletOwnerId;
@@ -62,31 +64,6 @@ public class PaymentService {
         }
 
         return processWithExternalGateway(payment, externalTransactionId);
-    }
-
-    private Payment processWithWallet(Payment payment) {
-        String internalTransactionId = generateWalletTransactionId();
-
-        payment.process(internalTransactionId);
-
-        walletService.transfer(
-                payment.getCustomerId(),
-                WalletOwnerType.CUSTOMER,
-                companyWalletOwnerId,
-                WalletOwnerType.COMPANY,
-                payment.getAmount(),
-                payment.getId()
-        );
-
-        payment.approve();
-
-        return paymentRepository.save(payment);
-    }
-
-    private Payment processWithExternalGateway(Payment payment, String externalTransactionId) {
-        payment.process(externalTransactionId);
-
-        return paymentRepository.save(payment);
     }
 
     @Transactional
@@ -137,6 +114,33 @@ public class PaymentService {
         return paymentRepository.findAll(pageRequest);
     }
 
+    private Payment processWithWallet(Payment payment) {
+        String internalTransactionId = generateWalletPaymentTransactionId();
+
+        payment.process(internalTransactionId);
+
+        walletService.transfer(
+                payment.getCustomerId(),
+                WalletOwnerType.CUSTOMER,
+                companyWalletOwnerId,
+                WalletOwnerType.COMPANY,
+                payment.getAmount(),
+                payment.getId()
+        );
+
+        payment.approve();
+
+        return paymentRepository.save(payment);
+    }
+
+    private Payment processWithExternalGateway(Payment payment, String externalTransactionId) {
+        validateExternalTransactionId(externalTransactionId);
+
+        payment.process(externalTransactionId);
+
+        return paymentRepository.save(payment);
+    }
+
     private Payment loadById(UUID id) {
         return paymentRepository.findById(id)
                 .orElseThrow(() -> new PaymentNotFoundException(id));
@@ -148,7 +152,13 @@ public class PaymentService {
         }
     }
 
-    private String generateWalletTransactionId() {
-        return "WALLET-" + UUID.randomUUID();
+    private void validateExternalTransactionId(String externalTransactionId) {
+        if (externalTransactionId == null || externalTransactionId.isBlank()) {
+            throw new IllegalArgumentException("External transaction id is required for external payment methods");
+        }
+    }
+
+    private String generateWalletPaymentTransactionId() {
+        return WALLET_TRANSACTION_PREFIX + UUID.randomUUID();
     }
 }

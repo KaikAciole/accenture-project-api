@@ -1,6 +1,8 @@
 package br.com.accenture.assistant.domain.gateway;
 
+import reactor.core.publisher.Flux;
+
 public interface AssistantGateway {
 
-    String ask(String question);
+    Flux<String> ask(String question);
 }

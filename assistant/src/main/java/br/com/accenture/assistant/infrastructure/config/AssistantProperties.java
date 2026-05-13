@@ -4,12 +4,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "assistant.gemini")
 public record AssistantProperties(
-        long timeoutSeconds
+        long chunkIdleTimeoutSeconds
 ) {
 
     public AssistantProperties {
-        if (timeoutSeconds <= 0) {
-            timeoutSeconds = 30;
+        if (chunkIdleTimeoutSeconds <= 0) {
+            chunkIdleTimeoutSeconds = 30;
         }
     }
 }

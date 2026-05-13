@@ -18,6 +18,9 @@ spring:
       settings:
         web-allow-others: true
 
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqps://seu-usuario:sua-senha@seu-host.rmq.cloudamqp.com/seu-vhost}
+
 api:
   security:
     token:

@@ -2,6 +2,8 @@ package br.com.accenture.order.application.service;
 
 import br.com.accenture.order.application.dto.OrderItemCommand;
 import br.com.accenture.order.application.dto.PaginatedResult;
+import br.com.accenture.order.application.publisher.OrderEventPublisher;
+import br.com.accenture.order.domain.enums.OrderStatus;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.repository.OrderRepository;
@@ -28,12 +30,15 @@ class OrderServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private OrderEventPublisher eventPublisher;
+
     @InjectMocks
     private OrderService orderService;
 
     @Test
-    @DisplayName("Deve orquestrar a criacao de um pedido com itens e chamar o repositorio")
-    void shouldCreateOrderAndSaveToRepository() {
+    @DisplayName("Deve orquestrar a criacao de um pedido, salvar e publicar evento")
+    void shouldCreateOrderAndSaveToRepositoryAndPublishEvent() {
         String customerId = "customer-007";
         List<OrderItemCommand> commands = List.of(
                 new OrderItemCommand("LAPTOP-XYZ", 1, new BigDecimal("5000.00"))
@@ -49,6 +54,7 @@ class OrderServiceTest {
         assertThat(savedOrder.getItems()).hasSize(1);
 
         verify(orderRepository, times(1)).save(any(Order.class));
+        verify(eventPublisher, times(1)).publishOrderCreatedEvent(any(Order.class));
     }
 
     @Test
@@ -102,29 +108,57 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Deve confirmar reserva do pedido chamando o repositorio")
-    void shouldConfirmOrderReservationAndSave() {
+    @DisplayName("Deve marcar o pedido como pago, salvar e publicar evento")
+    void shouldMarkOrderAsPaidAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
         Order mockOrder = Order.createNew("customer-007");
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        orderService.confirmOrderReservation(orderId);
+        Order updatedOrder = orderService.markOrderAsPaid(orderId);
+
+        assertThat(updatedOrder.getStatus()).isEqualTo(OrderStatus.PAID);
 
         verify(orderRepository, times(1)).findById(orderId);
         verify(orderRepository, times(1)).save(mockOrder);
+        verify(eventPublisher, times(1)).publishOrderPaidEvent(mockOrder);
     }
 
     @Test
-    @DisplayName("Deve lancar excecao ao tentar confirmar reserva de pedido inexistente")
-    void shouldThrowExceptionWhenConfirmingReservationForNonExistentOrder() {
+    @DisplayName("Deve cancelar o pedido, salvar e publicar evento com motivo")
+    void shouldCancelOrderAndPublishEvent() {
+        UUID orderId = UUID.randomUUID();
+        String cancelReason = "Cliente solicitou cancelamento";
+        Order mockOrder = Order.createNew("customer-007");
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order updatedOrder = orderService.cancelOrder(orderId, cancelReason);
+
+        assertThat(updatedOrder.getStatus()).isEqualTo(OrderStatus.CANCELED);
+
+        verify(orderRepository, times(1)).findById(orderId);
+        verify(orderRepository, times(1)).save(mockOrder);
+        verify(eventPublisher, times(1)).publishOrderCanceledEvent(mockOrder, cancelReason);
+    }
+
+    @Test
+    @DisplayName("Deve lancar excecao ao tentar alterar status de pedido inexistente")
+    void shouldThrowExceptionWhenChangingStatusForNonExistentOrder() {
         UUID fakeId = UUID.randomUUID();
 
         when(orderRepository.findById(fakeId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> orderService.confirmOrderReservation(fakeId))
+        assertThatThrownBy(() -> orderService.markOrderAsPaid(fakeId))
+                .isInstanceOf(OrderNotFoundException.class);
+
+        assertThatThrownBy(() -> orderService.cancelOrder(fakeId, "Motivo X"))
                 .isInstanceOf(OrderNotFoundException.class);
 
         verify(orderRepository, never()).save(any());
+        verify(eventPublisher, never()).publishOrderPaidEvent(any());
+        verify(eventPublisher, never()).publishOrderCanceledEvent(any(), any());
     }
 }

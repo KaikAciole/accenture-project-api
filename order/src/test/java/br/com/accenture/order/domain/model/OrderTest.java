@@ -20,6 +20,8 @@ class OrderTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getTotalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(order.getItems()).isEmpty();
+        assertThat(order.getCreatedAt()).isNotNull();
+        assertThat(order.getUpdatedAt()).isNotNull();
     }
 
     @Test
@@ -80,31 +82,44 @@ class OrderTest {
     }
 
     @Test
-    @DisplayName("Deve permitir a reserva do pedido se estiver no status correto")
-    void shouldConfirmReservationWhenStatusIsPending() {
+    @DisplayName("Deve marcar o pedido como pago se estiver pendente")
+    void shouldMarkAsPaidWhenStatusIsPending() {
         Order order = Order.createNew("customer-99");
 
-        order.confirmReservation();
+        order.markAsPaid();
 
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.RESERVED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
 
     @Test
-    @DisplayName("Deve bloquear a reserva do pedido se estiver em um status invalido")
-    void shouldThrowExceptionWhenReservingInvalidOrderState() {
+    @DisplayName("Deve bloquear a marcacao como pago se o pedido ja estiver cancelado")
+    void shouldThrowExceptionWhenMarkingAsPaidFromInvalidState() {
         Order order = Order.createNew("customer-99");
-        order.updateStatus(OrderStatus.CANCELED);
+        order.cancel();
 
-        assertThatThrownBy(order::confirmReservation)
-                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(order::markAsPaid)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot mark as paid from current state");
     }
 
     @Test
-    @DisplayName("Deve lancar excecao ao atualizar para status nulo")
-    void shouldThrowExceptionWhenUpdatingToNullStatus() {
+    @DisplayName("Deve cancelar o pedido com sucesso se nao estiver pago")
+    void shouldCancelOrderSuccessfully() {
         Order order = Order.createNew("customer-99");
 
-        assertThatThrownBy(() -> order.updateStatus(null))
-                .isInstanceOf(IllegalArgumentException.class);
+        order.cancel();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+    }
+
+    @Test
+    @DisplayName("Deve bloquear o cancelamento se o pedido ja estiver pago")
+    void shouldThrowExceptionWhenCancelingAlreadyPaidOrder() {
+        Order order = Order.createNew("customer-99");
+        order.markAsPaid();
+
+        assertThatThrownBy(order::cancel)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot cancel an already paid order");
     }
 }

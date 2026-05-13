@@ -1,11 +1,9 @@
 package br.com.accenture.customer.application.service;
 
-import br.com.accenture.customer.domain.event.CustomerCreatedEvent;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.model.Customer;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +13,9 @@ import java.util.UUID;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
-    public CustomerService(CustomerRepository customerRepository, ApplicationEventPublisher eventPublisher) {
+    public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -27,9 +23,7 @@ public class CustomerService {
         if (customerRepository.existsByEmail(customer.getEmail())) {
             throw new DuplicateCustomerException("email", customer.getEmail());
         }
-        Customer saved = customerRepository.save(customer);
-        eventPublisher.publishEvent(CustomerCreatedEvent.of(saved.getId(), saved.getEmail()));
-        return saved;
+        return customerRepository.save(customer);
     }
 
     @Transactional

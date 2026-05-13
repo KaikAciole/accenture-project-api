@@ -1,6 +1,5 @@
 package br.com.accenture.customer.application.service;
 
-import br.com.accenture.customer.domain.event.CustomerCreatedEvent;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
@@ -9,11 +8,9 @@ import br.com.accenture.customer.domain.repository.CustomerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -31,9 +28,6 @@ class CustomerServiceTest {
 
     @Mock
     private CustomerRepository customerRepository;
-
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private CustomerService customerService;
@@ -53,7 +47,7 @@ class CustomerServiceTest {
     }
 
     @Test
-    void create_shouldPersistAndPublishEventWhenEmailIsUnique() {
+    void create_shouldPersistWhenEmailIsUnique() {
         when(customerRepository.existsByEmail(newCustomer.getEmail())).thenReturn(false);
         when(customerRepository.save(newCustomer)).thenReturn(existing);
 
@@ -61,19 +55,10 @@ class CustomerServiceTest {
 
         assertThat(saved.getId()).isEqualTo(existingId);
         verify(customerRepository).save(newCustomer);
-
-        ArgumentCaptor<CustomerCreatedEvent> captor = ArgumentCaptor.forClass(CustomerCreatedEvent.class);
-        verify(eventPublisher).publishEvent(captor.capture());
-        CustomerCreatedEvent event = captor.getValue();
-        assertThat(event.customerId()).isEqualTo(existingId);
-        assertThat(event.email()).isEqualTo("maria@example.com");
-        assertThat(event.eventType()).isEqualTo("customer.created");
-        assertThat(event.eventId()).isNotNull();
-        assertThat(event.occurredAt()).isNotNull();
     }
 
     @Test
-    void create_shouldFailAndNotPublishEventWhenEmailAlreadyExists() {
+    void create_shouldFailWhenEmailAlreadyExists() {
         when(customerRepository.existsByEmail(newCustomer.getEmail())).thenReturn(true);
 
         assertThatThrownBy(() -> customerService.create(newCustomer))
@@ -81,7 +66,6 @@ class CustomerServiceTest {
                 .hasMessageContaining("email");
 
         verify(customerRepository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -187,24 +171,12 @@ class CustomerServiceTest {
     }
 
     @Test
-    void update_shouldNotPublishCustomerCreatedEvent() {
-        Customer payload = Customer.restore(null, "Maria New", null, null, null, null, null);
-        when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
-        when(customerRepository.save(existing)).thenReturn(existing);
-
-        customerService.update(existingId, payload);
-
-        verify(eventPublisher, never()).publishEvent(any());
-    }
-
-    @Test
     void delete_shouldRemoveExistingCustomer() {
         when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
 
         customerService.delete(existingId);
 
         verify(customerRepository).deleteById(existingId);
-        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

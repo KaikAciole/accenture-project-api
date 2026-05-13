@@ -25,6 +25,3 @@ spring:
       hibernate:
         format_sql: true
 
-payment:
-  wallet:
-    company-owner-id: 00000000-0000-0000-0000-000000000001

@@ -24,6 +24,9 @@ public class NotificationJpaEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @Column(name = "customer_id", nullable = false, updatable = false)
+    private String customerId;
+
     @Column(name = "recipient", nullable = false)
     private String recipient;
 

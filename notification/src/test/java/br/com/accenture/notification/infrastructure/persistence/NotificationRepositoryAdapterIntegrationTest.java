@@ -25,6 +25,7 @@ class NotificationRepositoryAdapterIntegrationTest {
     @Test
     void saveNewNotificationReturnsDomainWithGeneratedIdAndCreatedAt() {
         Notification notification = Notification.create(
+                TestFixtures.CUSTOMER_ID,
                 TestFixtures.RECIPIENT,
                 TestFixtures.SUBJECT,
                 TestFixtures.BODY
@@ -36,6 +37,7 @@ class NotificationRepositoryAdapterIntegrationTest {
         assertThat(saved.getCreatedAt()).isNotNull();
         assertThat(saved.getStatus()).isEqualTo(NotificationStatus.PENDING);
         assertThat(saved.getSentAt()).isNull();
+        assertThat(saved.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(saved.getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(saved.getSubject()).isEqualTo(TestFixtures.SUBJECT);
         assertThat(saved.getBody()).isEqualTo(TestFixtures.BODY);
@@ -44,6 +46,7 @@ class NotificationRepositoryAdapterIntegrationTest {
     @Test
     void findByIdReturnsPersistedDomainNotification() {
         Notification saved = adapter.save(Notification.create(
+                TestFixtures.CUSTOMER_ID,
                 TestFixtures.RECIPIENT,
                 TestFixtures.SUBJECT,
                 TestFixtures.BODY
@@ -53,6 +56,7 @@ class NotificationRepositoryAdapterIntegrationTest {
 
         assertThat(found).isPresent();
         assertThat(found.get().getId()).isEqualTo(saved.getId());
+        assertThat(found.get().getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(found.get().getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(found.get().getStatus()).isEqualTo(NotificationStatus.PENDING);
     }
@@ -69,6 +73,7 @@ class NotificationRepositoryAdapterIntegrationTest {
         Instant sentAt = Instant.parse("2026-05-08T16:00:00Z");
         Notification sent = Notification.restore(
                 null,
+                TestFixtures.CUSTOMER_ID,
                 TestFixtures.RECIPIENT,
                 TestFixtures.SUBJECT,
                 TestFixtures.BODY,

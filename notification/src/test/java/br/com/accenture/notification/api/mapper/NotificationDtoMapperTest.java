@@ -17,6 +17,7 @@ class NotificationDtoMapperTest {
         NotificationResponse response = NotificationDtoMapper.toResponse(notification);
 
         assertThat(response.id()).isEqualTo(TestFixtures.NOTIFICATION_ID);
+        assertThat(response.customerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(response.recipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(response.subject()).isEqualTo(TestFixtures.SUBJECT);
         assertThat(response.body()).isEqualTo(TestFixtures.BODY);

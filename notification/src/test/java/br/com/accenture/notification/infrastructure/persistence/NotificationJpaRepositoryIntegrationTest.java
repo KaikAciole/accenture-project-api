@@ -26,6 +26,7 @@ class NotificationJpaRepositoryIntegrationTest {
     void saveGeneratesUuidAndCreatedAtViaAuditing() {
         Instant before = Instant.now();
         NotificationJpaEntity entity = NotificationJpaEntity.builder()
+                .customerId(TestFixtures.CUSTOMER_ID)
                 .recipient(TestFixtures.RECIPIENT)
                 .subject(TestFixtures.SUBJECT)
                 .body(TestFixtures.BODY)
@@ -44,6 +45,7 @@ class NotificationJpaRepositoryIntegrationTest {
     @Test
     void findByIdReturnsPersistedEntity() {
         NotificationJpaEntity saved = repository.save(NotificationJpaEntity.builder()
+                .customerId(TestFixtures.CUSTOMER_ID)
                 .recipient(TestFixtures.RECIPIENT)
                 .subject(TestFixtures.SUBJECT)
                 .body(TestFixtures.BODY)
@@ -69,6 +71,7 @@ class NotificationJpaRepositoryIntegrationTest {
     void persistsSentStatusWithSentAtTimestamp() {
         Instant sentAt = Instant.parse("2026-05-08T15:30:00Z");
         NotificationJpaEntity saved = repository.save(NotificationJpaEntity.builder()
+                .customerId(TestFixtures.CUSTOMER_ID)
                 .recipient(TestFixtures.RECIPIENT)
                 .subject(TestFixtures.SUBJECT)
                 .body(TestFixtures.BODY)

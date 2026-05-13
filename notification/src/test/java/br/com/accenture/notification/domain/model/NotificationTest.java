@@ -14,12 +14,14 @@ class NotificationTest {
     @Test
     void createBuildsPendingNotificationWithoutIdAndTimestamps() {
         Notification notification = Notification.create(
+                TestFixtures.CUSTOMER_ID,
                 TestFixtures.RECIPIENT,
                 TestFixtures.SUBJECT,
                 TestFixtures.BODY
         );
 
         assertThat(notification.getId()).isNull();
+        assertThat(notification.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(notification.getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(notification.getSubject()).isEqualTo(TestFixtures.SUBJECT);
         assertThat(notification.getBody()).isEqualTo(TestFixtures.BODY);
@@ -29,35 +31,48 @@ class NotificationTest {
     }
 
     @Test
+    void createRejectsBlankCustomerId() {
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Notification.create(null, TestFixtures.RECIPIENT, TestFixtures.SUBJECT, TestFixtures.BODY))
+                .withMessage("customerId must not be blank");
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Notification.create("  ", TestFixtures.RECIPIENT, TestFixtures.SUBJECT, TestFixtures.BODY))
+                .withMessage("customerId must not be blank");
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Notification.create("", TestFixtures.RECIPIENT, TestFixtures.SUBJECT, TestFixtures.BODY))
+                .withMessage("customerId must not be blank");
+    }
+
+    @Test
     void createRejectsBlankRecipient() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Notification.create(null, TestFixtures.SUBJECT, TestFixtures.BODY))
+                .isThrownBy(() -> Notification.create(TestFixtures.CUSTOMER_ID, null, TestFixtures.SUBJECT, TestFixtures.BODY))
                 .withMessage("recipient must not be blank");
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Notification.create(" ", TestFixtures.SUBJECT, TestFixtures.BODY))
+                .isThrownBy(() -> Notification.create(TestFixtures.CUSTOMER_ID, " ", TestFixtures.SUBJECT, TestFixtures.BODY))
                 .withMessage("recipient must not be blank");
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Notification.create("", TestFixtures.SUBJECT, TestFixtures.BODY))
+                .isThrownBy(() -> Notification.create(TestFixtures.CUSTOMER_ID, "", TestFixtures.SUBJECT, TestFixtures.BODY))
                 .withMessage("recipient must not be blank");
     }
 
     @Test
     void createRejectsBlankSubject() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Notification.create(TestFixtures.RECIPIENT, null, TestFixtures.BODY))
+                .isThrownBy(() -> Notification.create(TestFixtures.CUSTOMER_ID, TestFixtures.RECIPIENT, null, TestFixtures.BODY))
                 .withMessage("subject must not be blank");
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Notification.create(TestFixtures.RECIPIENT, "  ", TestFixtures.BODY))
+                .isThrownBy(() -> Notification.create(TestFixtures.CUSTOMER_ID, TestFixtures.RECIPIENT, "  ", TestFixtures.BODY))
                 .withMessage("subject must not be blank");
     }
 
     @Test
     void createRejectsBlankBody() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Notification.create(TestFixtures.RECIPIENT, TestFixtures.SUBJECT, null))
+                .isThrownBy(() -> Notification.create(TestFixtures.CUSTOMER_ID, TestFixtures.RECIPIENT, TestFixtures.SUBJECT, null))
                 .withMessage("body must not be blank");
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Notification.create(TestFixtures.RECIPIENT, TestFixtures.SUBJECT, ""))
+                .isThrownBy(() -> Notification.create(TestFixtures.CUSTOMER_ID, TestFixtures.RECIPIENT, TestFixtures.SUBJECT, ""))
                 .withMessage("body must not be blank");
     }
 
@@ -65,6 +80,7 @@ class NotificationTest {
     void restoreReconstructsAllFieldsWithoutValidation() {
         Notification notification = Notification.restore(
                 TestFixtures.NOTIFICATION_ID,
+                TestFixtures.CUSTOMER_ID,
                 TestFixtures.RECIPIENT,
                 TestFixtures.SUBJECT,
                 TestFixtures.BODY,
@@ -74,6 +90,7 @@ class NotificationTest {
         );
 
         assertThat(notification.getId()).isEqualTo(TestFixtures.NOTIFICATION_ID);
+        assertThat(notification.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(notification.getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(notification.getSubject()).isEqualTo(TestFixtures.SUBJECT);
         assertThat(notification.getBody()).isEqualTo(TestFixtures.BODY);

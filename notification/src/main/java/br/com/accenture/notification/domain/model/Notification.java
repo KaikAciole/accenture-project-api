@@ -10,6 +10,7 @@ import java.util.UUID;
 public class Notification {
 
     private UUID id;
+    private String customerId;
     private String recipient;
     private String subject;
     private String body;
@@ -18,6 +19,7 @@ public class Notification {
     private NotificationStatus status;
 
     private Notification(UUID id,
+                         String customerId,
                          String recipient,
                          String subject,
                          String body,
@@ -25,6 +27,7 @@ public class Notification {
                          Instant sentAt,
                          NotificationStatus status) {
         this.id = id;
+        this.customerId = customerId;
         this.recipient = recipient;
         this.subject = subject;
         this.body = body;
@@ -33,12 +36,14 @@ public class Notification {
         this.status = status;
     }
 
-    public static Notification create(String recipient, String subject, String body) {
+    public static Notification create(String customerId, String recipient, String subject, String body) {
+        requireNotBlank(customerId, "customerId");
         requireNotBlank(recipient, "recipient");
         requireNotBlank(subject, "subject");
         requireNotBlank(body, "body");
         return new Notification(
                 null,
+                customerId,
                 recipient,
                 subject,
                 body,
@@ -49,13 +54,14 @@ public class Notification {
     }
 
     public static Notification restore(UUID id,
+                                       String customerId,
                                        String recipient,
                                        String subject,
                                        String body,
                                        Instant createdAt,
                                        Instant sentAt,
                                        NotificationStatus status) {
-        return new Notification(id, recipient, subject, body, createdAt, sentAt, status);
+        return new Notification(id, customerId, recipient, subject, body, createdAt, sentAt, status);
     }
 
     public void markAsSent() {

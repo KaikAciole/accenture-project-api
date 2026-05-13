@@ -18,8 +18,8 @@ public class NotificationService {
     }
 
     @Transactional
-    public Notification create(String recipient, String subject, String body) {
-        Notification notification = Notification.create(recipient, subject, body);
+    public Notification create(String customerId, String recipient, String subject, String body) {
+        Notification notification = Notification.create(customerId, recipient, subject, body);
         return repository.save(notification);
     }
 

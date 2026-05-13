@@ -28,12 +28,13 @@ class NotificationServiceTest {
         Notification saved = TestFixtures.restoredPendingNotification();
         when(repository.save(any(Notification.class))).thenReturn(saved);
 
-        Notification result = service.create(TestFixtures.RECIPIENT, TestFixtures.SUBJECT, TestFixtures.BODY);
+        Notification result = service.create(TestFixtures.CUSTOMER_ID, TestFixtures.RECIPIENT, TestFixtures.SUBJECT, TestFixtures.BODY);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(repository).save(captor.capture());
         Notification persisted = captor.getValue();
         assertThat(persisted.getId()).isNull();
+        assertThat(persisted.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(persisted.getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(persisted.getSubject()).isEqualTo(TestFixtures.SUBJECT);
         assertThat(persisted.getBody()).isEqualTo(TestFixtures.BODY);
@@ -44,7 +45,7 @@ class NotificationServiceTest {
     @Test
     void createPropagatesValidationErrorAndDoesNotPersist() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> service.create("  ", TestFixtures.SUBJECT, TestFixtures.BODY))
+                .isThrownBy(() -> service.create(TestFixtures.CUSTOMER_ID, "  ", TestFixtures.SUBJECT, TestFixtures.BODY))
                 .withMessage("recipient must not be blank");
 
         verify(repository, never()).save(any());

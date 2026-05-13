@@ -1,6 +1,6 @@
 package br.com.accenture.payment.application.service.payment;
 
-
+import br.com.accenture.payment.application.service.wallet.WalletService;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
@@ -8,6 +8,8 @@ import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentExcepti
 import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundException;
 import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
+import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
+import br.com.accenture.payment.infrastructure.config.PaymentWalletProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +19,20 @@ import java.util.UUID;
 @Service
 public class PaymentService {
 
-    private final PaymentRepository paymentRepository;
+    private static final String WALLET_TRANSACTION_PREFIX = "WALLET-";
 
-    public PaymentService(PaymentRepository paymentRepository) {
+    private final PaymentRepository paymentRepository;
+    private final WalletService walletService;
+    private final PaymentWalletProperties paymentWalletProperties;
+
+    public PaymentService(
+            PaymentRepository paymentRepository,
+            WalletService walletService,
+            PaymentWalletProperties paymentWalletProperties
+    ) {
         this.paymentRepository = paymentRepository;
+        this.walletService = walletService;
+        this.paymentWalletProperties = paymentWalletProperties;
     }
 
     @Transactional
@@ -46,6 +58,35 @@ public class PaymentService {
     @Transactional
     public Payment process(UUID id, String externalTransactionId) {
         Payment payment = loadById(id);
+
+        if (payment.getMethod() == PaymentMethod.WALLET) {
+            return processWithWallet(payment);
+        }
+
+        return processWithExternalGateway(payment, externalTransactionId);
+    }
+
+    private Payment processWithWallet(Payment payment) {
+        String internalTransactionId = generateWalletPaymentTransactionId();
+
+        payment.process(internalTransactionId);
+
+        walletService.transfer(
+                payment.getCustomerId(),
+                WalletOwnerType.CUSTOMER,
+                paymentWalletProperties.companyOwnerId(),
+                WalletOwnerType.COMPANY,
+                payment.getAmount(),
+                payment.getId()
+        );
+
+        payment.approve();
+
+        return paymentRepository.save(payment);
+    }
+
+    private Payment processWithExternalGateway(Payment payment, String externalTransactionId) {
+        validateExternalTransactionId(externalTransactionId);
 
         payment.process(externalTransactionId);
 
@@ -95,6 +136,11 @@ public class PaymentService {
         paymentRepository.deleteById(payment.getId());
     }
 
+    @Transactional(readOnly = true)
+    public PageResult<Payment> findAll(PageRequest pageRequest) {
+        return paymentRepository.findAll(pageRequest);
+    }
+
     private Payment loadById(UUID id) {
         return paymentRepository.findById(id)
                 .orElseThrow(() -> new PaymentNotFoundException(id));
@@ -106,8 +152,13 @@ public class PaymentService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public PageResult<Payment> findAll(PageRequest pageRequest) {
-        return paymentRepository.findAll(pageRequest);
+    private void validateExternalTransactionId(String externalTransactionId) {
+        if (externalTransactionId == null || externalTransactionId.isBlank()) {
+            throw new IllegalArgumentException("External transaction id is required for external payment methods");
+        }
+    }
+
+    private String generateWalletPaymentTransactionId() {
+        return WALLET_TRANSACTION_PREFIX + UUID.randomUUID();
     }
 }

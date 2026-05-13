@@ -1,7 +1,7 @@
 package br.com.accenture.payment.domain.wallet.enums;
 
 public enum WalletOwnerType {
-    COSTUMER,
+    CUSTOMER,
     SELLER,
     COMPANY
 }

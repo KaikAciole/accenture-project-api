@@ -1,25 +1,11 @@
 package br.com.accenture.payment.api.payment.mapper;
 
-import br.com.accenture.payment.api.payment.dto.request.PaymentRequest;
 import br.com.accenture.payment.api.payment.dto.response.PaymentResponse;
 import br.com.accenture.payment.domain.payment.model.Payment;
 
 public final class PaymentDtoMapper {
 
     private PaymentDtoMapper() {
-    }
-
-    public static Payment toDomain(PaymentRequest request) {
-        if (request == null) {
-            return null;
-        }
-
-        return Payment.createNew(
-                request.orderId(),
-                request.customerId(),
-                request.amount(),
-                request.method()
-        );
     }
 
     public static PaymentResponse toResponse(Payment payment) {

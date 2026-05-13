@@ -121,10 +121,10 @@ public class PaymentController {
     @PatchMapping("/{id}/process")
     @Operation(
             summary = "Processar pagamento",
-            description = "Altera um pagamento pendente para processamento e registra o identificador externo da transação."
+            description = "Processa um pagamento pendente. Para pagamentos via WALLET, a transferência interna entre carteiras é executada e o pagamento é aprovado automaticamente. Para métodos externos, o identificador externo da transação deve ser informado."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Pagamento enviado para processamento com sucesso",
+            @ApiResponse(responseCode = "200", description = "Pagamento processado com sucesso",
                     content = @Content(schema = @Schema(implementation = PaymentResponse.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos na requisição",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
@@ -136,12 +136,20 @@ public class PaymentController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     public PaymentResponse process(
-            @Parameter(description = "Identificador do pagamento",
-                    example = "550e8400-e29b-41d4-a716-446655440000")
+            @Parameter(
+                    description = "Identificador do pagamento",
+                    example = "550e8400-e29b-41d4-a716-446655440000"
+            )
             @PathVariable UUID id,
-            @RequestBody @Valid PaymentProcessRequest request) {
+
+            @RequestBody(required = false) @Valid PaymentProcessRequest request
+    ) {
+        String externalTransactionId = request != null
+                ? request.externalTransactionId()
+                : null;
+
         return PaymentDtoMapper.toResponse(
-                paymentService.process(id, request.externalTransactionId())
+                paymentService.process(id, externalTransactionId)
         );
     }
 

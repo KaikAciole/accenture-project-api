@@ -6,6 +6,7 @@ import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.model.OrderItem;
 import br.com.accenture.order.domain.repository.OrderRepository;
+import br.com.accenture.order.application.publisher.OrderEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,22 +17,27 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderEventPublisher eventPublisher;
 
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(OrderRepository orderRepository, OrderEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
-    public Order createOrder(String customerId, List<OrderItemCommand> itemsCommand) {
+    public Order createOrder(String customerId, List<OrderItemCommand> itemsRequest) {
 
         Order newOrder = Order.createNew(customerId);
 
-        for (OrderItemCommand cmd : itemsCommand) {
-            OrderItem item = OrderItem.createNew(cmd.sku(), cmd.quantity(), cmd.unitPrice());
+        itemsRequest.forEach(request -> {
+            OrderItem item = OrderItem.createNew(request.sku(), request.quantity(), request.unitPrice());
             newOrder.addItem(item);
-        }
+        });
 
-        return orderRepository.save(newOrder);
+        Order savedOrder = orderRepository.save(newOrder);
+        eventPublisher.publishOrderCreatedEvent(savedOrder);
+
+        return savedOrder;
     }
 
     @Transactional(readOnly = true)
@@ -41,11 +47,24 @@ public class OrderService {
     }
 
     @Transactional
-    public void confirmOrderReservation(UUID id) {
+    public Order markOrderAsPaid(UUID id) {
         Order order = findById(id);
-        order.confirmReservation();
+        order.markAsPaid();
+        Order savedOrder = orderRepository.save(order);
 
-        orderRepository.save(order);
+        eventPublisher.publishOrderPaidEvent(savedOrder);
+        return savedOrder;
+    }
+
+    @Transactional
+    public Order cancelOrder(UUID id, String reason) {
+        Order order = findById(id);
+
+        order.cancel();
+        Order savedOrder = orderRepository.save(order);
+
+        eventPublisher.publishOrderCanceledEvent(savedOrder, reason);
+        return savedOrder;
     }
 
     @Transactional(readOnly = true)

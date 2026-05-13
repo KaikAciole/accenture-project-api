@@ -21,6 +21,9 @@ spring:
       enabled: true
       path: /h2-console
 
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqps://seu-usuario:sua-senha@seu-host.rmq.cloudamqp.com/seu-vhost}
+
   mail:
     host: smtp.gmail.com
     port: 587

@@ -9,7 +9,7 @@ import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundExceptio
 import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
 import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
-import org.springframework.beans.factory.annotation.Value;
+import br.com.accenture.payment.infrastructure.config.PaymentWalletProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,16 +23,16 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final WalletService walletService;
-    private final UUID companyWalletOwnerId;
+    private final PaymentWalletProperties paymentWalletProperties;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             WalletService walletService,
-            @Value("${payment.wallet.company-owner-id}") UUID companyWalletOwnerId
+            PaymentWalletProperties paymentWalletProperties
     ) {
         this.paymentRepository = paymentRepository;
         this.walletService = walletService;
-        this.companyWalletOwnerId = companyWalletOwnerId;
+        this.paymentWalletProperties = paymentWalletProperties;
     }
 
     @Transactional
@@ -64,6 +64,33 @@ public class PaymentService {
         }
 
         return processWithExternalGateway(payment, externalTransactionId);
+    }
+
+    private Payment processWithWallet(Payment payment) {
+        String internalTransactionId = generateWalletPaymentTransactionId();
+
+        payment.process(internalTransactionId);
+
+        walletService.transfer(
+                payment.getCustomerId(),
+                WalletOwnerType.CUSTOMER,
+                paymentWalletProperties.companyOwnerId(),
+                WalletOwnerType.COMPANY,
+                payment.getAmount(),
+                payment.getId()
+        );
+
+        payment.approve();
+
+        return paymentRepository.save(payment);
+    }
+
+    private Payment processWithExternalGateway(Payment payment, String externalTransactionId) {
+        validateExternalTransactionId(externalTransactionId);
+
+        payment.process(externalTransactionId);
+
+        return paymentRepository.save(payment);
     }
 
     @Transactional
@@ -112,33 +139,6 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public PageResult<Payment> findAll(PageRequest pageRequest) {
         return paymentRepository.findAll(pageRequest);
-    }
-
-    private Payment processWithWallet(Payment payment) {
-        String internalTransactionId = generateWalletPaymentTransactionId();
-
-        payment.process(internalTransactionId);
-
-        walletService.transfer(
-                payment.getCustomerId(),
-                WalletOwnerType.CUSTOMER,
-                companyWalletOwnerId,
-                WalletOwnerType.COMPANY,
-                payment.getAmount(),
-                payment.getId()
-        );
-
-        payment.approve();
-
-        return paymentRepository.save(payment);
-    }
-
-    private Payment processWithExternalGateway(Payment payment, String externalTransactionId) {
-        validateExternalTransactionId(externalTransactionId);
-
-        payment.process(externalTransactionId);
-
-        return paymentRepository.save(payment);
     }
 
     private Payment loadById(UUID id) {

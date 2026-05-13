@@ -1,5 +1,6 @@
 package br.com.accenture.payment.application.service.payment;
 
+import br.com.accenture.payment.application.port.PaymentEventPublisher;
 import br.com.accenture.payment.application.service.wallet.WalletService;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
@@ -24,15 +25,18 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final WalletService walletService;
     private final PaymentWalletProperties paymentWalletProperties;
+    private final PaymentEventPublisher paymentEventPublisher;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             WalletService walletService,
-            PaymentWalletProperties paymentWalletProperties
+            PaymentWalletProperties paymentWalletProperties,
+            PaymentEventPublisher paymentEventPublisher
     ) {
         this.paymentRepository = paymentRepository;
         this.walletService = walletService;
         this.paymentWalletProperties = paymentWalletProperties;
+        this.paymentEventPublisher = paymentEventPublisher;
     }
 
     @Transactional
@@ -82,7 +86,11 @@ public class PaymentService {
 
         payment.approve();
 
-        return paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
+
+        paymentEventPublisher.publishPaymentApproved(savedPayment);
+
+        return savedPayment;
     }
 
     private Payment processWithExternalGateway(Payment payment, String externalTransactionId) {
@@ -99,7 +107,11 @@ public class PaymentService {
 
         payment.approve();
 
-        return paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
+
+        paymentEventPublisher.publishPaymentApproved(savedPayment);
+
+        return savedPayment;
     }
 
     @Transactional
@@ -108,7 +120,11 @@ public class PaymentService {
 
         payment.refuse(failureReason);
 
-        return paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
+
+        paymentEventPublisher.publishPaymentRefused(savedPayment);
+
+        return savedPayment;
     }
 
     @Transactional
@@ -117,7 +133,11 @@ public class PaymentService {
 
         payment.cancel(failureReason);
 
-        return paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
+
+        paymentEventPublisher.publishPaymentCanceled(savedPayment);
+
+        return savedPayment;
     }
 
     @Transactional

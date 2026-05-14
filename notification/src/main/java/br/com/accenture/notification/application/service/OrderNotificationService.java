@@ -1,5 +1,6 @@
 package br.com.accenture.notification.application.service;
 
+import br.com.accenture.notification.application.port.CustomerLookup;
 import br.com.accenture.notification.application.port.EmailSender;
 import br.com.accenture.notification.application.port.data.OrderCreatedEmailData;
 import br.com.accenture.notification.domain.model.Notification;
@@ -29,17 +30,21 @@ public class OrderNotificationService {
 
     private final NotificationRepository repository;
     private final EmailSender emailSender;
+    private final CustomerLookup customerLookup;
 
-    public OrderNotificationService(NotificationRepository repository, EmailSender emailSender) {
+    public OrderNotificationService(NotificationRepository repository,
+                                    EmailSender emailSender,
+                                    CustomerLookup customerLookup) {
         this.repository = repository;
         this.emailSender = emailSender;
+        this.customerLookup = customerLookup;
     }
 
     @Transactional
     public void notifyOrderCreated(OrderCreatedEvent event) {
-        Optional<String> emailOpt = findEmailByCustomerId(event.customerId());
+        Optional<String> emailOpt = customerLookup.findEmailByCustomerId(event.customerId());
         if (emailOpt.isEmpty()) {
-            log.warn("No notification record found for customerId={}, skipping order.created notification", event.customerId());
+            log.warn("No customer found for customerId={}, skipping order.created notification", event.customerId());
             return;
         }
         String email = emailOpt.get();
@@ -50,9 +55,9 @@ public class OrderNotificationService {
 
     @Transactional
     public void notifyOrderPaid(OrderPaidEvent event) {
-        Optional<String> emailOpt = findEmailByCustomerId(event.customerId());
+        Optional<String> emailOpt = customerLookup.findEmailByCustomerId(event.customerId());
         if (emailOpt.isEmpty()) {
-            log.warn("No notification record found for customerId={}, skipping order.paid notification", event.customerId());
+            log.warn("No customer found for customerId={}, skipping order.paid notification", event.customerId());
             return;
         }
         String email = emailOpt.get();
@@ -63,9 +68,9 @@ public class OrderNotificationService {
 
     @Transactional
     public void notifyOrderCanceled(OrderCanceledEvent event) {
-        Optional<String> emailOpt = findEmailByCustomerId(event.customerId());
+        Optional<String> emailOpt = customerLookup.findEmailByCustomerId(event.customerId());
         if (emailOpt.isEmpty()) {
-            log.warn("No notification record found for customerId={}, skipping order.canceled notification", event.customerId());
+            log.warn("No customer found for customerId={}, skipping order.canceled notification", event.customerId());
             return;
         }
         String email = emailOpt.get();
@@ -74,20 +79,11 @@ public class OrderNotificationService {
                 recipient -> emailSender.sendOrderCanceledEmail(recipient, event.orderId(), event.reason()));
     }
 
-    private Optional<String> findEmailByCustomerId(String customerId) {
-        return repository.findFirstByCustomerId(customerId).map(Notification::getRecipient);
-    }
-
     private void sendAndPersist(String customerId, String recipient, String subject, String body,
                                 Consumer<String> emailAction) {
+        emailAction.accept(recipient);
         Notification notification = Notification.create(customerId, recipient, subject, body);
-        try {
-            emailAction.accept(recipient);
-            notification.markAsSent();
-        } catch (RuntimeException e) {
-            log.error("Failed to send {} email to {}", subject, recipient, e);
-            notification.markAsFailed();
-        }
+        notification.markAsSent();
         repository.save(notification);
     }
 

@@ -27,7 +27,7 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: projetoaccenture26@gmail.com
+    username: ${SMTP_MAIL_USERNAME}
     password: ${SMTP_MAIL_PASSWORD}
     properties:
       mail:
@@ -46,3 +46,11 @@ springdoc:
     display-request-duration: true
   show-actuator: false
   default-produces-media-type: application/json
+
+customer-service:
+  url: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
+
+api:
+  security:
+    internal:
+      secret: ${INTERNAL_API_SECRET:senha-secreta-microsservicos-1234}

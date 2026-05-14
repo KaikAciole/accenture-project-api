@@ -18,6 +18,12 @@ public class CustomerService {
         this.customerRepository = customerRepository;
     }
 
+    @Transactional(readOnly = true)
+    public Customer findById(UUID id) {
+        return customerRepository.findById(id)
+                .orElseThrow(() -> new CustomerNotFoundException(id));
+    }
+
     @Transactional
     public Customer create(Customer customer) {
         if (customerRepository.existsByEmail(customer.getEmail())) {

@@ -69,35 +69,6 @@ class NotificationRepositoryAdapterIntegrationTest {
     }
 
     @Test
-    void findFirstByCustomerIdReturnsOldestNotificationForThatCustomer() {
-        Notification first = adapter.save(Notification.create(
-                TestFixtures.CUSTOMER_ID,
-                TestFixtures.RECIPIENT,
-                "Welcome",
-                "Welcome body"
-        ));
-        adapter.save(Notification.create(
-                TestFixtures.CUSTOMER_ID,
-                TestFixtures.RECIPIENT,
-                "Order recebido",
-                "Order body"
-        ));
-
-        Optional<Notification> found = adapter.findFirstByCustomerId(TestFixtures.CUSTOMER_ID);
-
-        assertThat(found).isPresent();
-        assertThat(found.get().getId()).isEqualTo(first.getId());
-        assertThat(found.get().getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
-    }
-
-    @Test
-    void findFirstByCustomerIdReturnsEmptyWhenCustomerHasNoNotifications() {
-        Optional<Notification> found = adapter.findFirstByCustomerId("nonexistent-customer");
-
-        assertThat(found).isEmpty();
-    }
-
-    @Test
     void persistsSentNotificationPreservingStatusAndSentAt() {
         Instant sentAt = Instant.parse("2026-05-08T16:00:00Z");
         Notification sent = Notification.restore(

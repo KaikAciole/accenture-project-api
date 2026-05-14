@@ -2,6 +2,7 @@ package br.com.accenture.notification.infrastructure.mail;
 
 import br.com.accenture.notification.application.port.EmailSender;
 import br.com.accenture.notification.application.port.data.OrderCreatedEmailData;
+import br.com.accenture.notification.domain.enums.PaymentMethod;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -25,6 +27,9 @@ public class SmtpEmailSenderAdapter implements EmailSender {
     private static final String ORDER_CREATED_SUBJECT = "Pedido recebido - AcceStore";
     private static final String ORDER_PAID_SUBJECT = "Pagamento confirmado - AcceStore";
     private static final String ORDER_CANCELED_SUBJECT = "Pedido cancelado - AcceStore";
+    private static final String PAYMENT_REFUSED_SUBJECT = "Pagamento recusado - AcceStore";
+    private static final String PAYMENT_CANCELED_SUBJECT = "Pagamento cancelado - AcceStore";
+    private static final String STOCK_RESERVATION_FAILED_SUBJECT = "Nao foi possivel reservar seu pedido - AcceStore";
 
     private static final NumberFormat BRL = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
@@ -80,6 +85,21 @@ public class SmtpEmailSenderAdapter implements EmailSender {
     @Override
     public void sendOrderCanceledEmail(String recipient, String orderId, String reason) {
         sendHtmlEmail(recipient, ORDER_CANCELED_SUBJECT, buildOrderCanceledHtml(orderId, reason));
+    }
+
+    @Override
+    public void sendPaymentRefusedEmail(String recipient, String orderId, BigDecimal amount, PaymentMethod method, String failureReason) {
+        sendHtmlEmail(recipient, PAYMENT_REFUSED_SUBJECT, buildPaymentRefusedHtml(orderId, amount, method, failureReason));
+    }
+
+    @Override
+    public void sendPaymentCanceledEmail(String recipient, String orderId, BigDecimal amount, PaymentMethod method, String cancellationReason) {
+        sendHtmlEmail(recipient, PAYMENT_CANCELED_SUBJECT, buildPaymentCanceledHtml(orderId, amount, method, cancellationReason));
+    }
+
+    @Override
+    public void sendStockReservationFailedEmail(String recipient, String orderId, String sku, int quantity, String reason) {
+        sendHtmlEmail(recipient, STOCK_RESERVATION_FAILED_SUBJECT, buildStockReservationFailedHtml(orderId, sku, quantity, reason));
     }
 
     private void sendHtmlEmail(String recipient, String subject, String html) {
@@ -198,5 +218,104 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   </body>
                 </html>
                 """.formatted(LOGO_CID, orderId, reason);
+    }
+
+    private static String buildPaymentRefusedHtml(String orderId, BigDecimal amount, PaymentMethod method, String failureReason) {
+        return """
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                  <head><meta charset="UTF-8"></head>
+                  <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
+                    <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
+                      <div style="text-align:center; margin-bottom:24px;">
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                      </div>
+                      <h1 style="color:#1a1a1a; font-size:22px;">Pagamento recusado</h1>
+                      <p style="font-size:15px; line-height:1.5;">
+                        Nao conseguimos processar o pagamento do pedido <strong>%s</strong>.
+                      </p>
+                      <p style="font-size:15px; line-height:1.5;">
+                        <strong>Valor:</strong> %s<br/>
+                        <strong>Forma de pagamento:</strong> %s
+                      </p>
+                      <div style="background:#fff4f4; border-left:4px solid #d9534f; padding:12px 16px; margin:16px 0; font-size:14px;">
+                        <strong>Motivo:</strong> %s
+                      </div>
+                      <p style="font-size:15px; line-height:1.5;">
+                        Voce pode tentar novamente acessando seu pedido em nossa loja.
+                      </p>
+                      <hr style="border:none; border-top:1px solid #eee; margin:24px 0;"/>
+                      <p style="font-size:12px; color:#888;">
+                        Esta e uma mensagem automatica do sistema AcceStore. Por favor, nao responda.
+                      </p>
+                    </div>
+                  </body>
+                </html>
+                """.formatted(LOGO_CID, orderId, BRL.format(amount), method.getLabel(), failureReason);
+    }
+
+    private static String buildPaymentCanceledHtml(String orderId, BigDecimal amount, PaymentMethod method, String cancellationReason) {
+        return """
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                  <head><meta charset="UTF-8"></head>
+                  <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
+                    <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
+                      <div style="text-align:center; margin-bottom:24px;">
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                      </div>
+                      <h1 style="color:#1a1a1a; font-size:22px;">Pagamento cancelado</h1>
+                      <p style="font-size:15px; line-height:1.5;">
+                        O pagamento do pedido <strong>%s</strong> foi cancelado.
+                      </p>
+                      <p style="font-size:15px; line-height:1.5;">
+                        <strong>Valor:</strong> %s<br/>
+                        <strong>Forma de pagamento:</strong> %s
+                      </p>
+                      <div style="background:#fffbe6; border-left:4px solid #f0ad4e; padding:12px 16px; margin:16px 0; font-size:14px;">
+                        <strong>Motivo:</strong> %s
+                      </div>
+                      <hr style="border:none; border-top:1px solid #eee; margin:24px 0;"/>
+                      <p style="font-size:12px; color:#888;">
+                        Esta e uma mensagem automatica do sistema AcceStore. Por favor, nao responda.
+                      </p>
+                    </div>
+                  </body>
+                </html>
+                """.formatted(LOGO_CID, orderId, BRL.format(amount), method.getLabel(), cancellationReason);
+    }
+
+    private static String buildStockReservationFailedHtml(String orderId, String sku, int quantity, String reason) {
+        return """
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                  <head><meta charset="UTF-8"></head>
+                  <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
+                    <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
+                      <div style="text-align:center; margin-bottom:24px;">
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                      </div>
+                      <h1 style="color:#1a1a1a; font-size:22px;">Nao foi possivel reservar seu pedido</h1>
+                      <p style="font-size:15px; line-height:1.5;">
+                        Tivemos um problema ao reservar os itens do pedido <strong>%s</strong>.
+                      </p>
+                      <p style="font-size:15px; line-height:1.5;">
+                        <strong>SKU:</strong> %s<br/>
+                        <strong>Quantidade:</strong> %d
+                      </p>
+                      <div style="background:#fff4f4; border-left:4px solid #d9534f; padding:12px 16px; margin:16px 0; font-size:14px;">
+                        <strong>Motivo:</strong> %s
+                      </div>
+                      <p style="font-size:15px; line-height:1.5;">
+                        Pedimos desculpas pelo inconveniente. Voce pode tentar novamente acessando seu pedido.
+                      </p>
+                      <hr style="border:none; border-top:1px solid #eee; margin:24px 0;"/>
+                      <p style="font-size:12px; color:#888;">
+                        Esta e uma mensagem automatica do sistema AcceStore. Por favor, nao responda.
+                      </p>
+                    </div>
+                  </body>
+                </html>
+                """.formatted(LOGO_CID, orderId, sku, quantity, reason);
     }
 }

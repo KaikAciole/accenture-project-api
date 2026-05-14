@@ -1,6 +1,7 @@
 package br.com.accenture.notification.infrastructure.mail;
 
 import br.com.accenture.notification.application.port.data.OrderCreatedEmailData;
+import br.com.accenture.notification.domain.enums.PaymentMethod;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -95,6 +96,55 @@ class SmtpEmailSenderAdapterTest {
         assertThat(raw).contains("ORDER-99");
         assertThat(raw).contains("Pagamento recusado");
         assertThat(raw).contains("Pedido cancelado");
+        assertThat(raw).contains("cid:accestoreLogo");
+    }
+
+    @Test
+    void sendPaymentRefusedEmailIncludesOrderIdAmountMethodAndReason() throws Exception {
+        when(mailSender.createMimeMessage()).thenReturn(emptyMimeMessage());
+
+        adapter.sendPaymentRefusedEmail(RECIPIENT, "ORDER-101", new BigDecimal("250.00"),
+                PaymentMethod.CREDIT_CARD, "Cartao sem limite");
+
+        MimeMessage sent = captureSent();
+        assertThat(sent.getSubject()).isEqualTo("Pagamento recusado - AcceStore");
+        String raw = extractRaw(sent);
+        assertThat(raw).contains("ORDER-101");
+        assertThat(raw).contains("R$").contains("250,00");
+        assertThat(raw).contains("Cartao de credito");
+        assertThat(raw).contains("Cartao sem limite");
+        assertThat(raw).contains("cid:accestoreLogo");
+    }
+
+    @Test
+    void sendPaymentCanceledEmailIncludesOrderIdAmountMethodAndReason() throws Exception {
+        when(mailSender.createMimeMessage()).thenReturn(emptyMimeMessage());
+
+        adapter.sendPaymentCanceledEmail(RECIPIENT, "ORDER-202", new BigDecimal("99.90"),
+                PaymentMethod.PIX, "Cancelado pelo cliente");
+
+        MimeMessage sent = captureSent();
+        assertThat(sent.getSubject()).isEqualTo("Pagamento cancelado - AcceStore");
+        String raw = extractRaw(sent);
+        assertThat(raw).contains("ORDER-202");
+        assertThat(raw).contains("R$").contains("99,90");
+        assertThat(raw).contains("PIX");
+        assertThat(raw).contains("Cancelado pelo cliente");
+        assertThat(raw).contains("cid:accestoreLogo");
+    }
+
+    @Test
+    void sendStockReservationFailedEmailIncludesOrderIdSkuQuantityAndReason() throws Exception {
+        when(mailSender.createMimeMessage()).thenReturn(emptyMimeMessage());
+
+        adapter.sendStockReservationFailedEmail(RECIPIENT, "ORDER-303", "PROD-555", 4, "Estoque insuficiente");
+
+        MimeMessage sent = captureSent();
+        assertThat(sent.getSubject()).isEqualTo("Nao foi possivel reservar seu pedido - AcceStore");
+        String raw = extractRaw(sent);
+        assertThat(raw).contains("ORDER-303");
+        assertThat(raw).contains("PROD-555");
+        assertThat(raw).contains("Estoque insuficiente");
         assertThat(raw).contains("cid:accestoreLogo");
     }
 

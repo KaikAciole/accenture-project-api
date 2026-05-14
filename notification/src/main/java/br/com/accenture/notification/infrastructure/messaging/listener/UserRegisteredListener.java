@@ -20,6 +20,6 @@ public class UserRegisteredListener {
     @RabbitListener(queues = RabbitConfig.USER_REGISTERED_QUEUE)
     public void handle(UserRegisteredEvent event) {
         log.info("Received user.registered event for customerId={}", event.customerId());
-        welcomeNotificationService.sendWelcome(event.customerId(), event.email());
+        welcomeNotificationService.sendWelcome(event.customerId());
     }
 }

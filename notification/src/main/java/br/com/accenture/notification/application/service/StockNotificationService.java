@@ -1,5 +1,6 @@
 package br.com.accenture.notification.application.service;
 
+import br.com.accenture.notification.application.port.CustomerLookup;
 import br.com.accenture.notification.application.port.EmailSender;
 import br.com.accenture.notification.domain.model.Notification;
 import br.com.accenture.notification.domain.repository.NotificationRepository;
@@ -18,17 +19,21 @@ public class StockNotificationService {
 
     private final NotificationRepository repository;
     private final EmailSender emailSender;
+    private final CustomerLookup customerLookup;
 
-    public StockNotificationService(NotificationRepository repository, EmailSender emailSender) {
+    public StockNotificationService(NotificationRepository repository,
+                                    EmailSender emailSender,
+                                    CustomerLookup customerLookup) {
         this.repository = repository;
         this.emailSender = emailSender;
+        this.customerLookup = customerLookup;
     }
 
     @Transactional
     public void notifyStockReservationFailed(StockReservationFailedEvent event) {
-        Optional<String> emailOpt = findEmailByCustomerId(event.customerId());
+        Optional<String> emailOpt = customerLookup.findEmailByCustomerId(event.customerId());
         if (emailOpt.isEmpty()) {
-            log.warn("No notification record found for customerId={}, skipping stock.reservation.failed notification", event.customerId());
+            log.warn("No customer found for customerId={}, skipping stock.reservation.failed notification", event.customerId());
             return;
         }
         String email = emailOpt.get();
@@ -36,18 +41,9 @@ public class StockNotificationService {
                 + ". SKU: " + event.sku() + ", quantidade: " + event.quantity()
                 + ". Motivo: " + event.reason();
 
+        emailSender.sendStockReservationFailedEmail(email, event.orderId(), event.sku(), event.quantity(), event.reason());
         Notification notification = Notification.create(event.customerId(), email, STOCK_RESERVATION_FAILED_SUBJECT, body);
-        try {
-            emailSender.sendStockReservationFailedEmail(email, event.orderId(), event.sku(), event.quantity(), event.reason());
-            notification.markAsSent();
-        } catch (RuntimeException e) {
-            log.error("Failed to send {} email to {}", STOCK_RESERVATION_FAILED_SUBJECT, email, e);
-            notification.markAsFailed();
-        }
+        notification.markAsSent();
         repository.save(notification);
-    }
-
-    private Optional<String> findEmailByCustomerId(String customerId) {
-        return repository.findFirstByCustomerId(customerId).map(Notification::getRecipient);
     }
 }

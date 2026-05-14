@@ -1,5 +1,6 @@
 package br.com.accenture.notification.application.service;
 
+import br.com.accenture.notification.application.port.CustomerLookup;
 import br.com.accenture.notification.application.port.EmailSender;
 import br.com.accenture.notification.application.port.data.OrderCreatedEmailData;
 import br.com.accenture.notification.domain.enums.NotificationStatus;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -32,7 +34,8 @@ class OrderNotificationServiceTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
     private final EmailSender emailSender = mock(EmailSender.class);
-    private final OrderNotificationService service = new OrderNotificationService(repository, emailSender);
+    private final CustomerLookup customerLookup = mock(CustomerLookup.class);
+    private final OrderNotificationService service = new OrderNotificationService(repository, emailSender, customerLookup);
 
     @Test
     void notifyOrderCreatedPersistsSentNotificationAndSendsEmailWithItems() {
@@ -42,8 +45,8 @@ class OrderNotificationServiceTest {
                 new BigDecimal("300.00"),
                 List.of(new OrderCreatedEvent.Item("PROD-999", 2))
         );
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.notifyOrderCreated(event);
@@ -69,8 +72,8 @@ class OrderNotificationServiceTest {
     @Test
     void notifyOrderPaidPersistsSentNotificationAndSendsEmail() {
         OrderPaidEvent event = new OrderPaidEvent(ORDER_ID, TestFixtures.CUSTOMER_ID);
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.notifyOrderPaid(event);
@@ -86,8 +89,8 @@ class OrderNotificationServiceTest {
     @Test
     void notifyOrderCanceledPersistsSentNotificationAndSendsEmailWithReason() {
         OrderCanceledEvent event = new OrderCanceledEvent(ORDER_ID, TestFixtures.CUSTOMER_ID, REASON);
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.notifyOrderCanceled(event);
@@ -102,26 +105,22 @@ class OrderNotificationServiceTest {
     }
 
     @Test
-    void notifyOrderCreatedPersistsFailedNotificationWhenEmailSenderThrows() {
+    void notifyOrderCreatedPropagatesAndDoesNotPersistWhenEmailSenderThrows() {
         OrderCreatedEvent event = new OrderCreatedEvent(
                 ORDER_ID,
                 TestFixtures.CUSTOMER_ID,
                 new BigDecimal("300.00"),
                 List.of(new OrderCreatedEvent.Item("PROD-999", 2))
         );
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
-        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         doThrow(new RuntimeException("smtp down"))
                 .when(emailSender).sendOrderCreatedEmail(eq(TestFixtures.RECIPIENT), any());
 
-        service.notifyOrderCreated(event);
-
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(repository).save(captor.capture());
-        Notification persisted = captor.getValue();
-        assertThat(persisted.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(persisted.getSentAt()).isNull();
+        assertThatExceptionOfType(RuntimeException.class)
+                .isThrownBy(() -> service.notifyOrderCreated(event))
+                .withMessage("smtp down");
+        verify(repository, never()).save(any());
     }
 
     @Test
@@ -132,7 +131,7 @@ class OrderNotificationServiceTest {
                 new BigDecimal("300.00"),
                 List.of(new OrderCreatedEvent.Item("PROD-999", 2))
         );
-        when(repository.findFirstByCustomerId("unknown-customer")).thenReturn(Optional.empty());
+        when(customerLookup.findEmailByCustomerId("unknown-customer")).thenReturn(Optional.empty());
 
         service.notifyOrderCreated(event);
 

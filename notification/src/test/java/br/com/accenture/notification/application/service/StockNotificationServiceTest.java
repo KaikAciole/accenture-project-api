@@ -1,5 +1,6 @@
 package br.com.accenture.notification.application.service;
 
+import br.com.accenture.notification.application.port.CustomerLookup;
 import br.com.accenture.notification.application.port.EmailSender;
 import br.com.accenture.notification.domain.enums.NotificationStatus;
 import br.com.accenture.notification.domain.model.Notification;
@@ -12,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -30,14 +32,15 @@ class StockNotificationServiceTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
     private final EmailSender emailSender = mock(EmailSender.class);
-    private final StockNotificationService service = new StockNotificationService(repository, emailSender);
+    private final CustomerLookup customerLookup = mock(CustomerLookup.class);
+    private final StockNotificationService service = new StockNotificationService(repository, emailSender, customerLookup);
 
     @Test
     void notifyStockReservationFailedPersistsSentNotificationAndSendsEmail() {
         StockReservationFailedEvent event = new StockReservationFailedEvent(ORDER_ID, TestFixtures.CUSTOMER_ID,
                 SKU, QUANTITY, REASON);
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.notifyStockReservationFailed(event);
@@ -54,29 +57,25 @@ class StockNotificationServiceTest {
     }
 
     @Test
-    void notifyStockReservationFailedPersistsFailedNotificationWhenEmailSenderThrows() {
+    void notifyStockReservationFailedPropagatesAndDoesNotPersistWhenEmailSenderThrows() {
         StockReservationFailedEvent event = new StockReservationFailedEvent(ORDER_ID, TestFixtures.CUSTOMER_ID,
                 SKU, QUANTITY, REASON);
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
-        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         doThrow(new RuntimeException("smtp down"))
                 .when(emailSender).sendStockReservationFailedEmail(eq(TestFixtures.RECIPIENT), any(), any(), anyInt(), any());
 
-        service.notifyStockReservationFailed(event);
-
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(repository).save(captor.capture());
-        Notification persisted = captor.getValue();
-        assertThat(persisted.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(persisted.getSentAt()).isNull();
+        assertThatExceptionOfType(RuntimeException.class)
+                .isThrownBy(() -> service.notifyStockReservationFailed(event))
+                .withMessage("smtp down");
+        verify(repository, never()).save(any());
     }
 
     @Test
     void notifyStockReservationFailedSkipsWhenCustomerNotFound() {
         StockReservationFailedEvent event = new StockReservationFailedEvent(ORDER_ID, "unknown-customer",
                 SKU, QUANTITY, REASON);
-        when(repository.findFirstByCustomerId("unknown-customer")).thenReturn(Optional.empty());
+        when(customerLookup.findEmailByCustomerId("unknown-customer")).thenReturn(Optional.empty());
 
         service.notifyStockReservationFailed(event);
 

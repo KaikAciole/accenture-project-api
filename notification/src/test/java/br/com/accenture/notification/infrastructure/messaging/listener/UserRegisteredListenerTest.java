@@ -14,12 +14,12 @@ class UserRegisteredListenerTest {
     private final UserRegisteredListener listener = new UserRegisteredListener(welcomeNotificationService);
 
     @Test
-    void handleDelegatesCustomerIdAndEmailToWelcomeNotificationService() {
+    void handleDelegatesCustomerIdToWelcomeNotificationService() {
         UserRegisteredEvent event = new UserRegisteredEvent("customer-123", "user@example.com");
 
         listener.handle(event);
 
-        verify(welcomeNotificationService).sendWelcome("customer-123", "user@example.com");
+        verify(welcomeNotificationService).sendWelcome("customer-123");
         verifyNoMoreInteractions(welcomeNotificationService);
     }
 }

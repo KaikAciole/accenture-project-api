@@ -1,5 +1,6 @@
 package br.com.accenture.notification.application.service;
 
+import br.com.accenture.notification.application.port.CustomerLookup;
 import br.com.accenture.notification.application.port.EmailSender;
 import br.com.accenture.notification.domain.enums.NotificationStatus;
 import br.com.accenture.notification.domain.enums.PaymentMethod;
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -33,14 +35,15 @@ class PaymentNotificationServiceTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
     private final EmailSender emailSender = mock(EmailSender.class);
-    private final PaymentNotificationService service = new PaymentNotificationService(repository, emailSender);
+    private final CustomerLookup customerLookup = mock(CustomerLookup.class);
+    private final PaymentNotificationService service = new PaymentNotificationService(repository, emailSender, customerLookup);
 
     @Test
     void notifyPaymentRefusedPersistsSentNotificationAndSendsEmail() {
         PaymentRefusedEvent event = new PaymentRefusedEvent(PAYMENT_ID, ORDER_ID, TestFixtures.CUSTOMER_ID,
                 AMOUNT, PaymentMethod.CREDIT_CARD, FAILURE_REASON);
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.notifyPaymentRefused(event);
@@ -61,8 +64,8 @@ class PaymentNotificationServiceTest {
     void notifyPaymentCanceledPersistsSentNotificationAndSendsEmail() {
         PaymentCanceledEvent event = new PaymentCanceledEvent(PAYMENT_ID, ORDER_ID, TestFixtures.CUSTOMER_ID,
                 AMOUNT, PaymentMethod.PIX, CANCELLATION_REASON);
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.notifyPaymentCanceled(event);
@@ -78,29 +81,25 @@ class PaymentNotificationServiceTest {
     }
 
     @Test
-    void notifyPaymentRefusedPersistsFailedNotificationWhenEmailSenderThrows() {
+    void notifyPaymentRefusedPropagatesAndDoesNotPersistWhenEmailSenderThrows() {
         PaymentRefusedEvent event = new PaymentRefusedEvent(PAYMENT_ID, ORDER_ID, TestFixtures.CUSTOMER_ID,
                 AMOUNT, PaymentMethod.CREDIT_CARD, FAILURE_REASON);
-        when(repository.findFirstByCustomerId(TestFixtures.CUSTOMER_ID))
-                .thenReturn(Optional.of(TestFixtures.restoredSentNotification()));
-        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(customerLookup.findEmailByCustomerId(TestFixtures.CUSTOMER_ID))
+                .thenReturn(Optional.of(TestFixtures.RECIPIENT));
         doThrow(new RuntimeException("smtp down"))
                 .when(emailSender).sendPaymentRefusedEmail(eq(TestFixtures.RECIPIENT), any(), any(), any(), any());
 
-        service.notifyPaymentRefused(event);
-
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(repository).save(captor.capture());
-        Notification persisted = captor.getValue();
-        assertThat(persisted.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(persisted.getSentAt()).isNull();
+        assertThatExceptionOfType(RuntimeException.class)
+                .isThrownBy(() -> service.notifyPaymentRefused(event))
+                .withMessage("smtp down");
+        verify(repository, never()).save(any());
     }
 
     @Test
     void notifyPaymentRefusedSkipsWhenCustomerNotFound() {
         PaymentRefusedEvent event = new PaymentRefusedEvent(PAYMENT_ID, ORDER_ID, "unknown-customer",
                 AMOUNT, PaymentMethod.CREDIT_CARD, FAILURE_REASON);
-        when(repository.findFirstByCustomerId("unknown-customer")).thenReturn(Optional.empty());
+        when(customerLookup.findEmailByCustomerId("unknown-customer")).thenReturn(Optional.empty());
 
         service.notifyPaymentRefused(event);
 
@@ -112,7 +111,7 @@ class PaymentNotificationServiceTest {
     void notifyPaymentCanceledSkipsWhenCustomerNotFound() {
         PaymentCanceledEvent event = new PaymentCanceledEvent(PAYMENT_ID, ORDER_ID, "unknown-customer",
                 AMOUNT, PaymentMethod.PIX, CANCELLATION_REASON);
-        when(repository.findFirstByCustomerId("unknown-customer")).thenReturn(Optional.empty());
+        when(customerLookup.findEmailByCustomerId("unknown-customer")).thenReturn(Optional.empty());
 
         service.notifyPaymentCanceled(event);
 

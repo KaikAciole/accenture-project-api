@@ -1,10 +1,17 @@
 package br.com.accenture.notification.infrastructure.config;
 
+import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Map;
 
 @Configuration
 public class RabbitConfig {
@@ -31,6 +38,13 @@ public class RabbitConfig {
     public static final String STOCK_RESERVATION_FAILED_QUEUE = "stock.reservation.failed.notification.queue";
     public static final String STOCK_RESERVATION_FAILED_ROUTING_KEY = "stock.reservation.failed";
 
+    public static final String DLX_EXCHANGE = "notification.dlx";
+    public static final String DLQ_QUEUE = "notification.dlq";
+
+    private static Map<String, Object> dlxArgs() {
+        return Map.of("x-dead-letter-exchange", DLX_EXCHANGE);
+    }
+
     @Bean
     public TopicExchange authExchange() {
         return new TopicExchange(AUTH_EXCHANGE);
@@ -38,7 +52,7 @@ public class RabbitConfig {
 
     @Bean
     public Queue userRegisteredQueue() {
-        return new Queue(USER_REGISTERED_QUEUE, true);
+        return new Queue(USER_REGISTERED_QUEUE, true, false, false, dlxArgs());
     }
 
     @Bean
@@ -53,17 +67,17 @@ public class RabbitConfig {
 
     @Bean
     public Queue orderCreatedQueue() {
-        return new Queue(ORDER_CREATED_QUEUE, true);
+        return new Queue(ORDER_CREATED_QUEUE, true, false, false, dlxArgs());
     }
 
     @Bean
     public Queue orderPaidQueue() {
-        return new Queue(ORDER_PAID_QUEUE, true);
+        return new Queue(ORDER_PAID_QUEUE, true, false, false, dlxArgs());
     }
 
     @Bean
     public Queue orderCanceledQueue() {
-        return new Queue(ORDER_CANCELED_QUEUE, true);
+        return new Queue(ORDER_CANCELED_QUEUE, true, false, false, dlxArgs());
     }
 
     @Bean
@@ -88,12 +102,12 @@ public class RabbitConfig {
 
     @Bean
     public Queue paymentRefusedQueue() {
-        return new Queue(PAYMENT_REFUSED_QUEUE, true);
+        return new Queue(PAYMENT_REFUSED_QUEUE, true, false, false, dlxArgs());
     }
 
     @Bean
     public Queue paymentCanceledQueue() {
-        return new Queue(PAYMENT_CANCELED_QUEUE, true);
+        return new Queue(PAYMENT_CANCELED_QUEUE, true, false, false, dlxArgs());
     }
 
     @Bean
@@ -113,7 +127,7 @@ public class RabbitConfig {
 
     @Bean
     public Queue stockReservationFailedQueue() {
-        return new Queue(STOCK_RESERVATION_FAILED_QUEUE, true);
+        return new Queue(STOCK_RESERVATION_FAILED_QUEUE, true, false, false, dlxArgs());
     }
 
     @Bean
@@ -122,7 +136,44 @@ public class RabbitConfig {
     }
 
     @Bean
+    public TopicExchange notificationDlx() {
+        return new TopicExchange(DLX_EXCHANGE);
+    }
+
+    @Bean
+    public Queue notificationDlq() {
+        return new Queue(DLQ_QUEUE, true);
+    }
+
+    @Bean
+    public Binding notificationDlqBinding(Queue notificationDlq, TopicExchange notificationDlx) {
+        return BindingBuilder.bind(notificationDlq).to(notificationDlx).with("#");
+    }
+
+    @Bean
     public MessageConverter messageConverter() {
         return new JacksonJsonMessageConverter();
+    }
+
+    @Bean
+    public MethodInterceptor retryInterceptor() {
+        // maxRetries(2) = 1 initial attempt + 2 retries = 3 total attempts
+        return RetryInterceptorBuilder.stateless()
+                .maxRetries(2)
+                .backOffOptions(1000, 2.0, 4000)
+                .recoverer(new RejectAndDontRequeueRecoverer())
+                .build();
+    }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory,
+                                                                               MessageConverter messageConverter,
+                                                                               MethodInterceptor retryInterceptor) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(messageConverter);
+        factory.setAdviceChain(retryInterceptor);
+        factory.setDefaultRequeueRejected(false);
+        return factory;
     }
 }

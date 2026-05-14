@@ -3,6 +3,8 @@ package br.com.accenture.customer.application.service;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,11 @@ public class CustomerService {
     public Customer findById(UUID id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new CustomerNotFoundException(id));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<Customer> findAll(PageRequest pageRequest) {
+        return customerRepository.findAll(pageRequest);
     }
 
     @Transactional

@@ -1,8 +1,9 @@
 package br.com.accenture.api_gateway.filter;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,16 +15,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Value("${api.security.token.secret:sua-chave-secreta-super-segura-aqui-com-pelo-menos-32-caracteres}")
+    @Value("${api.security.token.secret:my-super-secret-key-change-me-in-production}")
     private String jwtSecret;
 
     private final List<String> publicRoutes = List.of(
@@ -53,20 +52,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
-            SecretKey secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+            Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+            JWTVerifier verifier = JWT.require(algorithm)
+                    .withIssuer("auth-microservice")
+                    .build();
 
-            Claims claims = Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            DecodedJWT decodedJWT = verifier.verify(token);
 
-            log.info("Token validado com sucesso para o usuário: {}", claims.getSubject());
+            log.info("Token validado com sucesso para o usuário: {}", decodedJWT.getSubject());
 
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            log.error("Token expirado, corrompido ou adulterado.");
+            log.error("Token expirado, corrompido ou adulterado: {}", e.getMessage());
             bloquearAcesso(response, "Token invalido ou expirado.");
         }
     }

@@ -21,6 +21,16 @@ public class RabbitConfig {
     public static final String ORDER_PAID_ROUTING_KEY = "order.paid";
     public static final String ORDER_CANCELED_ROUTING_KEY = "order.canceled";
 
+    public static final String PAYMENT_EXCHANGE = "payment.events";
+    public static final String PAYMENT_REFUSED_QUEUE = "payment.refused.notification.queue";
+    public static final String PAYMENT_CANCELED_QUEUE = "payment.canceled.notification.queue";
+    public static final String PAYMENT_REFUSED_ROUTING_KEY = "payment.refused";
+    public static final String PAYMENT_CANCELED_ROUTING_KEY = "payment.canceled";
+
+    public static final String STOCK_EXCHANGE = "stock.exchange";
+    public static final String STOCK_RESERVATION_FAILED_QUEUE = "stock.reservation.failed.notification.queue";
+    public static final String STOCK_RESERVATION_FAILED_ROUTING_KEY = "stock.reservation.failed";
+
     @Bean
     public TopicExchange authExchange() {
         return new TopicExchange(AUTH_EXCHANGE);
@@ -69,6 +79,46 @@ public class RabbitConfig {
     @Bean
     public Binding orderCanceledBinding(Queue orderCanceledQueue, TopicExchange orderExchange) {
         return BindingBuilder.bind(orderCanceledQueue).to(orderExchange).with(ORDER_CANCELED_ROUTING_KEY);
+    }
+
+    @Bean
+    public TopicExchange paymentExchange() {
+        return new TopicExchange(PAYMENT_EXCHANGE);
+    }
+
+    @Bean
+    public Queue paymentRefusedQueue() {
+        return new Queue(PAYMENT_REFUSED_QUEUE, true);
+    }
+
+    @Bean
+    public Queue paymentCanceledQueue() {
+        return new Queue(PAYMENT_CANCELED_QUEUE, true);
+    }
+
+    @Bean
+    public Binding paymentRefusedBinding(Queue paymentRefusedQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentRefusedQueue).to(paymentExchange).with(PAYMENT_REFUSED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentCanceledBinding(Queue paymentCanceledQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentCanceledQueue).to(paymentExchange).with(PAYMENT_CANCELED_ROUTING_KEY);
+    }
+
+    @Bean
+    public TopicExchange stockExchange() {
+        return new TopicExchange(STOCK_EXCHANGE);
+    }
+
+    @Bean
+    public Queue stockReservationFailedQueue() {
+        return new Queue(STOCK_RESERVATION_FAILED_QUEUE, true);
+    }
+
+    @Bean
+    public Binding stockReservationFailedBinding(Queue stockReservationFailedQueue, TopicExchange stockExchange) {
+        return BindingBuilder.bind(stockReservationFailedQueue).to(stockExchange).with(STOCK_RESERVATION_FAILED_ROUTING_KEY);
     }
 
     @Bean

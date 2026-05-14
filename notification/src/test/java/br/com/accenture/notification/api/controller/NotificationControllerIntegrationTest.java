@@ -19,6 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(NotificationController.class)
 class NotificationControllerIntegrationTest {
 
+    private static final String INTERNAL_SECRET_HEADER = "X-Internal-Secret";
+    private static final String INTERNAL_SECRET_VALUE = "senha-secreta-microsservicos-1234";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -30,7 +33,8 @@ class NotificationControllerIntegrationTest {
         when(service.findById(TestFixtures.NOTIFICATION_ID))
                 .thenReturn(TestFixtures.restoredSentNotification());
 
-        mockMvc.perform(get("/notifications/{id}", TestFixtures.NOTIFICATION_ID))
+        mockMvc.perform(get("/notifications/{id}", TestFixtures.NOTIFICATION_ID)
+                        .header(INTERNAL_SECRET_HEADER, INTERNAL_SECRET_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(TestFixtures.NOTIFICATION_ID.toString()))
                 .andExpect(jsonPath("$.customerId").value(TestFixtures.CUSTOMER_ID))
@@ -47,14 +51,16 @@ class NotificationControllerIntegrationTest {
         UUID id = UUID.randomUUID();
         when(service.findById(id)).thenThrow(new NotificationNotFoundException(id));
 
-        mockMvc.perform(get("/notifications/{id}", id))
+        mockMvc.perform(get("/notifications/{id}", id)
+                        .header(INTERNAL_SECRET_HEADER, INTERNAL_SECRET_VALUE))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Notification not found: " + id));
     }
 
     @Test
     void getReturnsBadRequestWhenIdIsNotAValidUuid() throws Exception {
-        mockMvc.perform(get("/notifications/{id}", "not-a-uuid"))
+        mockMvc.perform(get("/notifications/{id}", "not-a-uuid")
+                        .header(INTERNAL_SECRET_HEADER, INTERNAL_SECRET_VALUE))
                 .andExpect(status().isBadRequest());
     }
 }

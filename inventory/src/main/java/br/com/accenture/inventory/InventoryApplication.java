@@ -2,13 +2,15 @@ package br.com.accenture.inventory;
 
 import br.com.accenture.inventory.infrastructure.config.InventoryOrderMessagingProperties;
 import br.com.accenture.inventory.infrastructure.config.InventoryPaymentMessagingProperties;
+import br.com.accenture.inventory.infrastructure.config.InventoryStockMessagingProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
 @EnableConfigurationProperties({InventoryPaymentMessagingProperties.class,
-								InventoryOrderMessagingProperties.class
+								InventoryOrderMessagingProperties.class,
+				                InventoryStockMessagingProperties.class
 })
 public class InventoryApplication {
 

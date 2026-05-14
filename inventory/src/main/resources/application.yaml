@@ -47,3 +47,11 @@ inventory:
       routing-key:
         created: order.created
         canceled: order.canceled
+
+    stock:
+      exchange: stock.exchange
+      routing-key:
+        reserved: stock.reserved
+        reservation-failed: stock.reservation.failed
+        reservation-confirmed: stock.reservation.confirmed
+        reservation-canceled: stock.reservation.canceled

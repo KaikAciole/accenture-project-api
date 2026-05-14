@@ -47,6 +47,13 @@ payment:
       routing-key:
         canceled: order.canceled
 
+    customer:
+      exchange: auth.exchange
+      queue:
+        created: user.registered.payment.queue
+      routing-key:
+        created: user.registered
+
 springdoc:
   api-docs:
     path: /v3/api-docs

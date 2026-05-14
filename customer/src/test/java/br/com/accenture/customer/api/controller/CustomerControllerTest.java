@@ -7,6 +7,8 @@ import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.endsWith;
@@ -137,6 +140,36 @@ class CustomerControllerTest {
         mockMvc.perform(get("/internal/customers/{customerId}", existingId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Customer not found"));
+    }
+
+    @Test
+    void list_shouldReturnPagedResults() throws Exception {
+        PageResult<Customer> page = new PageResult<>(List.of(existing), 0, 10, 1, 1);
+        when(customerService.findAll(any(PageRequest.class))).thenReturn(page);
+
+        mockMvc.perform(get("/customers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(existingId.toString()))
+                .andExpect(jsonPath("$.content[0].email").value("maria@example.com"))
+                .andExpect(jsonPath("$.content[0].name").value("Maria"))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.hasNext").value(false))
+                .andExpect(jsonPath("$.hasPrevious").value(false));
+    }
+
+    @Test
+    void list_shouldReturnEmptyPageWhenNoCustomers() throws Exception {
+        PageResult<Customer> empty = new PageResult<>(List.of(), 0, 20, 0, 0);
+        when(customerService.findAll(any(PageRequest.class))).thenReturn(empty);
+
+        mockMvc.perform(get("/customers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test

@@ -4,6 +4,8 @@ import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.domain.repository.CustomerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,6 +66,31 @@ class CustomerServiceTest {
 
         assertThatThrownBy(() -> customerService.findById(id))
                 .isInstanceOf(CustomerNotFoundException.class);
+    }
+
+    @Test
+    void findAll_shouldDelegateToRepository() {
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        PageResult<Customer> page = new PageResult<>(List.of(existing), 0, 10, 1, 1);
+        when(customerRepository.findAll(pageRequest)).thenReturn(page);
+
+        PageResult<Customer> result = customerService.findAll(pageRequest);
+
+        assertThat(result.content()).containsExactly(existing);
+        assertThat(result.totalElements()).isEqualTo(1);
+        verify(customerRepository).findAll(pageRequest);
+    }
+
+    @Test
+    void findAll_shouldReturnEmptyPageWhenNoCustomers() {
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        PageResult<Customer> empty = new PageResult<>(List.of(), 0, 10, 0, 0);
+        when(customerRepository.findAll(pageRequest)).thenReturn(empty);
+
+        PageResult<Customer> result = customerService.findAll(pageRequest);
+
+        assertThat(result.content()).isEmpty();
+        assertThat(result.totalElements()).isZero();
     }
 
     @Test

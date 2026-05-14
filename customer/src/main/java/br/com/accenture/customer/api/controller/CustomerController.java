@@ -2,10 +2,13 @@ package br.com.accenture.customer.api.controller;
 
 import br.com.accenture.customer.api.dto.CreateCustomerInternalRequest;
 import br.com.accenture.customer.api.dto.CustomerResponse;
+import br.com.accenture.customer.api.dto.PageResponse;
 import br.com.accenture.customer.api.dto.UpdateProfileRequest;
 import br.com.accenture.customer.api.mapper.CustomerDtoMapper;
+import br.com.accenture.customer.api.mapper.PageRequestMapper;
 import br.com.accenture.customer.application.service.CustomerService;
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,6 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -83,6 +87,24 @@ public class CustomerController {
             @PathVariable UUID customerId) {
         Customer customer = customerService.findById(customerId);
         return CustomerDtoMapper.toResponse(customer);
+    }
+
+    @GetMapping("/customers")
+    @Operation(
+            summary = "Lista clientes de forma paginada",
+            description = "Retorna uma página de clientes. Aceita parâmetros padrão do Pageable " +
+                    "(page, size, sort)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de clientes retornada com sucesso"),
+            @ApiResponse(responseCode = "500", description = "Erro interno inesperado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public PageResponse<CustomerResponse> list(@Parameter(hidden = true) Pageable pageable) {
+        PageRequest pageRequest = PageRequestMapper.toDomain(pageable);
+        return PageResponse.from(
+                customerService.findAll(pageRequest).map(CustomerDtoMapper::toResponse)
+        );
     }
 
     @PatchMapping("/customers/{id}")

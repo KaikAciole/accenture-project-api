@@ -1,6 +1,8 @@
 package br.com.accenture.customer.domain.repository;
 
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -10,6 +12,8 @@ public interface CustomerRepository {
     Customer save(Customer customer);
 
     Optional<Customer> findById(UUID id);
+
+    PageResult<Customer> findAll(PageRequest pageRequest);
 
     void deleteById(UUID id);
 

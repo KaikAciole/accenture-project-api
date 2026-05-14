@@ -1,6 +1,8 @@
 package br.com.accenture.customer.infrastructure.persistence;
 
 import br.com.accenture.customer.domain.model.Customer;
+import br.com.accenture.customer.domain.pagination.PageRequest;
+import br.com.accenture.customer.domain.pagination.PageResult;
 import br.com.accenture.customer.infrastructure.config.JpaConfig;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -182,6 +184,45 @@ class CustomerRepositoryAdapterTest {
 
         assertThat(reinserted.getId()).isNotNull();
         assertThat(reinserted.getId()).isNotEqualTo(saved.getId());
+    }
+
+    @Test
+    void findAll_shouldReturnAllCustomersPaginated() {
+        adapter.save(Customer.createMinimal("a@example.com"));
+        adapter.save(Customer.createMinimal("b@example.com"));
+        adapter.save(Customer.createMinimal("c@example.com"));
+        em.flush();
+
+        PageResult<Customer> page = adapter.findAll(PageRequest.of(0, 10));
+
+        assertThat(page.totalElements()).isEqualTo(3);
+        assertThat(page.totalPages()).isEqualTo(1);
+        assertThat(page.content()).extracting(Customer::getEmail)
+                .containsExactlyInAnyOrder("a@example.com", "b@example.com", "c@example.com");
+    }
+
+    @Test
+    void findAll_shouldRespectPaginationSize() {
+        adapter.save(Customer.createMinimal("a@example.com"));
+        adapter.save(Customer.createMinimal("b@example.com"));
+        adapter.save(Customer.createMinimal("c@example.com"));
+        em.flush();
+
+        PageResult<Customer> firstPage = adapter.findAll(PageRequest.of(0, 2));
+        PageResult<Customer> secondPage = adapter.findAll(PageRequest.of(1, 2));
+
+        assertThat(firstPage.totalElements()).isEqualTo(3);
+        assertThat(firstPage.totalPages()).isEqualTo(2);
+        assertThat(firstPage.content()).hasSize(2);
+        assertThat(secondPage.content()).hasSize(1);
+    }
+
+    @Test
+    void findAll_shouldReturnEmptyPageWhenNoCustomers() {
+        PageResult<Customer> page = adapter.findAll(PageRequest.of(0, 10));
+
+        assertThat(page.totalElements()).isZero();
+        assertThat(page.content()).isEmpty();
     }
 
 }

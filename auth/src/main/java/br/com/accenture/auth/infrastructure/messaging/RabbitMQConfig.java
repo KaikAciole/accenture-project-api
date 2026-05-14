@@ -1,9 +1,6 @@
 package br.com.accenture.auth.infrastructure.messaging;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,8 +12,8 @@ public class RabbitMQConfig {
     public static final String ROUTING_KEY = "user.registered";
 
     @Bean
-    public DirectExchange authExchange() {
-        return new DirectExchange(EXCHANGE_NAME);
+    public TopicExchange authExchange() {
+        return new TopicExchange(EXCHANGE_NAME);
     }
 
     @Bean
@@ -25,7 +22,7 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding bindingUserRegistered(Queue userRegisteredQueue, DirectExchange authExchange) {
+    public Binding bindingUserRegistered(Queue userRegisteredQueue, TopicExchange authExchange) {
         return BindingBuilder.bind(userRegisteredQueue).to(authExchange).with(ROUTING_KEY);
     }
 }

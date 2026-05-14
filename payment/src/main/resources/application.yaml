@@ -48,11 +48,11 @@ payment:
         canceled: order.canceled
 
     customer:
-      exchange: customer.exchange
+      exchange: auth.exchange
       queue:
-        created: customer.created.payment.queue
+        created: user.registered.payment.queue
       routing-key:
-        created: customer.created
+        created: user.registered
 
 springdoc:
   api-docs:

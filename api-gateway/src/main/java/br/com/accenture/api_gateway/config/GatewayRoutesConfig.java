@@ -52,7 +52,7 @@ public class GatewayRoutesConfig {
                 .build();
 
         RouterFunction<ServerResponse> paymentRoute = route("payment-service")
-                .route(path("/payments/**").or(path("/wallets/**")), http())
+                .route(path("/payments/**"), http())
                 .before(addRequestHeader("X-Internal-Secret", internalSecret))
                 .before(uri("http://localhost:8086"))
                 .build();

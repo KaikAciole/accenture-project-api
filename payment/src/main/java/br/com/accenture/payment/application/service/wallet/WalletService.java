@@ -41,6 +41,17 @@ public class WalletService {
         return walletRepository.save(wallet);
     }
 
+    @Transactional
+    public void createCustomerWalletIfNotExists(UUID customerId) {
+        if (walletRepository.existsByOwnerIdAndOwnerType(customerId, WalletOwnerType.CUSTOMER)) {
+            return;
+        }
+
+        Wallet wallet = Wallet.createNew(customerId, WalletOwnerType.CUSTOMER);
+
+        walletRepository.save(wallet);
+    }
+
     @Transactional(readOnly = true)
     public Wallet findById(UUID id) {
         return walletRepository.findById(id)

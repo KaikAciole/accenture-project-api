@@ -23,8 +23,18 @@ public class RabbitConfig {
     }
 
     @Bean
+    public TopicExchange customerExchange(PaymentCustomerMessagingProperties properties) {
+        return new TopicExchange(properties.exchange());
+    }
+
+    @Bean
     public Queue orderCanceledPaymentQueue(PaymentOrderMessagingProperties properties) {
         return new Queue(properties.queue().canceled(), true);
+    }
+
+    @Bean
+    public Queue customerCreatedPaymentQueue(PaymentCustomerMessagingProperties properties) {
+        return new Queue(properties.queue().created(), true);
     }
 
     @Bean
@@ -37,6 +47,18 @@ public class RabbitConfig {
                 .bind(orderCanceledPaymentQueue)
                 .to(orderExchange)
                 .with(properties.routingKey().canceled());
+    }
+
+    @Bean
+    public Binding customerCreatedPaymentBinding(
+            Queue customerCreatedPaymentQueue,
+            TopicExchange customerExchange,
+            PaymentCustomerMessagingProperties properties
+    ) {
+        return BindingBuilder
+                .bind(customerCreatedPaymentQueue)
+                .to(customerExchange)
+                .with(properties.routingKey().created());
     }
 
     @Bean

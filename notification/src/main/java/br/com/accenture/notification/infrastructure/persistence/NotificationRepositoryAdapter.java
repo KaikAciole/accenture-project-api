@@ -30,4 +30,9 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     public Optional<Notification> findById(UUID id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
+
+    @Override
+    public Optional<Notification> findFirstByCustomerId(String customerId) {
+        return jpaRepository.findFirstByCustomerIdOrderByCreatedAtAsc(customerId).map(mapper::toDomain);
+    }
 }

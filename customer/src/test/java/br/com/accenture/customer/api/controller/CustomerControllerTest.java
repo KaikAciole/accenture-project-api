@@ -11,6 +11,7 @@ import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -34,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CustomerController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class CustomerControllerTest {
 
     @Autowired
@@ -113,6 +116,27 @@ class CustomerControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Duplicate customer"));
+    }
+
+    @Test
+    void findByIdInternal_shouldReturn200WithCustomerData() throws Exception {
+        when(customerService.findById(existingId)).thenReturn(existing);
+
+        mockMvc.perform(get("/internal/customers/{customerId}", existingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(existingId.toString()))
+                .andExpect(jsonPath("$.email").value("maria@example.com"))
+                .andExpect(jsonPath("$.name").value("Maria"));
+    }
+
+    @Test
+    void findByIdInternal_shouldReturn404WhenCustomerNotFound() throws Exception {
+        when(customerService.findById(existingId))
+                .thenThrow(new CustomerNotFoundException(existingId));
+
+        mockMvc.perform(get("/internal/customers/{customerId}", existingId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Customer not found"));
     }
 
     @Test

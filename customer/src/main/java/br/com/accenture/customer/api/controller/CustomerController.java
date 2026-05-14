@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,6 +61,28 @@ public class CustomerController {
                 .buildAndExpand(created.getId())
                 .toUri();
         return ResponseEntity.created(location).body(CustomerDtoMapper.toResponse(created));
+    }
+
+    @GetMapping("/internal/customers/{customerId}")
+    @Operation(
+            summary = "Busca um cliente pelo id (rota interna)",
+            description = "Endpoint interno chamado por outros microsserviços (ex.: notification) " +
+                    "para obter dados básicos do cliente. Protegido pelo InternalTrafficFilter."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cliente encontrado",
+                    content = @Content(schema = @Schema(implementation = CustomerResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Cliente não encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Erro interno inesperado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public CustomerResponse findByIdInternal(
+            @Parameter(description = "Identificador único do cliente",
+                    example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID customerId) {
+        Customer customer = customerService.findById(customerId);
+        return CustomerDtoMapper.toResponse(customer);
     }
 
     @PatchMapping("/customers/{id}")

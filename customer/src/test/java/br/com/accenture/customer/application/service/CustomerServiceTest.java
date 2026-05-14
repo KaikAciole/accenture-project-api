@@ -47,6 +47,25 @@ class CustomerServiceTest {
     }
 
     @Test
+    void findById_shouldReturnCustomerWhenExists() {
+        when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
+
+        Customer found = customerService.findById(existingId);
+
+        assertThat(found.getId()).isEqualTo(existingId);
+        assertThat(found.getEmail()).isEqualTo("maria@example.com");
+    }
+
+    @Test
+    void findById_shouldThrowWhenCustomerNotFound() {
+        UUID id = UUID.randomUUID();
+        when(customerRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> customerService.findById(id))
+                .isInstanceOf(CustomerNotFoundException.class);
+    }
+
+    @Test
     void create_shouldPersistWhenEmailIsUnique() {
         when(customerRepository.existsByEmail(newCustomer.getEmail())).thenReturn(false);
         when(customerRepository.save(newCustomer)).thenReturn(existing);

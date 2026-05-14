@@ -11,6 +11,7 @@ import br.com.accenture.inventory.infrastructure.persistence.mapper.StockReserva
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,9 +48,11 @@ public class StockReservationRepositoryAdapter implements StockReservationReposi
     }
 
     @Override
-    public PageResult<StockReservation> findByOrderIdAndStatus(UUID orderId,
-                                                               ReservationStatus status,
-                                                               PageRequest pageRequest) {
+    public PageResult<StockReservation> findByOrderIdAndStatus(
+            UUID orderId,
+            ReservationStatus status,
+            PageRequest pageRequest
+    ) {
         Page<StockReservationJpaEntity> page = jpaRepository.findByOrderIdAndStatus(
                 orderId,
                 status,
@@ -76,6 +79,14 @@ public class StockReservationRepositoryAdapter implements StockReservationReposi
         );
 
         return toPageResult(page);
+    }
+
+    @Override
+    public List<StockReservation> findAllByOrderIdAndStatus(UUID orderId, ReservationStatus status) {
+        return jpaRepository.findAllByOrderIdAndStatus(orderId, status)
+                .stream()
+                .map(StockReservationPersistenceMapper::toDomain)
+                .toList();
     }
 
     @Override

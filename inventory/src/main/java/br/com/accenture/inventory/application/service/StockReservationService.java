@@ -12,6 +12,7 @@ import br.com.accenture.inventory.domain.repository.StockReservationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -90,6 +91,41 @@ public class StockReservationService {
         productRepository.save(reservation.getProduct());
 
         return stockReservationRepository.save(reservation);
+    }
+
+    @Transactional
+    public void confirmByOrderId(UUID orderId) {
+        List<StockReservation> reservations = stockReservationRepository.findAllByOrderIdAndStatus(
+                orderId,
+                ReservationStatus.ACTIVE
+        );
+
+        if (reservations.isEmpty()) {
+            throw new StockReservationNotFoundException(orderId);
+        }
+
+        reservations.forEach(reservation -> {
+            reservation.confirm();
+            stockReservationRepository.save(reservation);
+        });
+    }
+
+    @Transactional
+    public void cancelByOrderId(UUID orderId) {
+        List<StockReservation> reservations = stockReservationRepository.findAllByOrderIdAndStatus(
+                orderId,
+                ReservationStatus.ACTIVE
+        );
+
+        if (reservations.isEmpty()) {
+            throw new StockReservationNotFoundException(orderId);
+        }
+
+        reservations.forEach(reservation -> {
+            reservation.cancel();
+            productRepository.save(reservation.getProduct());
+            stockReservationRepository.save(reservation);
+        });
     }
 
     @Transactional

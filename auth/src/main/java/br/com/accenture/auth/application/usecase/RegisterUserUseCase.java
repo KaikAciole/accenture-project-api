@@ -1,63 +1,72 @@
 package br.com.accenture.auth.application.usecase;
 
 import br.com.accenture.auth.application.command.RegisterCommand;
+import br.com.accenture.auth.application.event.UserRegisteredEvent;
 import br.com.accenture.auth.application.exception.UserAlreadyExistsException;
 import br.com.accenture.auth.domain.enums.Role;
 import br.com.accenture.auth.domain.model.UserCredential;
 import br.com.accenture.auth.domain.repository.UserCredentialRepository;
 import br.com.accenture.auth.domain.service.PasswordEncoder;
 import br.com.accenture.auth.domain.vo.Email;
-import br.com.accenture.auth.infrastructure.messaging.RabbitMQConfig;
+import br.com.accenture.auth.infrastructure.persistence.entity.OutboxEventJpaEntity;
+import br.com.accenture.auth.infrastructure.persistence.repository.OutboxEventRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RegisterUserUseCase {
 
     private final UserCredentialRepository repository;
     private final PasswordEncoder passwordEncoder;
-    private final RabbitTemplate rabbitTemplate;
+    private final OutboxEventRepository outboxRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void execute(RegisterCommand command) {
-        Email emailVo = new Email(command.email());
+        Email email = new Email(command.email());
 
-        if (repository.existsByEmail(emailVo)) {
-            throw new UserAlreadyExistsException("Email is already registered.");
+        if (repository.existsByEmail(email)) {
+            throw new UserAlreadyExistsException("User already exists with this email.");
         }
 
-        Set<Role> domainRoles = command.roles().stream()
+        Set<Role> roles = command.roles().stream()
                 .map(String::toUpperCase)
                 .map(Role::valueOf)
                 .collect(Collectors.toSet());
 
-        UserCredential newCredential = UserCredential.registerNew(
+        UserCredential user = UserCredential.registerNew(
                 command.customerId(),
                 command.email(),
                 command.rawPassword(),
-                domainRoles,
+                roles,
                 passwordEncoder
         );
 
-        repository.save(newCredential);
+        repository.save(user);
 
-        String mensagemJson = String.format("{\"customerId\": \"%s\", \"email\": \"%s\"}",
-                newCredential.getCustomerId(), newCredential.getEmail().value());
+        try {
+            UserRegisteredEvent event = new UserRegisteredEvent(
+                    user.getCustomerId(),
+                    user.getEmail().value()
+            );
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EXCHANGE_NAME,
-                RabbitMQConfig.ROUTING_KEY,
-                mensagemJson
-        );
+            String jsonPayload = objectMapper.writeValueAsString(event);
 
-        log.info("Mensagem enviada com sucesso ao RabbitMQ! Novo usuario: {}", newCredential.getEmail().value());
+            OutboxEventJpaEntity outboxEvent = new OutboxEventJpaEntity(
+                    "user.registered",
+                    jsonPayload
+            );
+
+            outboxRepository.save(outboxEvent);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Erro ao serializar o evento user.registered", e);
+        }
     }
 }

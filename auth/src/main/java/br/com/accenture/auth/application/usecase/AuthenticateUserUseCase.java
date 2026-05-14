@@ -26,7 +26,7 @@ public class AuthenticateUserUseCase {
         UserCredential user = repository.findByEmail(emailVo)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password."));
 
-        if (!passwordEncoder.matches(command.rawPassword(), user.getPassword().value())) {
+        if (!passwordEncoder.matches(command.password(), user.getPassword().value())) {
             throw new InvalidCredentialsException("Invalid email or password.");
         }
 

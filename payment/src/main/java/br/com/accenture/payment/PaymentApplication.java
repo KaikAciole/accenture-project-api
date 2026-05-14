@@ -1,14 +1,11 @@
 package br.com.accenture.payment;
 
-import br.com.accenture.payment.infrastructure.config.PaymentCustomerMessagingProperties;
-import br.com.accenture.payment.infrastructure.config.PaymentMessagingProperties;
-import br.com.accenture.payment.infrastructure.config.PaymentOrderMessagingProperties;
-import br.com.accenture.payment.infrastructure.config.PaymentWalletProperties;
+import br.com.accenture.payment.infrastructure.config.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-@EnableConfigurationProperties({PaymentWalletProperties.class, PaymentMessagingProperties.class, PaymentOrderMessagingProperties.class, PaymentCustomerMessagingProperties.class})
+@EnableConfigurationProperties({PaymentWalletProperties.class, PaymentMessagingProperties.class, PaymentOrderMessagingProperties.class, PaymentCustomerMessagingProperties.class, MercadoPagoProperties.class})
 @SpringBootApplication
 public class PaymentApplication {
 

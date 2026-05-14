@@ -34,7 +34,7 @@ class WalletRepositoryAdapterTest {
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getOwnerId()).isEqualTo(TestFixtures.OWNER_ID);
-        assertThat(saved.getOwnerType()).isEqualTo(WalletOwnerType.COSTUMER);
+        assertThat(saved.getOwnerType()).isEqualTo(WalletOwnerType.CUSTOMER);
         assertThat(saved.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(saved.getCreatedAt()).isNotNull();
         assertThat(saved.getUpdatedAt()).isNotNull();
@@ -47,7 +47,7 @@ class WalletRepositoryAdapterTest {
         em.flush();
         em.clear();
 
-        Wallet duplicate = Wallet.createNew(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER);
+        Wallet duplicate = Wallet.createNew(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER);
 
         assertThatThrownBy(() -> {
             adapter.save(duplicate);
@@ -62,13 +62,13 @@ class WalletRepositoryAdapterTest {
         em.clear();
 
         assertThat(adapter.findById(saved.getId())).isPresent();
-        assertThat(adapter.findByOwnerIdAndOwnerType(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER))
+        assertThat(adapter.findByOwnerIdAndOwnerType(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER))
                 .isPresent()
                 .get()
                 .extracting(Wallet::getId)
                 .isEqualTo(saved.getId());
-        assertThat(adapter.existsByOwnerIdAndOwnerType(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER)).isTrue();
-        assertThat(adapter.existsByOwnerIdAndOwnerType(UUID.randomUUID(), WalletOwnerType.COSTUMER)).isFalse();
+        assertThat(adapter.existsByOwnerIdAndOwnerType(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER)).isTrue();
+        assertThat(adapter.existsByOwnerIdAndOwnerType(UUID.randomUUID(), WalletOwnerType.CUSTOMER)).isFalse();
     }
 
     @Test
@@ -93,7 +93,7 @@ class WalletRepositoryAdapterTest {
 
         Wallet reloaded = adapter.findById(saved.getId()).orElseThrow();
         assertThat(reloaded.getOwnerId()).isEqualTo(TestFixtures.OWNER_ID);
-        assertThat(reloaded.getOwnerType()).isEqualTo(WalletOwnerType.COSTUMER);
+        assertThat(reloaded.getOwnerType()).isEqualTo(WalletOwnerType.CUSTOMER);
         assertThat(reloaded.getBalance()).isEqualByComparingTo("75.00");
     }
 }

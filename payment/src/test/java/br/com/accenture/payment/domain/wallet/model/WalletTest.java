@@ -16,11 +16,11 @@ class WalletTest {
 
     @Test
     void createNewStartsWithZeroBalanceAndOwnerData() {
-        Wallet wallet = Wallet.createNew(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER);
+        Wallet wallet = Wallet.createNew(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER);
 
         assertThat(wallet.getId()).isNull();
         assertThat(wallet.getOwnerId()).isEqualTo(TestFixtures.OWNER_ID);
-        assertThat(wallet.getOwnerType()).isEqualTo(WalletOwnerType.COSTUMER);
+        assertThat(wallet.getOwnerType()).isEqualTo(WalletOwnerType.CUSTOMER);
         assertThat(wallet.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(wallet.getCreatedAt()).isNotNull();
         assertThat(wallet.getUpdatedAt()).isNotNull();
@@ -29,7 +29,7 @@ class WalletTest {
     @Test
     void restoreRejectsInvalidOwnerAndBalance() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> Wallet.createNew(null, WalletOwnerType.COSTUMER))
+                .isThrownBy(() -> Wallet.createNew(null, WalletOwnerType.CUSTOMER))
                 .withMessage("Wallet owner id is required");
 
         assertThatIllegalArgumentException()
@@ -40,7 +40,7 @@ class WalletTest {
                 .isThrownBy(() -> Wallet.restore(
                         TestFixtures.WALLET_ID,
                         TestFixtures.OWNER_ID,
-                        WalletOwnerType.COSTUMER,
+                        WalletOwnerType.CUSTOMER,
                         new BigDecimal("-1.00"),
                         TestFixtures.CREATED_AT,
                         TestFixtures.UPDATED_AT,

@@ -3,21 +3,31 @@ package br.com.accenture.payment.e2e.payment;
 import br.com.accenture.payment.api.payment.dto.request.PaymentFailureRequest;
 import br.com.accenture.payment.api.payment.dto.request.PaymentProcessRequest;
 import br.com.accenture.payment.api.payment.dto.request.PaymentRequest;
+import br.com.accenture.payment.application.port.PaymentEventPublisher;
 import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.infrastructure.persistence.payment.PaymentJpaRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -25,10 +35,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.rabbitmq.listener.simple.auto-startup=false")
 @AutoConfigureMockMvc
 @Transactional
 class PaymentLifecycleE2eTest {
+
+    private static final String INTERNAL_SECRET = "senha-secreta-microsservicos-1234";
 
     @Autowired
     private MockMvc mockMvc;
@@ -38,6 +50,14 @@ class PaymentLifecycleE2eTest {
 
     @Autowired
     private PaymentJpaRepository jpaRepository;
+
+    @Autowired
+    private CapturingPaymentEventPublisher eventPublisher;
+
+    @BeforeEach
+    void setUp() {
+        eventPublisher.clear();
+    }
 
     @Test
     void shouldCreatePaymentAndRetrieveItByIdAndOrderId() throws Exception {
@@ -49,6 +69,7 @@ class PaymentLifecycleE2eTest {
         );
 
         MvcResult created = mockMvc.perform(post("/payments")
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -60,12 +81,12 @@ class PaymentLifecycleE2eTest {
         String paymentId = objectMapper.readTree(created.getResponse().getContentAsString())
                 .get("id").asString();
 
-        mockMvc.perform(get("/payments/{id}", paymentId))
+        mockMvc.perform(get("/payments/{id}", paymentId).with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(paymentId))
                 .andExpect(jsonPath("$.customerId").value(request.customerId().toString()));
 
-        mockMvc.perform(get("/payments/orders/{orderId}", request.orderId()))
+        mockMvc.perform(get("/payments/orders/{orderId}", request.orderId()).with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(paymentId));
     }
@@ -81,6 +102,7 @@ class PaymentLifecycleE2eTest {
         createPayment(request);
 
         mockMvc.perform(post("/payments")
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -97,18 +119,21 @@ class PaymentLifecycleE2eTest {
         ));
 
         mockMvc.perform(patch("/payments/{id}/process", paymentId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new PaymentProcessRequest("tx-e2e-approve"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PROCESSING"))
                 .andExpect(jsonPath("$.externalTransactionId").value("tx-e2e-approve"));
 
-        mockMvc.perform(patch("/payments/{id}/approve", paymentId))
+        mockMvc.perform(patch("/payments/{id}/approve", paymentId).with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"))
                 .andExpect(jsonPath("$.paidAt").exists());
 
-        mockMvc.perform(patch("/payments/{id}/refund", paymentId))
+        assertThat(eventPublisher.approvedPayments).hasSize(1);
+
+        mockMvc.perform(patch("/payments/{id}/refund", paymentId).with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REFUNDED"));
     }
@@ -129,18 +154,24 @@ class PaymentLifecycleE2eTest {
         ));
 
         mockMvc.perform(patch("/payments/{id}/refuse", refusedId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new PaymentFailureRequest("Antifraud refused"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REFUSED"))
                 .andExpect(jsonPath("$.failureReason").value("Antifraud refused"));
 
+        assertThat(eventPublisher.refusedPayments).hasSize(1);
+
         mockMvc.perform(patch("/payments/{id}/cancel", canceledId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new PaymentFailureRequest("Order canceled"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELED"))
                 .andExpect(jsonPath("$.failureReason").value("Order canceled"));
+
+        assertThat(eventPublisher.canceledPayments).hasSize(1);
     }
 
     @Test
@@ -152,15 +183,16 @@ class PaymentLifecycleE2eTest {
                 PaymentMethod.PIX
         ));
 
-        mockMvc.perform(patch("/payments/{id}/approve", paymentId))
+        mockMvc.perform(patch("/payments/{id}/approve", paymentId).with(internalSecret()))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title").value("Invalid payment status"));
 
         mockMvc.perform(patch("/payments/{id}/process", paymentId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new PaymentProcessRequest(""))))
+                .content(objectMapper.writeValueAsString(new PaymentProcessRequest(""))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Validation error"));
+                .andExpect(jsonPath("$.title").value("Invalid request"));
     }
 
     @Test
@@ -172,20 +204,21 @@ class PaymentLifecycleE2eTest {
                 PaymentMethod.PIX
         ));
 
-        mockMvc.perform(get("/payments"))
+        mockMvc.perform(get("/payments").with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].id").value(paymentId));
 
-        mockMvc.perform(delete("/payments/{id}", paymentId))
+        mockMvc.perform(delete("/payments/{id}", paymentId).with(internalSecret()))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/payments/{id}", paymentId))
+        mockMvc.perform(get("/payments/{id}", paymentId).with(internalSecret()))
                 .andExpect(status().isNotFound());
     }
 
     private String createPayment(PaymentRequest request) throws Exception {
         MvcResult result = mockMvc.perform(post("/payments")
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -194,5 +227,50 @@ class PaymentLifecycleE2eTest {
         assert jpaRepository.existsByOrderId(request.orderId());
         return objectMapper.readTree(result.getResponse().getContentAsString())
                 .get("id").asString();
+    }
+
+    private static RequestPostProcessor internalSecret() {
+        return request -> {
+            request.addHeader("X-Internal-Secret", INTERNAL_SECRET);
+            return request;
+        };
+    }
+
+    @TestConfiguration
+    static class PaymentLifecycleTestConfig {
+
+        @Bean
+        @Primary
+        CapturingPaymentEventPublisher paymentEventPublisher() {
+            return new CapturingPaymentEventPublisher();
+        }
+    }
+
+    static final class CapturingPaymentEventPublisher implements PaymentEventPublisher {
+
+        private final List<Payment> approvedPayments = new ArrayList<>();
+        private final List<Payment> refusedPayments = new ArrayList<>();
+        private final List<Payment> canceledPayments = new ArrayList<>();
+
+        @Override
+        public void publishPaymentApproved(Payment payment) {
+            approvedPayments.add(payment);
+        }
+
+        @Override
+        public void publishPaymentRefused(Payment payment) {
+            refusedPayments.add(payment);
+        }
+
+        @Override
+        public void publishPaymentCanceled(Payment payment) {
+            canceledPayments.add(payment);
+        }
+
+        void clear() {
+            approvedPayments.clear();
+            refusedPayments.clear();
+            canceledPayments.clear();
+        }
     }
 }

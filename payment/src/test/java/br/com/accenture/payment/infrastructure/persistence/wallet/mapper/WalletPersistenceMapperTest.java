@@ -15,7 +15,7 @@ class WalletPersistenceMapperTest {
 
         assertThat(entity.getId()).isEqualTo(TestFixtures.WALLET_ID);
         assertThat(entity.getOwnerId()).isEqualTo(TestFixtures.OWNER_ID);
-        assertThat(entity.getOwnerType()).isEqualTo(WalletOwnerType.COSTUMER);
+        assertThat(entity.getOwnerType()).isEqualTo(WalletOwnerType.CUSTOMER);
         assertThat(entity.getBalance()).isEqualByComparingTo(TestFixtures.WALLET_BALANCE);
         assertThat(entity.getCreatedAt()).isEqualTo(TestFixtures.CREATED_AT);
         assertThat(entity.getUpdatedAt()).isEqualTo(TestFixtures.UPDATED_AT);
@@ -27,7 +27,7 @@ class WalletPersistenceMapperTest {
         var entity = WalletJpaEntity.builder()
                 .id(TestFixtures.WALLET_ID)
                 .ownerId(TestFixtures.OWNER_ID)
-                .ownerType(WalletOwnerType.COSTUMER)
+                .ownerType(WalletOwnerType.CUSTOMER)
                 .balance(TestFixtures.WALLET_BALANCE)
                 .createdAt(TestFixtures.CREATED_AT)
                 .updatedAt(TestFixtures.UPDATED_AT)
@@ -38,7 +38,7 @@ class WalletPersistenceMapperTest {
 
         assertThat(wallet.getId()).isEqualTo(TestFixtures.WALLET_ID);
         assertThat(wallet.getOwnerId()).isEqualTo(TestFixtures.OWNER_ID);
-        assertThat(wallet.getOwnerType()).isEqualTo(WalletOwnerType.COSTUMER);
+        assertThat(wallet.getOwnerType()).isEqualTo(WalletOwnerType.CUSTOMER);
         assertThat(wallet.getBalance()).isEqualByComparingTo(TestFixtures.WALLET_BALANCE);
     }
 

@@ -83,11 +83,11 @@ public final class TestFixtures {
     }
 
     public static Wallet newWallet() {
-        return Wallet.createNew(OWNER_ID, WalletOwnerType.COSTUMER);
+        return Wallet.createNew(OWNER_ID, WalletOwnerType.CUSTOMER);
     }
 
     public static Wallet walletWithBalance() {
-        return walletWithBalance(WALLET_ID, OWNER_ID, WalletOwnerType.COSTUMER, WALLET_BALANCE);
+        return walletWithBalance(WALLET_ID, OWNER_ID, WalletOwnerType.CUSTOMER, WALLET_BALANCE);
     }
 
     public static Wallet sellerWalletWithBalance() {

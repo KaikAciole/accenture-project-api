@@ -124,7 +124,7 @@ class PaymentControllerTest {
         private final List<PageRequest> findAllRequests = new ArrayList<>();
 
         private FakePaymentService() {
-            super(new NoopPaymentRepository());
+            super(new NoopPaymentRepository(), null, null, null);
         }
 
         @Override

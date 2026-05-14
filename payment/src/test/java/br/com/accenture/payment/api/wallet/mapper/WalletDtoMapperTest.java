@@ -18,7 +18,7 @@ class WalletDtoMapperTest {
 
         assertThat(response.id()).isEqualTo(TestFixtures.WALLET_ID);
         assertThat(response.ownerId()).isEqualTo(TestFixtures.OWNER_ID);
-        assertThat(response.ownerType()).isEqualTo(WalletOwnerType.COSTUMER);
+        assertThat(response.ownerType()).isEqualTo(WalletOwnerType.CUSTOMER);
         assertThat(response.balance()).isEqualByComparingTo(TestFixtures.WALLET_BALANCE);
         assertThat(response.createdAt()).isEqualTo(TestFixtures.CREATED_AT);
         assertThat(response.updatedAt()).isEqualTo(TestFixtures.UPDATED_AT);

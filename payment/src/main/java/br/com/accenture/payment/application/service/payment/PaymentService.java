@@ -5,6 +5,7 @@ import br.com.accenture.payment.application.service.wallet.WalletService;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
+import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
 import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentException;
 import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundException;
 import br.com.accenture.payment.domain.payment.model.Payment;
@@ -138,6 +139,22 @@ public class PaymentService {
         paymentEventPublisher.publishPaymentCanceled(savedPayment);
 
         return savedPayment;
+    }
+
+    @Transactional
+    public void cancelByOrderId(UUID orderId, String reason) {
+        paymentRepository.findByOrderId(orderId)
+                .ifPresent(payment -> {
+                    if (payment.getStatus() == PaymentStatus.PENDING ||
+                            payment.getStatus() == PaymentStatus.PROCESSING) {
+
+                        payment.cancel(reason);
+
+                        Payment savedPayment = paymentRepository.save(payment);
+
+                        paymentEventPublisher.publishPaymentCanceled(savedPayment);
+                    }
+                });
     }
 
     @Transactional

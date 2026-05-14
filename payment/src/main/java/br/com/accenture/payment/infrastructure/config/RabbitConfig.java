@@ -1,5 +1,8 @@
 package br.com.accenture.payment.infrastructure.config;
 
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
@@ -12,6 +15,28 @@ public class RabbitConfig {
     @Bean
     public TopicExchange paymentExchange(PaymentMessagingProperties properties) {
         return new TopicExchange(properties.exchange());
+    }
+
+    @Bean
+    public TopicExchange orderExchange(PaymentOrderMessagingProperties properties) {
+        return new TopicExchange(properties.exchange());
+    }
+
+    @Bean
+    public Queue orderCanceledPaymentQueue(PaymentOrderMessagingProperties properties) {
+        return new Queue(properties.queue().canceled(), true);
+    }
+
+    @Bean
+    public Binding orderCanceledPaymentBinding(
+            Queue orderCanceledPaymentQueue,
+            TopicExchange orderExchange,
+            PaymentOrderMessagingProperties properties
+    ) {
+        return BindingBuilder
+                .bind(orderCanceledPaymentQueue)
+                .to(orderExchange)
+                .with(properties.routingKey().canceled());
     }
 
     @Bean

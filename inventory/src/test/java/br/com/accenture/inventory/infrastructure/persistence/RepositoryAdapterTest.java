@@ -61,6 +61,8 @@ class RepositoryAdapterTest {
                 .thenReturn(new PageImpl<>(List.of(entity)));
         when(stockReservationJpaRepository.findByProductId(eq(TestFixtures.PRODUCT_ID), any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
+        when(stockReservationJpaRepository.findAllByOrderIdAndStatus(TestFixtures.ORDER_ID, ReservationStatus.ACTIVE))
+                .thenReturn(List.of(entity));
 
         assertThat(reservationAdapter.save(TestFixtures.activeReservation()).getId()).isEqualTo(TestFixtures.RESERVATION_ID);
         assertThat(reservationAdapter.findById(TestFixtures.RESERVATION_ID)).isPresent();
@@ -68,6 +70,7 @@ class RepositoryAdapterTest {
         assertThat(reservationAdapter.findByOrderId(TestFixtures.ORDER_ID, PageRequest.of(0, 10)).content()).hasSize(1);
         assertThat(reservationAdapter.findByOrderIdAndStatus(TestFixtures.ORDER_ID, ReservationStatus.ACTIVE, PageRequest.of(0, 10)).content()).hasSize(1);
         assertThat(reservationAdapter.findByProductId(TestFixtures.PRODUCT_ID, PageRequest.of(0, 10)).content()).hasSize(1);
+        assertThat(reservationAdapter.findAllByOrderIdAndStatus(TestFixtures.ORDER_ID, ReservationStatus.ACTIVE)).hasSize(1);
 
         reservationAdapter.deleteById(TestFixtures.RESERVATION_ID);
         verify(stockReservationJpaRepository).deleteById(TestFixtures.RESERVATION_ID);

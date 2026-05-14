@@ -59,7 +59,7 @@ class ProductServiceTest {
         PageRequest pageRequest = PageRequest.of(0, 10);
         PageResult<Product> page = new PageResult<>(List.of(product), 0, 10, 1, 1);
         when(repository.findById(id)).thenReturn(Optional.of(product), Optional.empty());
-        when(repository.findBySku("SKU-001")).thenReturn(Optional.of(product));
+        when(repository.findBySku("SKU-001")).thenReturn(Optional.of(product), Optional.empty());
         when(repository.findAll(pageRequest)).thenReturn(page);
         when(repository.findByNameContainingIgnoreCase("note", pageRequest)).thenReturn(page);
 
@@ -70,6 +70,9 @@ class ProductServiceTest {
         assertThatExceptionOfType(ProductNotFoundException.class)
                 .isThrownBy(() -> service.findById(id))
                 .withMessage("Product not found with id: " + id);
+        assertThatExceptionOfType(ProductNotFoundException.class)
+                .isThrownBy(() -> service.findBySku("SKU-001"))
+                .withMessage("Product not found with sku: SKU-001");
     }
 
     @Test
@@ -87,6 +90,16 @@ class ProductServiceTest {
         assertThat(result.getBasePrice()).isEqualByComparingTo(BigDecimal.valueOf(99));
         assertThat(result.getStockQuantity()).isEqualTo(20);
         verify(repository).save(existing);
+    }
+
+    @Test
+    void updateThrowsWhenProductDoesNotExist() {
+        Product updated = Product.createNew("IGNORED-SKU", "Mouse", "Accessories", BigDecimal.valueOf(99), 20);
+        when(repository.findById(TestFixtures.PRODUCT_ID)).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(ProductNotFoundException.class)
+                .isThrownBy(() -> service.update(TestFixtures.PRODUCT_ID, updated))
+                .withMessage("Product not found with id: " + TestFixtures.PRODUCT_ID);
     }
 
     @Test

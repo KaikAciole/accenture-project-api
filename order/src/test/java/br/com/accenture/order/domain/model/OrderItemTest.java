@@ -19,6 +19,8 @@ class OrderItemTest {
         assertThat(item.getQuantity()).isEqualTo(3);
         assertThat(item.getUnitPrice()).isEqualByComparingTo(new BigDecimal("50.00"));
         assertThat(item.getTotalPrice()).isEqualByComparingTo(new BigDecimal("150.00"));
+        assertThat(item.getCreatedAt()).isNotNull();
+        assertThat(item.getUpdatedAt()).isNotNull();
     }
 
     @Test
@@ -63,6 +65,9 @@ class OrderItemTest {
 
         assertThat(item.getQuantity()).isEqualTo(5);
         assertThat(item.getTotalPrice()).isEqualByComparingTo(new BigDecimal("250.00"));
+
+        assertThat(item.getCreatedAt()).isNotNull();
+        assertThat(item.getUpdatedAt()).isNotNull();
     }
 
     @Test

@@ -31,11 +31,18 @@ class OrderPersistenceMapperTest {
         assertThat(entity.getTotalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
         assertThat(entity.getItems()).hasSize(1);
 
+        assertThat(entity.getCreatedAt()).isEqualTo(domainOrder.getCreatedAt());
+        assertThat(entity.getUpdatedAt()).isEqualTo(domainOrder.getUpdatedAt());
+
         OrderItemJpaEntity itemEntity = entity.getItems().get(0);
         assertThat(itemEntity.getSku()).isEqualTo("SKU-99");
         assertThat(itemEntity.getQuantity()).isEqualTo(2);
         assertThat(itemEntity.getUnitPrice()).isEqualByComparingTo(new BigDecimal("50.00"));
         assertThat(itemEntity.getOrder()).isEqualTo(entity);
+
+        OrderItem domainItem = domainOrder.getItems().get(0);
+        assertThat(itemEntity.getCreatedAt()).isEqualTo(domainItem.getCreatedAt());
+        assertThat(itemEntity.getUpdatedAt()).isEqualTo(domainItem.getUpdatedAt());
     }
 
     @Test

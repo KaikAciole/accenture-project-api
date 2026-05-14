@@ -38,7 +38,8 @@ public class Order {
 
     public static Order createNew(String customerId) {
         requireNotBlank(customerId, "customerId");
-        return new Order(null, customerId, OrderStatus.PENDING, BigDecimal.ZERO, new ArrayList<>(), null, null);
+        Instant now = Instant.now();
+        return new Order(null, customerId, OrderStatus.PENDING, BigDecimal.ZERO, new ArrayList<>(), now, now);
     }
 
     public static Order restore(UUID id,
@@ -55,24 +56,30 @@ public class Order {
         requireNotNull(item, "item");
         this.items.add(item);
         recalculateTotalAmount();
+        this.updatedAt = Instant.now();
     }
 
     public void removeItem(OrderItem item) {
         requireNotNull(item, "item");
         this.items.remove(item);
         recalculateTotalAmount();
+        this.updatedAt = Instant.now();
     }
 
-    public void updateStatus(OrderStatus newStatus) {
-        requireNotNull(newStatus, "newStatus");
-        this.status = newStatus;
-    }
-
-    public void confirmReservation() {
-        if (this.status != OrderStatus.PENDING && this.status != OrderStatus.ANALYZING_FRAUD) {
-            throw new IllegalStateException("Cannot reserve order from current state: " + this.status);
+    public void markAsPaid() {
+        if (this.status != OrderStatus.PENDING) {
+            throw new IllegalStateException("Cannot mark as paid from current state: " + this.status);
         }
-        this.status = OrderStatus.RESERVED;
+        this.status = OrderStatus.PAID;
+        this.updatedAt = Instant.now();
+    }
+
+    public void cancel() {
+        if (this.status == OrderStatus.PAID) {
+            throw new IllegalStateException("Cannot cancel an already paid order.");
+        }
+        this.status = OrderStatus.CANCELED;
+        this.updatedAt = Instant.now();
     }
 
     private void recalculateTotalAmount() {

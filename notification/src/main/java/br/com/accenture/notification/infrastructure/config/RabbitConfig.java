@@ -1,9 +1,6 @@
 package br.com.accenture.notification.infrastructure.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -25,8 +22,8 @@ public class RabbitConfig {
     public static final String ORDER_CANCELED_ROUTING_KEY = "order.canceled";
 
     @Bean
-    public DirectExchange authExchange() {
-        return new DirectExchange(AUTH_EXCHANGE);
+    public TopicExchange authExchange() {
+        return new TopicExchange(AUTH_EXCHANGE);
     }
 
     @Bean
@@ -35,13 +32,13 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding userRegisteredBinding(Queue userRegisteredQueue, DirectExchange authExchange) {
+    public Binding userRegisteredBinding(Queue userRegisteredQueue, TopicExchange authExchange) {
         return BindingBuilder.bind(userRegisteredQueue).to(authExchange).with(USER_REGISTERED_ROUTING_KEY);
     }
 
     @Bean
-    public DirectExchange orderExchange() {
-        return new DirectExchange(ORDER_EXCHANGE);
+    public TopicExchange orderExchange() {
+        return new TopicExchange(ORDER_EXCHANGE);
     }
 
     @Bean
@@ -60,17 +57,17 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding orderCreatedBinding(Queue orderCreatedQueue, DirectExchange orderExchange) {
+    public Binding orderCreatedBinding(Queue orderCreatedQueue, TopicExchange orderExchange) {
         return BindingBuilder.bind(orderCreatedQueue).to(orderExchange).with(ORDER_CREATED_ROUTING_KEY);
     }
 
     @Bean
-    public Binding orderPaidBinding(Queue orderPaidQueue, DirectExchange orderExchange) {
+    public Binding orderPaidBinding(Queue orderPaidQueue, TopicExchange orderExchange) {
         return BindingBuilder.bind(orderPaidQueue).to(orderExchange).with(ORDER_PAID_ROUTING_KEY);
     }
 
     @Bean
-    public Binding orderCanceledBinding(Queue orderCanceledQueue, DirectExchange orderExchange) {
+    public Binding orderCanceledBinding(Queue orderCanceledQueue, TopicExchange orderExchange) {
         return BindingBuilder.bind(orderCanceledQueue).to(orderExchange).with(ORDER_CANCELED_ROUTING_KEY);
     }
 

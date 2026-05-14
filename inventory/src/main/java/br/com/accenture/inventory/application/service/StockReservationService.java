@@ -1,5 +1,6 @@
 package br.com.accenture.inventory.application.service;
 
+import br.com.accenture.inventory.application.port.StockEventPublisher;
 import br.com.accenture.inventory.domain.enums.ReservationStatus;
 import br.com.accenture.inventory.domain.exception.ProductNotFoundException;
 import br.com.accenture.inventory.domain.exception.StockReservationNotFoundException;
@@ -20,11 +21,14 @@ public class StockReservationService {
 
     private final StockReservationRepository stockReservationRepository;
     private final ProductRepository productRepository;
+    private final StockEventPublisher stockEventPublisher;
 
     public StockReservationService(StockReservationRepository stockReservationRepository,
-                                   ProductRepository productRepository) {
+                                   ProductRepository productRepository,
+                                   StockEventPublisher stockEventPublisher) {
         this.stockReservationRepository = stockReservationRepository;
         this.productRepository = productRepository;
+        this.stockEventPublisher = stockEventPublisher;
     }
 
     @Transactional
@@ -40,7 +44,11 @@ public class StockReservationService {
 
         productRepository.save(product);
 
-        return stockReservationRepository.save(reservation);
+        StockReservation savedReservation = stockReservationRepository.save(reservation);
+
+        stockEventPublisher.publishStockReserved(savedReservation);
+
+        return savedReservation;
     }
 
     @Transactional
@@ -56,7 +64,11 @@ public class StockReservationService {
 
         productRepository.save(product);
 
-        return stockReservationRepository.save(reservation);
+        StockReservation savedReservation = stockReservationRepository.save(reservation);
+
+        stockEventPublisher.publishStockReserved(savedReservation);
+
+        return savedReservation;
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +106,11 @@ public class StockReservationService {
 
         reservation.confirm();
 
-        return stockReservationRepository.save(reservation);
+        StockReservation savedReservation = stockReservationRepository.save(reservation);
+
+        stockEventPublisher.publishStockReservationConfirmed(savedReservation);
+
+        return savedReservation;
     }
 
     @Transactional
@@ -106,7 +122,11 @@ public class StockReservationService {
 
         productRepository.save(reservation.getProduct());
 
-        return stockReservationRepository.save(reservation);
+        StockReservation savedReservation = stockReservationRepository.save(reservation);
+
+        stockEventPublisher.publishStockReservationCanceled(savedReservation);
+
+        return savedReservation;
     }
 
     @Transactional
@@ -122,7 +142,10 @@ public class StockReservationService {
 
         reservations.forEach(reservation -> {
             reservation.confirm();
-            stockReservationRepository.save(reservation);
+
+            StockReservation savedReservation = stockReservationRepository.save(reservation);
+
+            stockEventPublisher.publishStockReservationConfirmed(savedReservation);
         });
     }
 
@@ -139,8 +162,12 @@ public class StockReservationService {
 
         reservations.forEach(reservation -> {
             reservation.cancel();
+
             productRepository.save(reservation.getProduct());
-            stockReservationRepository.save(reservation);
+
+            StockReservation savedReservation = stockReservationRepository.save(reservation);
+
+            stockEventPublisher.publishStockReservationCanceled(savedReservation);
         });
     }
 

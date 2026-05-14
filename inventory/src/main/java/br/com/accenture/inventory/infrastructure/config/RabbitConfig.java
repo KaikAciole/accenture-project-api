@@ -23,6 +23,11 @@ public class RabbitConfig {
     }
 
     @Bean
+    public TopicExchange stockExchange(InventoryStockMessagingProperties properties) {
+        return new TopicExchange(properties.exchange());
+    }
+
+    @Bean
     public Queue paymentApprovedInventoryQueue(InventoryPaymentMessagingProperties properties) {
         return new Queue(properties.queue().approved(), true);
     }

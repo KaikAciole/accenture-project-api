@@ -10,6 +10,7 @@ import java.util.UUID;
 public final class TestFixtures {
 
     public static final UUID NOTIFICATION_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    public static final String CUSTOMER_ID = "22222222-2222-2222-2222-222222222222";
     public static final String RECIPIENT = "user@example.com";
     public static final String SUBJECT = "Order confirmed";
     public static final String BODY = "Your order #42 has been confirmed.";
@@ -20,12 +21,13 @@ public final class TestFixtures {
     }
 
     public static Notification newPendingNotification() {
-        return Notification.create(RECIPIENT, SUBJECT, BODY);
+        return Notification.create(CUSTOMER_ID, RECIPIENT, SUBJECT, BODY);
     }
 
     public static Notification restoredPendingNotification() {
         return Notification.restore(
                 NOTIFICATION_ID,
+                CUSTOMER_ID,
                 RECIPIENT,
                 SUBJECT,
                 BODY,
@@ -38,6 +40,7 @@ public final class TestFixtures {
     public static Notification restoredSentNotification() {
         return Notification.restore(
                 NOTIFICATION_ID,
+                CUSTOMER_ID,
                 RECIPIENT,
                 SUBJECT,
                 BODY,
@@ -50,6 +53,7 @@ public final class TestFixtures {
     public static Notification restoredFailedNotification() {
         return Notification.restore(
                 NOTIFICATION_ID,
+                CUSTOMER_ID,
                 RECIPIENT,
                 SUBJECT,
                 BODY,
@@ -62,6 +66,7 @@ public final class TestFixtures {
     public static NotificationJpaEntity pendingJpaEntity() {
         return NotificationJpaEntity.builder()
                 .id(NOTIFICATION_ID)
+                .customerId(CUSTOMER_ID)
                 .recipient(RECIPIENT)
                 .subject(SUBJECT)
                 .body(BODY)

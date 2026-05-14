@@ -14,6 +14,7 @@ public final class NotificationDtoMapper {
         }
         return new NotificationResponse(
                 notification.getId(),
+                notification.getCustomerId(),
                 notification.getRecipient(),
                 notification.getSubject(),
                 notification.getBody(),

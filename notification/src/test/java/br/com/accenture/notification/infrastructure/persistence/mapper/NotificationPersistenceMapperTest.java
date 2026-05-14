@@ -19,6 +19,7 @@ class NotificationPersistenceMapperTest {
         NotificationJpaEntity entity = mapper.toEntity(notification);
 
         assertThat(entity.getId()).isEqualTo(TestFixtures.NOTIFICATION_ID);
+        assertThat(entity.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(entity.getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(entity.getSubject()).isEqualTo(TestFixtures.SUBJECT);
         assertThat(entity.getBody()).isEqualTo(TestFixtures.BODY);
@@ -34,6 +35,7 @@ class NotificationPersistenceMapperTest {
         Notification notification = mapper.toDomain(entity);
 
         assertThat(notification.getId()).isEqualTo(TestFixtures.NOTIFICATION_ID);
+        assertThat(notification.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(notification.getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(notification.getSubject()).isEqualTo(TestFixtures.SUBJECT);
         assertThat(notification.getBody()).isEqualTo(TestFixtures.BODY);

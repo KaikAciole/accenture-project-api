@@ -23,8 +23,8 @@ public class WelcomeNotificationService {
     }
 
     @Transactional
-    public void sendWelcome(String recipient) {
-        Notification notification = Notification.create(recipient, WELCOME_SUBJECT, WELCOME_BODY);
+    public void sendWelcome(String customerId, String recipient) {
+        Notification notification = Notification.create(customerId, recipient, WELCOME_SUBJECT, WELCOME_BODY);
         try {
             emailSender.sendWelcomeEmail(recipient);
             notification.markAsSent();

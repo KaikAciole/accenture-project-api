@@ -33,6 +33,7 @@ class NotificationControllerIntegrationTest {
         mockMvc.perform(get("/notifications/{id}", TestFixtures.NOTIFICATION_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(TestFixtures.NOTIFICATION_ID.toString()))
+                .andExpect(jsonPath("$.customerId").value(TestFixtures.CUSTOMER_ID))
                 .andExpect(jsonPath("$.recipient").value(TestFixtures.RECIPIENT))
                 .andExpect(jsonPath("$.subject").value(TestFixtures.SUBJECT))
                 .andExpect(jsonPath("$.body").value(TestFixtures.BODY))

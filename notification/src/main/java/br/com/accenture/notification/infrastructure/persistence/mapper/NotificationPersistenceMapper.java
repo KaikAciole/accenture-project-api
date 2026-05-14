@@ -2,7 +2,6 @@ package br.com.accenture.notification.infrastructure.persistence.mapper;
 
 import br.com.accenture.notification.domain.model.Notification;
 import br.com.accenture.notification.infrastructure.persistence.entity.NotificationJpaEntity;
-import org.springframework.stereotype.Component;
 
 public class NotificationPersistenceMapper {
 
@@ -12,6 +11,7 @@ public class NotificationPersistenceMapper {
         }
         return NotificationJpaEntity.builder()
                 .id(notification.getId())
+                .customerId(notification.getCustomerId())
                 .recipient(notification.getRecipient())
                 .subject(notification.getSubject())
                 .body(notification.getBody())
@@ -27,6 +27,7 @@ public class NotificationPersistenceMapper {
         }
         return Notification.restore(
                 entity.getId(),
+                entity.getCustomerId(),
                 entity.getRecipient(),
                 entity.getSubject(),
                 entity.getBody(),

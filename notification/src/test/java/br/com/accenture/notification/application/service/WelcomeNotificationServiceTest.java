@@ -25,12 +25,13 @@ class WelcomeNotificationServiceTest {
     void sendWelcomePersistsSentNotificationWhenEmailDeliverySucceeds() {
         when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.sendWelcome(TestFixtures.RECIPIENT);
+        service.sendWelcome(TestFixtures.CUSTOMER_ID, TestFixtures.RECIPIENT);
 
         verify(emailSender).sendWelcomeEmail(TestFixtures.RECIPIENT);
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(repository).save(captor.capture());
         Notification persisted = captor.getValue();
+        assertThat(persisted.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(persisted.getRecipient()).isEqualTo(TestFixtures.RECIPIENT);
         assertThat(persisted.getSubject()).isEqualTo(WelcomeNotificationService.WELCOME_SUBJECT);
         assertThat(persisted.getBody()).isEqualTo(WelcomeNotificationService.WELCOME_BODY);
@@ -43,11 +44,12 @@ class WelcomeNotificationServiceTest {
         when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new RuntimeException("smtp down")).when(emailSender).sendWelcomeEmail(TestFixtures.RECIPIENT);
 
-        service.sendWelcome(TestFixtures.RECIPIENT);
+        service.sendWelcome(TestFixtures.CUSTOMER_ID, TestFixtures.RECIPIENT);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(repository).save(captor.capture());
         Notification persisted = captor.getValue();
+        assertThat(persisted.getCustomerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
         assertThat(persisted.getStatus()).isEqualTo(NotificationStatus.FAILED);
         assertThat(persisted.getSentAt()).isNull();
     }

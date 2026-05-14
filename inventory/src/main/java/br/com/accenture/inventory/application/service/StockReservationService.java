@@ -43,6 +43,22 @@ public class StockReservationService {
         return stockReservationRepository.save(reservation);
     }
 
+    @Transactional
+    public StockReservation createBySku(UUID orderId, String sku, Integer reservedQuantity) {
+        Product product = productRepository.findBySku(sku)
+                .orElseThrow(() -> new ProductNotFoundException(sku));
+
+        StockReservation reservation = StockReservation.createNew(
+                orderId,
+                product,
+                reservedQuantity
+        );
+
+        productRepository.save(product);
+
+        return stockReservationRepository.save(reservation);
+    }
+
     @Transactional(readOnly = true)
     public StockReservation findById(UUID id) {
         return stockReservationRepository.findById(id)

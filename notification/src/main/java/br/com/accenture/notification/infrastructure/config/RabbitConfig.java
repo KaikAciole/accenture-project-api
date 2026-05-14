@@ -157,7 +157,6 @@ public class RabbitConfig {
 
     @Bean
     public MethodInterceptor retryInterceptor() {
-        // maxRetries(2) = 1 initial attempt + 2 retries = 3 total attempts
         return RetryInterceptorBuilder.stateless()
                 .maxRetries(2)
                 .backOffOptions(1000, 2.0, 4000)

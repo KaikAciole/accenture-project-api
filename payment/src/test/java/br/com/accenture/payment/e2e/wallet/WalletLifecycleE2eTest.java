@@ -15,6 +15,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
@@ -28,10 +29,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.rabbitmq.listener.simple.auto-startup=false")
 @AutoConfigureMockMvc
 @Transactional
 class WalletLifecycleE2eTest {
+
+    private static final String INTERNAL_SECRET = "senha-secreta-microsservicos-1234";
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,15 +52,16 @@ class WalletLifecycleE2eTest {
     void shouldCreateWalletAndRetrieveItByIdAndOwner() throws Exception {
         UUID ownerId = UUID.randomUUID();
 
-        String walletId = createWallet(ownerId, WalletOwnerType.COSTUMER);
+        String walletId = createWallet(ownerId, WalletOwnerType.CUSTOMER);
 
-        mockMvc.perform(get("/wallets/{id}", walletId))
+        mockMvc.perform(get("/wallets/{id}", walletId).with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(walletId))
                 .andExpect(jsonPath("$.ownerId").value(ownerId.toString()))
                 .andExpect(jsonPath("$.balance").value(0));
 
-        mockMvc.perform(get("/wallets/owners/{ownerType}/{ownerId}", WalletOwnerType.COSTUMER, ownerId))
+        mockMvc.perform(get("/wallets/owners/{ownerType}/{ownerId}", WalletOwnerType.CUSTOMER, ownerId)
+                        .with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(walletId));
     }
@@ -65,10 +69,11 @@ class WalletLifecycleE2eTest {
     @Test
     void shouldReturn409WhenCreatingDuplicateOwnerWallet() throws Exception {
         UUID ownerId = UUID.randomUUID();
-        WalletCreateRequest request = new WalletCreateRequest(ownerId, WalletOwnerType.COSTUMER);
+        WalletCreateRequest request = new WalletCreateRequest(ownerId, WalletOwnerType.CUSTOMER);
         createWallet(request);
 
         mockMvc.perform(post("/wallets")
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -77,10 +82,11 @@ class WalletLifecycleE2eTest {
 
     @Test
     void shouldCreditDebitAndListWalletTransactions() throws Exception {
-        String walletId = createWallet(UUID.randomUUID(), WalletOwnerType.COSTUMER);
+        String walletId = createWallet(UUID.randomUUID(), WalletOwnerType.CUSTOMER);
         UUID paymentId = UUID.randomUUID();
 
         mockMvc.perform(patch("/wallets/{walletId}/credit", walletId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new WalletCreditRequest(
                                 new BigDecimal("200.00"),
@@ -91,6 +97,7 @@ class WalletLifecycleE2eTest {
                 .andExpect(jsonPath("$.balance").value(200.00));
 
         mockMvc.perform(patch("/wallets/{walletId}/debit", walletId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new WalletDebitRequest(
                                 new BigDecimal("50.00"),
@@ -101,6 +108,7 @@ class WalletLifecycleE2eTest {
                 .andExpect(jsonPath("$.balance").value(150.00));
 
         mockMvc.perform(get("/wallets/{walletId}/transactions", walletId)
+                        .with(internalSecret())
                         .param("size", "10")
                         .param("sort", "amount,desc"))
                 .andExpect(status().isOk())
@@ -115,16 +123,17 @@ class WalletLifecycleE2eTest {
     void shouldTransferBalanceBetweenWallets() throws Exception {
         UUID customerId = UUID.randomUUID();
         UUID sellerId = UUID.randomUUID();
-        createWallet(customerId, WalletOwnerType.COSTUMER);
+        createWallet(customerId, WalletOwnerType.CUSTOMER);
         createWallet(sellerId, WalletOwnerType.SELLER);
 
         String customerWalletId = walletJpaRepository
-                .findByOwnerIdAndOwnerType(customerId, WalletOwnerType.COSTUMER)
+                .findByOwnerIdAndOwnerType(customerId, WalletOwnerType.CUSTOMER)
                 .orElseThrow()
                 .getId()
                 .toString();
 
         mockMvc.perform(patch("/wallets/{walletId}/credit", customerWalletId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new WalletCreditRequest(
                                 new BigDecimal("120.00"),
@@ -134,10 +143,11 @@ class WalletLifecycleE2eTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/wallets/transfer")
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new WalletTransferRequest(
                                 customerId,
-                                WalletOwnerType.COSTUMER,
+                                WalletOwnerType.CUSTOMER,
                                 sellerId,
                                 WalletOwnerType.SELLER,
                                 new BigDecimal("80.00"),
@@ -145,11 +155,13 @@ class WalletLifecycleE2eTest {
                         ))))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/wallets/owners/{ownerType}/{ownerId}", WalletOwnerType.COSTUMER, customerId))
+        mockMvc.perform(get("/wallets/owners/{ownerType}/{ownerId}", WalletOwnerType.CUSTOMER, customerId)
+                        .with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.balance").value(40.00));
 
-        mockMvc.perform(get("/wallets/owners/{ownerType}/{ownerId}", WalletOwnerType.SELLER, sellerId))
+        mockMvc.perform(get("/wallets/owners/{ownerType}/{ownerId}", WalletOwnerType.SELLER, sellerId)
+                        .with(internalSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.balance").value(80.00));
 
@@ -158,9 +170,10 @@ class WalletLifecycleE2eTest {
 
     @Test
     void shouldReturn422ForInsufficientBalanceAnd400ForInvalidPayload() throws Exception {
-        String walletId = createWallet(UUID.randomUUID(), WalletOwnerType.COSTUMER);
+        String walletId = createWallet(UUID.randomUUID(), WalletOwnerType.CUSTOMER);
 
         mockMvc.perform(patch("/wallets/{walletId}/debit", walletId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new WalletDebitRequest(
                                 new BigDecimal("1.00"),
@@ -171,6 +184,7 @@ class WalletLifecycleE2eTest {
                 .andExpect(jsonPath("$.title").value("Insufficient wallet balance"));
 
         mockMvc.perform(patch("/wallets/{walletId}/credit", walletId)
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new WalletCreditRequest(
                                 BigDecimal.ZERO,
@@ -187,6 +201,7 @@ class WalletLifecycleE2eTest {
 
     private String createWallet(WalletCreateRequest request) throws Exception {
         MvcResult result = mockMvc.perform(post("/wallets")
+                        .with(internalSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -195,5 +210,12 @@ class WalletLifecycleE2eTest {
         assertThat(walletJpaRepository.existsByOwnerIdAndOwnerType(request.ownerId(), request.ownerType())).isTrue();
         return objectMapper.readTree(result.getResponse().getContentAsString())
                 .get("id").asString();
+    }
+
+    private static RequestPostProcessor internalSecret() {
+        return request -> {
+            request.addHeader("X-Internal-Secret", INTERNAL_SECRET);
+            return request;
+        };
     }
 }

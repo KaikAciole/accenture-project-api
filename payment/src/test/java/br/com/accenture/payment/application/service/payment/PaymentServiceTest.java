@@ -1,6 +1,7 @@
 package br.com.accenture.payment.application.service.payment;
 
-import br.com.accenture.payment.application.service.payment.PaymentService;
+import br.com.accenture.payment.application.port.PaymentEventPublisher;
+import br.com.accenture.payment.application.service.wallet.WalletService;
 import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
 import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
 import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentException;
@@ -10,6 +11,12 @@ import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
+import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
+import br.com.accenture.payment.domain.wallet.model.Wallet;
+import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
+import br.com.accenture.payment.domain.wallet.repository.WalletRepository;
+import br.com.accenture.payment.domain.wallet.repository.WalletTransactionRepository;
+import br.com.accenture.payment.infrastructure.config.PaymentWalletProperties;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -28,10 +35,18 @@ class PaymentServiceTest {
     private static final UUID PAYMENT_ID = UUID.fromString("6ca24443-0347-486b-b276-290f4170909f");
     private static final UUID ORDER_ID = UUID.fromString("e3bc2c53-e29c-4a19-9063-8b8cb55507d6");
     private static final UUID CUSTOMER_ID = UUID.fromString("2a497a58-b4e5-44ac-a79b-797ca294865e");
+    private static final UUID COMPANY_OWNER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final BigDecimal AMOUNT = new BigDecimal("149.90");
 
     private final FakePaymentRepository paymentRepository = new FakePaymentRepository();
-    private final PaymentService service = new PaymentService(paymentRepository);
+    private final FakeWalletService walletService = new FakeWalletService();
+    private final FakePaymentEventPublisher eventPublisher = new FakePaymentEventPublisher();
+    private final PaymentService service = new PaymentService(
+            paymentRepository,
+            walletService,
+            new PaymentWalletProperties(COMPANY_OWNER_ID),
+            eventPublisher
+    );
 
     @Test
     void createPersistsNewPaymentWhenOrderDoesNotHavePayment() {
@@ -99,6 +114,67 @@ class PaymentServiceTest {
         assertThat(canceled.getFailureReason()).isEqualTo("Customer requested");
         assertThat(refunded.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(paymentRepository.savedPayments).hasSize(5);
+        assertThat(eventPublisher.approvedPayments).containsExactly(approved);
+        assertThat(eventPublisher.refusedPayments).containsExactly(refused);
+        assertThat(eventPublisher.canceledPayments).containsExactly(canceled);
+    }
+
+    @Test
+    void processWalletPaymentTransfersBalanceAndPublishesApprovedEvent() {
+        Payment walletPayment = Payment.restore(
+                PAYMENT_ID,
+                ORDER_ID,
+                CUSTOMER_ID,
+                AMOUNT,
+                PaymentMethod.WALLET,
+                PaymentStatus.PENDING,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        paymentRepository.findByIdResponses.add(Optional.of(walletPayment));
+
+        Payment result = service.process(PAYMENT_ID, null);
+
+        assertThat(result.getStatus()).isEqualTo(PaymentStatus.APPROVED);
+        assertThat(result.getExternalTransactionId()).startsWith("WALLET-");
+        assertThat(walletService.transferCalls).containsExactly(new TransferCall(
+                CUSTOMER_ID,
+                WalletOwnerType.CUSTOMER,
+                COMPANY_OWNER_ID,
+                WalletOwnerType.COMPANY,
+                AMOUNT,
+                PAYMENT_ID
+        ));
+        assertThat(eventPublisher.approvedPayments).containsExactly(result);
+    }
+
+    @Test
+    void cancelByOrderIdCancelsPendingPaymentAndPublishesCanceledEvent() {
+        Payment payment = pendingPayment();
+        paymentRepository.findByOrderIdResponses.add(Optional.of(payment));
+
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
+
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCELED);
+        assertThat(payment.getFailureReason()).isEqualTo("Order canceled");
+        assertThat(paymentRepository.savedPayments).containsExactly(payment);
+        assertThat(eventPublisher.canceledPayments).containsExactly(payment);
+    }
+
+    @Test
+    void cancelByOrderIdDoesNothingWhenPaymentIsAlreadyFinalOrMissing() {
+        paymentRepository.findByOrderIdResponses.add(Optional.of(approvedPayment()));
+        paymentRepository.findByOrderIdResponses.add(Optional.empty());
+
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
+
+        assertThat(paymentRepository.savedPayments).isEmpty();
+        assertThat(eventPublisher.canceledPayments).isEmpty();
     }
 
     @Test
@@ -185,6 +261,102 @@ class PaymentServiceTest {
                 null,
                 null
         );
+    }
+
+    private record TransferCall(
+            UUID fromOwnerId,
+            WalletOwnerType fromOwnerType,
+            UUID toOwnerId,
+            WalletOwnerType toOwnerType,
+            BigDecimal amount,
+            UUID paymentId
+    ) {
+    }
+
+    private static final class FakeWalletService extends WalletService {
+
+        private final List<TransferCall> transferCalls = new ArrayList<>();
+
+        private FakeWalletService() {
+            super(new NoopWalletRepository(), new NoopWalletTransactionRepository());
+        }
+
+        @Override
+        public void transfer(
+                UUID fromOwnerId,
+                WalletOwnerType fromOwnerType,
+                UUID toOwnerId,
+                WalletOwnerType toOwnerType,
+                BigDecimal amount,
+                UUID paymentId
+        ) {
+            transferCalls.add(new TransferCall(
+                    fromOwnerId,
+                    fromOwnerType,
+                    toOwnerId,
+                    toOwnerType,
+                    amount,
+                    paymentId
+            ));
+        }
+    }
+
+    private static final class FakePaymentEventPublisher implements PaymentEventPublisher {
+
+        private final List<Payment> approvedPayments = new ArrayList<>();
+        private final List<Payment> refusedPayments = new ArrayList<>();
+        private final List<Payment> canceledPayments = new ArrayList<>();
+
+        @Override
+        public void publishPaymentApproved(Payment payment) {
+            approvedPayments.add(payment);
+        }
+
+        @Override
+        public void publishPaymentRefused(Payment payment) {
+            refusedPayments.add(payment);
+        }
+
+        @Override
+        public void publishPaymentCanceled(Payment payment) {
+            canceledPayments.add(payment);
+        }
+    }
+
+    private static final class NoopWalletRepository implements WalletRepository {
+
+        @Override
+        public Wallet save(Wallet wallet) {
+            return wallet;
+        }
+
+        @Override
+        public Optional<Wallet> findById(UUID id) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Wallet> findByOwnerIdAndOwnerType(UUID ownerId, WalletOwnerType ownerType) {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean existsByOwnerIdAndOwnerType(UUID ownerId, WalletOwnerType ownerType) {
+            return false;
+        }
+    }
+
+    private static final class NoopWalletTransactionRepository implements WalletTransactionRepository {
+
+        @Override
+        public WalletTransaction save(WalletTransaction transaction) {
+            return transaction;
+        }
+
+        @Override
+        public PageResult<WalletTransaction> findByWalletId(UUID walletId, PageRequest pageRequest) {
+            return new PageResult<>(List.of(), pageRequest.page(), pageRequest.size(), 0, 0);
+        }
     }
 
     private static final class FakePaymentRepository implements PaymentRepository {

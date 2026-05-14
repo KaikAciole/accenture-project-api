@@ -34,7 +34,7 @@ class WalletServiceTest {
     void createPersistsWalletWhenOwnerDoesNotHaveWallet() {
         walletRepository.nextSavedWallet = TestFixtures.walletWithBalance();
 
-        Wallet wallet = service.create(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER);
+        Wallet wallet = service.create(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER);
 
         assertThat(wallet.getId()).isEqualTo(TestFixtures.WALLET_ID);
         assertThat(walletRepository.existsByOwnerCalls).containsExactly(TestFixtures.OWNER_ID);
@@ -46,10 +46,35 @@ class WalletServiceTest {
         walletRepository.existsByOwner = true;
 
         assertThatExceptionOfType(DuplicateWalletException.class)
-                .isThrownBy(() -> service.create(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER))
-                .withMessage("Wallet already exists for owner id: " + TestFixtures.OWNER_ID + " and owner type: COSTUMER");
+                .isThrownBy(() -> service.create(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER))
+                .withMessage("Wallet already exists for owner id: " + TestFixtures.OWNER_ID + " and owner type: CUSTOMER");
 
         assertThat(walletRepository.savedWallets).isEmpty();
+    }
+
+    @Test
+    void createCustomerWalletIfNotExistsIsIdempotent() {
+        walletRepository.existsByOwner = true;
+
+        service.createCustomerWalletIfNotExists(TestFixtures.CUSTOMER_ID);
+
+        assertThat(walletRepository.existsByOwnerCalls).containsExactly(TestFixtures.CUSTOMER_ID);
+        assertThat(walletRepository.savedWallets).isEmpty();
+    }
+
+    @Test
+    void createCustomerWalletIfNotExistsPersistsWalletWhenMissing() {
+        walletRepository.existsByOwner = false;
+
+        service.createCustomerWalletIfNotExists(TestFixtures.CUSTOMER_ID);
+
+        assertThat(walletRepository.existsByOwnerCalls).containsExactly(TestFixtures.CUSTOMER_ID);
+        assertThat(walletRepository.savedWallets)
+                .singleElement()
+                .satisfies(wallet -> {
+                    assertThat(wallet.getOwnerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
+                    assertThat(wallet.getOwnerType()).isEqualTo(WalletOwnerType.CUSTOMER);
+                });
     }
 
     @Test
@@ -58,7 +83,7 @@ class WalletServiceTest {
         walletRepository.walletByOwner = Optional.of(TestFixtures.walletWithBalance());
 
         assertThat(service.findById(TestFixtures.WALLET_ID).getId()).isEqualTo(TestFixtures.WALLET_ID);
-        assertThat(service.findByOwner(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER).getOwnerId()).isEqualTo(TestFixtures.OWNER_ID);
+        assertThat(service.findByOwner(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER).getOwnerId()).isEqualTo(TestFixtures.OWNER_ID);
 
         walletRepository.walletById = Optional.empty();
         walletRepository.walletByOwner = Optional.empty();
@@ -68,8 +93,8 @@ class WalletServiceTest {
                 .withMessage("Wallet not found with id: " + TestFixtures.WALLET_ID);
 
         assertThatExceptionOfType(WalletNotFoundException.class)
-                .isThrownBy(() -> service.findByOwner(TestFixtures.OWNER_ID, WalletOwnerType.COSTUMER))
-                .withMessage("Wallet not found for owner id: " + TestFixtures.OWNER_ID + " and owner type: COSTUMER");
+                .isThrownBy(() -> service.findByOwner(TestFixtures.OWNER_ID, WalletOwnerType.CUSTOMER))
+                .withMessage("Wallet not found for owner id: " + TestFixtures.OWNER_ID + " and owner type: CUSTOMER");
     }
 
     @Test
@@ -128,7 +153,7 @@ class WalletServiceTest {
 
         service.transfer(
                 TestFixtures.OWNER_ID,
-                WalletOwnerType.COSTUMER,
+                WalletOwnerType.CUSTOMER,
                 TestFixtures.SELLER_ID,
                 WalletOwnerType.SELLER,
                 new BigDecimal("100.00"),

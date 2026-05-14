@@ -12,6 +12,8 @@ public final class TestFixtures {
     public static final UUID PRODUCT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     public static final UUID ORDER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     public static final UUID RESERVATION_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
+    public static final UUID CUSTOMER_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    public static final UUID PAYMENT_ID = UUID.fromString("55555555-5555-5555-5555-555555555555");
 
     private TestFixtures() {
     }
@@ -30,5 +32,9 @@ public final class TestFixtures {
 
     public static StockReservation confirmedReservation() {
         return StockReservation.restore(RESERVATION_ID, ORDER_ID, restoredProduct(), 3, ReservationStatus.CONFIRMED);
+    }
+
+    public static StockReservation canceledReservation() {
+        return StockReservation.restore(RESERVATION_ID, ORDER_ID, restoredProduct(), 3, ReservationStatus.CANCELED);
     }
 }

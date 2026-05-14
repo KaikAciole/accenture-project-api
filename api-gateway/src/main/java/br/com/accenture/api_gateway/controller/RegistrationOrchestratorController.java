@@ -1,6 +1,7 @@
 package br.com.accenture.api_gateway.controller;
 
 import br.com.accenture.api_gateway.dto.GatewayRegisterRequest;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ public class RegistrationOrchestratorController {
     private String internalSecret;
 
     @PostMapping("/register-flow")
-    public Mono<ResponseEntity<Void>> orchestrateRegistration(@RequestBody GatewayRegisterRequest request) {
+    public Mono<ResponseEntity<Void>> orchestrateRegistration(@Valid @RequestBody GatewayRegisterRequest request) {
 
         log.info("Iniciando fluxo de registro minimo para: {}", request.email());
         var customerMinimalRequest = Map.of("email", request.email());

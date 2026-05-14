@@ -1,4 +1,4 @@
-package br.com.accenture.customer.infrastructure.security.filter;
+package br.com.accenture.assistant.infrastructure.security.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

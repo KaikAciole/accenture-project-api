@@ -18,6 +18,11 @@ public class RabbitConfig {
     }
 
     @Bean
+    public TopicExchange orderExchange(InventoryOrderMessagingProperties properties) {
+        return new TopicExchange(properties.exchange());
+    }
+
+    @Bean
     public Queue paymentApprovedInventoryQueue(InventoryPaymentMessagingProperties properties) {
         return new Queue(properties.queue().approved(), true);
     }
@@ -29,6 +34,16 @@ public class RabbitConfig {
 
     @Bean
     public Queue paymentCanceledInventoryQueue(InventoryPaymentMessagingProperties properties) {
+        return new Queue(properties.queue().canceled(), true);
+    }
+
+    @Bean
+    public Queue orderCreatedInventoryQueue(InventoryOrderMessagingProperties properties) {
+        return new Queue(properties.queue().created(), true);
+    }
+
+    @Bean
+    public Queue orderCanceledInventoryQueue(InventoryOrderMessagingProperties properties) {
         return new Queue(properties.queue().canceled(), true);
     }
 
@@ -65,6 +80,30 @@ public class RabbitConfig {
         return BindingBuilder
                 .bind(paymentCanceledInventoryQueue)
                 .to(paymentExchange)
+                .with(properties.routingKey().canceled());
+    }
+
+    @Bean
+    public Binding orderCreatedInventoryBinding(
+            Queue orderCreatedInventoryQueue,
+            TopicExchange orderExchange,
+            InventoryOrderMessagingProperties properties
+    ) {
+        return BindingBuilder
+                .bind(orderCreatedInventoryQueue)
+                .to(orderExchange)
+                .with(properties.routingKey().created());
+    }
+
+    @Bean
+    public Binding orderCanceledInventoryBinding(
+            Queue orderCanceledInventoryQueue,
+            TopicExchange orderExchange,
+            InventoryOrderMessagingProperties properties
+    ) {
+        return BindingBuilder
+                .bind(orderCanceledInventoryQueue)
+                .to(orderExchange)
                 .with(properties.routingKey().canceled());
     }
 

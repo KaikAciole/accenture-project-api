@@ -38,3 +38,12 @@ inventory:
         approved: payment.approved
         refused: payment.refused
         canceled: payment.canceled
+
+    order:
+      exchange: order.exchange
+      queue:
+        created: order.created.inventory.queue
+        canceled: order.canceled.inventory.queue
+      routing-key:
+        created: order.created
+        canceled: order.canceled

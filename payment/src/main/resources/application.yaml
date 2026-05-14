@@ -40,6 +40,13 @@ payment:
       refused: payment.refused
       canceled: payment.canceled
 
+    order:
+      exchange: order.exchange
+      queue:
+        canceled: order.canceled.payment.queue
+      routing-key:
+        canceled: order.canceled
+
 springdoc:
   api-docs:
     path: /v3/api-docs

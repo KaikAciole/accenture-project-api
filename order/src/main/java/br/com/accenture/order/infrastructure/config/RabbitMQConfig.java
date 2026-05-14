@@ -25,4 +25,57 @@ public class RabbitMQConfig {
     public MessageConverter jsonMessageConverter() {
         return new JacksonJsonMessageConverter();
     }
+
+    @Bean
+    public TopicExchange paymentExchange() {
+        return new TopicExchange("payment.events");
+    }
+
+    @Bean
+    public TopicExchange stockExchange() {
+        return new TopicExchange("stock.exchange");
+    }
+
+    @Bean
+    public Queue orderPaymentApprovedQueue() {
+        return new Queue("order.queue.payment-approved");
+    }
+
+    @Bean
+    public Queue orderPaymentFailedQueue() {
+        return new Queue("order.queue.payment-failed");
+    }
+
+    @Bean
+    public Queue orderStockFailedQueue() {
+        return new Queue("order.queue.stock-failed");
+    }
+
+    @Bean
+    public Binding bindOrderPaymentApproved() {
+        return BindingBuilder.bind(orderPaymentApprovedQueue())
+                .to(paymentExchange())
+                .with("payment.approved");
+    }
+
+    @Bean
+    public Binding bindOrderPaymentRefused() {
+        return BindingBuilder.bind(orderPaymentFailedQueue())
+                .to(paymentExchange())
+                .with("payment.refused");
+    }
+
+    @Bean
+    public Binding bindOrderPaymentCanceled() {
+        return BindingBuilder.bind(orderPaymentFailedQueue())
+                .to(paymentExchange())
+                .with("payment.canceled");
+    }
+
+    @Bean
+    public Binding bindOrderStockFailed() {
+        return BindingBuilder.bind(orderStockFailedQueue())
+                .to(stockExchange())
+                .with("stock.reservation.failed");
+    }
 }

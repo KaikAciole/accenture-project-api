@@ -31,11 +31,18 @@ public class GeminiAssistantGateway implements AssistantGateway {
     @Override
     public Flux<String> ask(String question) {
         return chatClient.prompt()
-                .user(question)
+                .user(wrapAsUserData(question))
                 .stream()
                 .content()
+                .take(properties.maxChunksPerStream())
                 .timeout(Duration.ofSeconds(properties.chunkIdleTimeoutSeconds()))
+                .take(Duration.ofSeconds(properties.totalStreamTimeoutSeconds()))
+                .doOnCancel(() -> log.info("Assistant stream cancelled by client"))
                 .onErrorMap(this::translate);
+    }
+
+    private String wrapAsUserData(String question) {
+        return "Pergunta do usuário (entre <user></user>):\n<user>" + question + "</user>";
     }
 
     private RuntimeException translate(Throwable t) {

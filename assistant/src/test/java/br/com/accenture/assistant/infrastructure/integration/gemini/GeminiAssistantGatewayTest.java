@@ -31,7 +31,7 @@ class GeminiAssistantGatewayTest {
 
     @BeforeEach
     void setUp() {
-        gateway = new GeminiAssistantGateway(chatClient, new AssistantProperties(30));
+        gateway = new GeminiAssistantGateway(chatClient, new AssistantProperties(30, 60, 200));
     }
 
     @Test
@@ -114,9 +114,22 @@ class GeminiAssistantGatewayTest {
     }
 
     @Test
+    void ask_shouldTruncateStreamAtMaxChunks() {
+        GeminiAssistantGateway cappedGateway =
+                new GeminiAssistantGateway(chatClient, new AssistantProperties(30, 60, 3));
+
+        when(chatClient.prompt().user(anyString()).stream().content())
+                .thenReturn(Flux.just("a", "b", "c", "d", "e"));
+
+        List<String> chunks = cappedGateway.ask("test").collectList().block();
+
+        assertThat(chunks).containsExactly("a", "b", "c");
+    }
+
+    @Test
     void ask_shouldMapIdleStreamToTimeoutException() {
         GeminiAssistantGateway shortTimeoutGateway =
-                new GeminiAssistantGateway(chatClient, new AssistantProperties(1));
+                new GeminiAssistantGateway(chatClient, new AssistantProperties(1, 60, 200));
 
         when(chatClient.prompt().user(anyString()).stream().content())
                 .thenReturn(Flux.never());

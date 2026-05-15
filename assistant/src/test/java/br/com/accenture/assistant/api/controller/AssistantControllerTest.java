@@ -6,9 +6,13 @@ import br.com.accenture.assistant.domain.exception.AssistantAuthenticationExcept
 import br.com.accenture.assistant.domain.exception.AssistantRateLimitException;
 import br.com.accenture.assistant.domain.exception.AssistantTimeoutException;
 import br.com.accenture.assistant.domain.exception.AssistantUnavailableException;
+import br.com.accenture.assistant.infrastructure.security.ratelimit.BucketRegistry;
+import br.com.accenture.assistant.infrastructure.security.ratelimit.ConcurrencyLimiter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AssistantController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AssistantControllerTest {
 
     @Autowired
@@ -37,6 +42,17 @@ class AssistantControllerTest {
 
     @MockitoBean
     private AssistantService assistantService;
+
+    @MockitoBean
+    private ConcurrencyLimiter concurrencyLimiter;
+
+    @MockitoBean
+    private BucketRegistry bucketRegistry;
+
+    @BeforeEach
+    void setUp() {
+        when(concurrencyLimiter.tryAcquire()).thenReturn(true);
+    }
 
     @Test
     void ask_shouldStreamChunksAndCompleteWithDone() throws Exception {
@@ -106,6 +122,17 @@ class AssistantControllerTest {
 
         assertThat(body).contains("event:error");
         assertThat(body).contains("\"title\":\"Internal server error\"");
+    }
+
+    @Test
+    void ask_shouldEmitErrorEventWhenConcurrencyLimitReached() throws Exception {
+        when(concurrencyLimiter.tryAcquire()).thenReturn(false);
+
+        String body = performStreaming(new AskRequest("test"));
+
+        assertThat(body).contains("event:error");
+        assertThat(body).contains("\"title\":\"Too many concurrent streams\"");
+        assertThat(body).doesNotContain("event:done");
     }
 
     private String performStreaming(AskRequest request) throws Exception {

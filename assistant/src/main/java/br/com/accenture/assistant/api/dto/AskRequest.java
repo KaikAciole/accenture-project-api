@@ -1,5 +1,6 @@
 package br.com.accenture.assistant.api.dto;
 
+import br.com.accenture.assistant.api.validation.ValidQuestion;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -12,6 +13,7 @@ public record AskRequest(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "question must not be blank")
         @Size(min = 1, max = 2000, message = "question must be between 1 and 2000 characters")
+        @ValidQuestion
         String question
 
 ) {

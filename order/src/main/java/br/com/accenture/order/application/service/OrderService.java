@@ -2,12 +2,18 @@ package br.com.accenture.order.application.service;
 
 import br.com.accenture.order.application.dto.OrderItemCommand;
 import br.com.accenture.order.application.dto.PaginatedResult;
+import br.com.accenture.order.application.publisher.OrderEventPublisher;
 import br.com.accenture.order.domain.enums.OrderStatus;
+import br.com.accenture.order.domain.exception.InsufficientStockException;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.model.OrderItem;
 import br.com.accenture.order.domain.repository.OrderRepository;
-import br.com.accenture.order.application.publisher.OrderEventPublisher;
+import br.com.accenture.order.infrastructure.feign.InventoryClient;
+import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityItemRequest;
+import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityItemResponse;
+import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,14 +25,36 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderEventPublisher eventPublisher;
+    private final InventoryClient inventoryClient;
 
-    public OrderService(OrderRepository orderRepository, OrderEventPublisher eventPublisher) {
+    @Value("${api.security.internal.secret:senha-secreta-microsservicos-1234}")
+    private String internalSecret;
+
+    public OrderService(OrderRepository orderRepository,
+                        OrderEventPublisher eventPublisher,
+                        InventoryClient inventoryClient) {
         this.orderRepository = orderRepository;
         this.eventPublisher = eventPublisher;
+        this.inventoryClient = inventoryClient;
     }
 
     @Transactional
     public Order createOrder(UUID customerId, List<OrderItemCommand> itemsRequest) {
+
+        List<ProductAvailabilityItemRequest> checkItems = itemsRequest.stream()
+                .map(item -> new ProductAvailabilityItemRequest(item.sku(), item.quantity()))
+                .toList();
+
+        List<ProductAvailabilityItemResponse> availabilityList = inventoryClient.checkAvailability(
+                new ProductAvailabilityRequest(checkItems), internalSecret);
+
+        for (ProductAvailabilityItemResponse response : availabilityList) {
+            if (!response.available()) {
+                throw new InsufficientStockException(
+                        String.format("Estoque insuficiente ou produto não encontrado para o SKU: %s", response.sku())
+                );
+            }
+        }
 
         Order newOrder = Order.createNew(customerId);
 
@@ -47,18 +75,34 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
+    @Transactional(readOnly = true)
+    public PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size) {
+        return orderRepository.findByCustomerId(customerId, page, size);
+    }
+
+    @Transactional
+    public Order markOrderAsReserved(UUID id) {
+        Order order = findById(id);
+        order.markAsReserved();
+        Order savedOrder = orderRepository.save(order);
+        eventPublisher.publishOrderReservedEvent(savedOrder);
+        return savedOrder;
+    }
+
     @Transactional
     public Order markOrderAsPaid(UUID id) {
         Order order = findById(id);
-        if (order.getStatus() == OrderStatus.PAID) {
-            return order;
-        }
-
         order.markAsPaid();
         Order savedOrder = orderRepository.save(order);
-
         eventPublisher.publishOrderPaidEvent(savedOrder);
         return savedOrder;
+    }
+
+    @Transactional
+    public Order refundOrder(UUID id, String reason) {
+        Order order = findById(id);
+        order.markAsRefunded();
+        return orderRepository.save(order);
     }
 
     @Transactional
@@ -82,38 +126,5 @@ public class OrderService {
             }
             throw e;
         }
-    }
-
-    @Transactional
-    public Order refundOrder(UUID id, String reason) {
-        Order order = findById(id);
-        if (order.getStatus() == OrderStatus.REFUNDED) {
-            return order;
-        }
-
-        order.markAsRefunded();
-        return orderRepository.save(order);
-    }
-
-    @Transactional(readOnly = true)
-    public PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size) {
-        return orderRepository.findByCustomerId(customerId, page, size);
-    }
-
-    @Transactional
-    public Order markOrderAsReserved(UUID id) {
-        Order order = findById(id);
-        if (order.getStatus() == OrderStatus.RESERVED) return order;
-
-        order.markAsReserved();
-        Order savedOrder = orderRepository.save(order);
-
-        eventPublisher.publishOrderReservedEvent(savedOrder);
-        return savedOrder;
-    }
-
-    @Transactional
-    public Order failOrderDueToStock(UUID id, String reason) {
-        return cancelOrder(id, reason);
     }
 }

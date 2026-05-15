@@ -12,6 +12,10 @@ public class RabbitMQConfig {
     public static final String PAYMENT_EXCHANGE = "payment.exchange";
     public static final String ORDER_EXCHANGE = "order.exchange";
 
+    public static final String ORDER_DLX = "order.dlx";
+    public static final String ORDER_DLQ = "order.dlq";
+    public static final String ORDER_DLQ_ROUTING_KEY = "order.dead-letter";
+
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new JacksonJsonMessageConverter();
@@ -28,23 +32,50 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public DirectExchange orderDlx() {
+        return new DirectExchange(ORDER_DLX);
+    }
+
+    @Bean
+    public Queue orderDlq() {
+        return new Queue(ORDER_DLQ, true);
+    }
+
+    @Bean
+    public Binding bindingOrderDlq(Queue orderDlq, DirectExchange orderDlx) {
+        return BindingBuilder.bind(orderDlq).to(orderDlx).with(ORDER_DLQ_ROUTING_KEY);
+    }
+
+    @Bean
     public Queue paymentApprovedQueue() {
-        return new Queue("order.payment.approved.queue", true);
+        return QueueBuilder.durable("order.payment.approved.queue")
+                .withArgument("x-dead-letter-exchange", ORDER_DLX)
+                .withArgument("x-dead-letter-routing-key", ORDER_DLQ_ROUTING_KEY)
+                .build();
     }
 
     @Bean
     public Queue paymentRefusedQueue() {
-        return new Queue("order.payment.refused.queue", true);
+        return QueueBuilder.durable("order.payment.refused.queue")
+                .withArgument("x-dead-letter-exchange", ORDER_DLX)
+                .withArgument("x-dead-letter-routing-key", ORDER_DLQ_ROUTING_KEY)
+                .build();
     }
 
     @Bean
     public Queue paymentCanceledQueue() {
-        return new Queue("order.payment.canceled.queue", true);
+        return QueueBuilder.durable("order.payment.canceled.queue")
+                .withArgument("x-dead-letter-exchange", ORDER_DLX)
+                .withArgument("x-dead-letter-routing-key", ORDER_DLQ_ROUTING_KEY)
+                .build();
     }
 
     @Bean
     public Queue paymentRefundedQueue() {
-        return new Queue("order.payment.refunded.queue", true);
+        return QueueBuilder.durable("order.payment.refunded.queue")
+                .withArgument("x-dead-letter-exchange", ORDER_DLX)
+                .withArgument("x-dead-letter-routing-key", ORDER_DLQ_ROUTING_KEY)
+                .build();
     }
 
     @Bean

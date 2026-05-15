@@ -36,6 +36,15 @@ public class StockReservationService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
 
+        var existingReservation = stockReservationRepository.findByOrderIdAndProductId(
+                orderId,
+                product.getId()
+        );
+
+        if (existingReservation.isPresent()) {
+            return existingReservation.get();
+        }
+
         StockReservation reservation = StockReservation.createNew(
                 orderId,
                 product,
@@ -55,6 +64,15 @@ public class StockReservationService {
     public StockReservation createBySku(UUID orderId, String sku, Integer reservedQuantity) {
         Product product = productRepository.findBySku(sku)
                 .orElseThrow(() -> new ProductNotFoundException(sku));
+
+        var existingReservation = stockReservationRepository.findByOrderIdAndProductId(
+                orderId,
+                product.getId()
+        );
+
+        if (existingReservation.isPresent()) {
+            return existingReservation.get();
+        }
 
         StockReservation reservation = StockReservation.createNew(
                 orderId,
@@ -137,7 +155,7 @@ public class StockReservationService {
         );
 
         if (reservations.isEmpty()) {
-            throw new StockReservationNotFoundException(orderId);
+            return;
         }
 
         reservations.forEach(reservation -> {
@@ -157,7 +175,7 @@ public class StockReservationService {
         );
 
         if (reservations.isEmpty()) {
-            throw new StockReservationNotFoundException(orderId);
+            return;
         }
 
         reservations.forEach(reservation -> {

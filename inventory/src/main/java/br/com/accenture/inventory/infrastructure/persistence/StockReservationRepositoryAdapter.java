@@ -38,6 +38,12 @@ public class StockReservationRepositoryAdapter implements StockReservationReposi
     }
 
     @Override
+    public Optional<StockReservation> findByOrderIdAndProductId(UUID orderId, UUID productId) {
+        return jpaRepository.findByOrderIdAndProduct_Id(orderId, productId)
+                .map(StockReservationPersistenceMapper::toDomain);
+    }
+
+    @Override
     public PageResult<StockReservation> findByOrderId(UUID orderId, PageRequest pageRequest) {
         Page<StockReservationJpaEntity> page = jpaRepository.findByOrderId(
                 orderId,

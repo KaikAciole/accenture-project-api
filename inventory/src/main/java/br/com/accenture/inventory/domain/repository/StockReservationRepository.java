@@ -15,6 +15,8 @@ public interface StockReservationRepository {
 
     Optional<StockReservation> findById(UUID id);
 
+    Optional<StockReservation> findByOrderIdAndProductId(UUID orderId, UUID productId);
+
     PageResult<StockReservation> findByOrderId(UUID orderId, PageRequest pageRequest);
 
     PageResult<StockReservation> findByOrderIdAndStatus(UUID orderId,

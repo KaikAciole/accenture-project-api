@@ -4,9 +4,11 @@ import br.com.accenture.assistant.api.dto.AskRequest;
 import br.com.accenture.assistant.api.dto.ChunkEvent;
 import br.com.accenture.assistant.api.dto.ErrorEvent;
 import br.com.accenture.assistant.application.service.AssistantService;
+import br.com.accenture.assistant.domain.exception.AssistantConcurrencyLimitException;
 import br.com.accenture.assistant.domain.exception.AssistantRateLimitException;
 import br.com.accenture.assistant.domain.exception.AssistantTimeoutException;
 import br.com.accenture.assistant.domain.exception.AssistantUnavailableException;
+import br.com.accenture.assistant.infrastructure.security.ratelimit.ConcurrencyLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,9 +40,11 @@ public class AssistantController {
     private static final String EVENT_ERROR = "error";
 
     private final AssistantService assistantService;
+    private final ConcurrencyLimiter concurrencyLimiter;
 
-    public AssistantController(AssistantService assistantService) {
+    public AssistantController(AssistantService assistantService, ConcurrencyLimiter concurrencyLimiter) {
         this.assistantService = assistantService;
+        this.concurrencyLimiter = concurrencyLimiter;
     }
 
     @PostMapping(value = "/ask", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -62,10 +66,15 @@ public class AssistantController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     public Flux<ServerSentEvent<Object>> ask(@Valid @RequestBody AskRequest request) {
+        if (!concurrencyLimiter.tryAcquire()) {
+            return Flux.just(toErrorEvent(new AssistantConcurrencyLimitException(
+                    "Maximum concurrent assistant streams reached")));
+        }
         return assistantService.ask(request.question())
                 .map(chunk -> ServerSentEvent.<Object>builder(new ChunkEvent(chunk)).event(EVENT_CHUNK).build())
                 .concatWith(Mono.just(ServerSentEvent.<Object>builder(Map.of()).event(EVENT_DONE).build()))
-                .onErrorResume(ex -> Mono.just(toErrorEvent(ex)));
+                .onErrorResume(ex -> Mono.just(toErrorEvent(ex)))
+                .doFinally(signal -> concurrencyLimiter.release());
     }
 
     private ServerSentEvent<Object> toErrorEvent(Throwable ex) {
@@ -75,6 +84,10 @@ public class AssistantController {
                     "Rate limit exceeded",
                     "Assistente temporariamente indisponível por excesso de uso. Tente novamente em alguns segundos.",
                     rate.getRetryAfterSeconds());
+            case AssistantConcurrencyLimitException ignored -> new ErrorEvent(
+                    "Too many concurrent streams",
+                    "Muitas conversas simultâneas com o assistente. Aguarde um instante e tente novamente.",
+                    null);
             case AssistantTimeoutException ignored -> new ErrorEvent(
                     "Assistant timeout",
                     "O assistente demorou muito para responder. Tente novamente.",

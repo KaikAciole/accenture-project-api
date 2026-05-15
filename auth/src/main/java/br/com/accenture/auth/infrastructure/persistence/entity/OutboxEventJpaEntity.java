@@ -20,10 +20,10 @@ public class OutboxEventJpaEntity {
     private UUID id;
 
     @Column(nullable = false)
-    private String eventType; // Ex: "user.registered"
+    private String eventType;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String payload; // O JSON do evento
+    private String payload;
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -47,6 +47,21 @@ public class OrderEventPublisherAdapter implements OrderEventPublisher {
     }
 
     @Override
+    public void publishOrderReservedEvent(Order order) {
+        try {
+            var event = new br.com.accenture.order.application.dto.event.OrderCreatedEvent(
+                    order.getId(),
+                    order.getCustomerId(),
+                    order.getTotalAmount(),
+                    java.util.Collections.emptyList()
+            );
+            saveToOutbox("Order", order.getId().toString(), "order.reserved", event);
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao publicar evento order.reserved", e);
+        }
+    }
+
+    @Override
     public void publishOrderCanceledEvent(Order order, String reason) {
         var event = new OrderCanceledEvent(order.getId(), order.getCustomerId(), reason);
         saveToOutbox("Order", order.getId().toString(), "order.canceled", event);

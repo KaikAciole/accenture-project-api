@@ -90,4 +90,21 @@ public class OrderService {
     public PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size) {
         return orderRepository.findByCustomerId(customerId, page, size);
     }
+
+    @Transactional
+    public Order markOrderAsReserved(UUID id) {
+        Order order = findById(id);
+        if (order.getStatus() == OrderStatus.RESERVED) return order;
+
+        order.markAsReserved();
+        Order savedOrder = orderRepository.save(order);
+
+        eventPublisher.publishOrderReservedEvent(savedOrder);
+        return savedOrder;
+    }
+
+    @Transactional
+    public Order failOrderDueToStock(UUID id, String reason) {
+        return cancelOrder(id, reason);
+    }
 }

@@ -84,6 +84,15 @@ public class Order {
         this.updatedAt = Instant.now();
     }
 
+    public void markAsReserved() {
+        if (this.status == OrderStatus.RESERVED) return;
+        if (this.status != OrderStatus.PENDING) {
+            throw new IllegalStateException("Cannot reserve order from current state: " + this.status);
+        }
+        this.status = OrderStatus.RESERVED;
+        this.updatedAt = Instant.now();
+    }
+
     public void markAsRefunded() {
         if (this.status == OrderStatus.REFUNDED) return;
         if (this.status != OrderStatus.PAID) {

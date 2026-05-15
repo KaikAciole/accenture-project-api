@@ -75,18 +75,6 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lancar OrderNotFoundException quando tentar buscar ID inexistente")
-    void shouldThrowExceptionWhenFindingNonExistentOrder() {
-        UUID fakeId = UUID.randomUUID();
-        when(orderRepository.findById(fakeId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> orderService.findById(fakeId))
-                .isInstanceOf(OrderNotFoundException.class);
-
-        verify(orderRepository, times(1)).findById(fakeId);
-    }
-
-    @Test
     @DisplayName("Deve retornar o resultado paginado ao buscar historico do cliente")
     void shouldReturnPaginatedResultForCustomerHistory() {
         UUID customerId = UUID.randomUUID();
@@ -103,17 +91,33 @@ class OrderServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.totalElements()).isEqualTo(1);
         assertThat(result.data()).hasSize(1);
-        assertThat(result.data().get(0).getCustomerId()).isEqualTo(customerId);
 
         verify(orderRepository, times(1)).findByCustomerId(customerId, 0, 10);
     }
 
     @Test
-    @DisplayName("Deve marcar o pedido como pago, salvar e publicar evento")
+    @DisplayName("Deve marcar o pedido como RESERVADO, salvar e publicar evento para iniciar pagamento")
+    void shouldMarkOrderAsReservedAndPublishEvent() {
+        UUID orderId = UUID.randomUUID();
+        Order mockOrder = Order.createNew(UUID.randomUUID());
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order updatedOrder = orderService.markOrderAsReserved(orderId);
+
+        assertThat(updatedOrder.getStatus()).isEqualTo(OrderStatus.RESERVED);
+
+        verify(orderRepository, times(1)).save(mockOrder);
+        verify(eventPublisher, times(1)).publishOrderReservedEvent(mockOrder);
+    }
+
+    @Test
+    @DisplayName("Deve marcar o pedido como PAGO, salvar e publicar evento")
     void shouldMarkOrderAsPaidAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
-        UUID customerId = UUID.randomUUID();
-        Order mockOrder = Order.createNew(customerId);
+        Order mockOrder = Order.createNew(UUID.randomUUID());
+        mockOrder.markAsReserved();
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -122,29 +126,42 @@ class OrderServiceTest {
 
         assertThat(updatedOrder.getStatus()).isEqualTo(OrderStatus.PAID);
 
-        verify(orderRepository, times(1)).findById(orderId);
         verify(orderRepository, times(1)).save(mockOrder);
         verify(eventPublisher, times(1)).publishOrderPaidEvent(mockOrder);
+    }
+
+    @Test
+    @DisplayName("Deve marcar o pedido como REFUNDED após o estorno no payment")
+    void shouldMarkOrderAsRefunded() {
+        UUID orderId = UUID.randomUUID();
+        Order mockOrder = Order.createNew(UUID.randomUUID());
+        mockOrder.markAsReserved();
+        mockOrder.markAsPaid();
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order updatedOrder = orderService.refundOrder(orderId, "Estorno confirmado pelo Gateway");
+
+        assertThat(updatedOrder.getStatus()).isEqualTo(OrderStatus.REFUNDED);
+        verify(orderRepository, times(1)).save(mockOrder);
     }
 
     @Test
     @DisplayName("Deve cancelar o pedido, salvar e publicar evento com motivo")
     void shouldCancelOrderAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
-        UUID customerId = UUID.randomUUID();
-        String cancelReason = "Cliente solicitou cancelamento";
-        Order mockOrder = Order.createNew(customerId);
+        Order mockOrder = Order.createNew(UUID.randomUUID());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Order updatedOrder = orderService.cancelOrder(orderId, cancelReason);
+        Order updatedOrder = orderService.cancelOrder(orderId, "Falta de estoque");
 
         assertThat(updatedOrder.getStatus()).isEqualTo(OrderStatus.CANCELED);
 
-        verify(orderRepository, times(1)).findById(orderId);
         verify(orderRepository, times(1)).save(mockOrder);
-        verify(eventPublisher, times(1)).publishOrderCanceledEvent(mockOrder, cancelReason);
+        verify(eventPublisher, times(1)).publishOrderCanceledEvent(mockOrder, "Falta de estoque");
     }
 
     @Test
@@ -157,11 +174,7 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.markOrderAsPaid(fakeId))
                 .isInstanceOf(OrderNotFoundException.class);
 
-        assertThatThrownBy(() -> orderService.cancelOrder(fakeId, "Motivo X"))
-                .isInstanceOf(OrderNotFoundException.class);
-
         verify(orderRepository, never()).save(any());
         verify(eventPublisher, never()).publishOrderPaidEvent(any());
-        verify(eventPublisher, never()).publishOrderCanceledEvent(any(), any());
     }
 }

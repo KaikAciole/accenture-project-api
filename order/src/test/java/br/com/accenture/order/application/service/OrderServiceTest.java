@@ -113,10 +113,11 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Deve marcar o pedido como PAGO, salvar e publicar evento")
+    @DisplayName("Deve marcar o pedido como PAGO, salvar e publicar evento (transição de RESERVED)")
     void shouldMarkOrderAsPaidAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
         Order mockOrder = Order.createNew(UUID.randomUUID());
+
         mockOrder.markAsReserved();
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
@@ -128,6 +129,24 @@ class OrderServiceTest {
 
         verify(orderRepository, times(1)).save(mockOrder);
         verify(eventPublisher, times(1)).publishOrderPaidEvent(mockOrder);
+    }
+
+    @Test
+    @DisplayName("Deve disparar evento de cancelamento sem alterar status se o pedido ja estiver PAGO")
+    void shouldPublishCancelEventWhenOrderIsAlreadyPaid() {
+        UUID orderId = UUID.randomUUID();
+        Order mockOrder = Order.createNew(UUID.randomUUID());
+
+        mockOrder.markAsReserved();
+        mockOrder.markAsPaid();
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
+
+        Order result = orderService.cancelOrder(orderId, "Cliente solicitou estorno");
+        assertThat(result.getStatus()).isEqualTo(OrderStatus.PAID);
+
+        verify(orderRepository, never()).save(any());
+        verify(eventPublisher, times(1)).publishOrderCanceledEvent(eq(mockOrder), anyString());
     }
 
     @Test

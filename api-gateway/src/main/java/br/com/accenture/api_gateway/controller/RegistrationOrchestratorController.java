@@ -35,13 +35,19 @@ public class RegistrationOrchestratorController {
     @PostMapping("/register-flow")
     public Mono<ResponseEntity<Void>> orchestrateRegistration(@Valid @RequestBody GatewayRegisterRequest request) {
 
-        log.info("Iniciando fluxo de registro minimo para: {}", request.email());
-        var customerMinimalRequest = Map.of("email", request.email());
+        log.info("Iniciando fluxo de registro completo para: {}", request.email());
+
+        var customerFullRequest = Map.of(
+                "name", request.name(),
+                "email", request.email(),
+                "cpf", request.cpf(),
+                "phone", request.phone()
+        );
 
         return webClientBuilder.build().post()
                 .uri("http://localhost:8082/internal/customers")
                 .header("X-Internal-Secret", internalSecret)
-                .bodyValue(customerMinimalRequest)
+                .bodyValue(customerFullRequest)
                 .retrieve()
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(10))
@@ -49,7 +55,7 @@ public class RegistrationOrchestratorController {
 
                     String customerIdStr = (String) customerResponse.get("id");
                     UUID customerId = UUID.fromString(customerIdStr);
-                    log.info("Perfil criado. ID: {}. Registrando no Auth...", customerId);
+                    log.info("Perfil completo criado. ID: {}. Registrando no Auth...", customerId);
 
                     var authRequest = Map.of(
                             "customerId", customerId,

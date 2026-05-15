@@ -1,11 +1,6 @@
 package br.com.accenture.order.infrastructure.config;
 
-import br.com.accenture.order.application.dto.event.OrderCreatedEvent;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -14,12 +9,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
+    public static final String PAYMENT_EXCHANGE = "payment.exchange";
     public static final String ORDER_EXCHANGE = "order.exchange";
-
-    @Bean
-    public TopicExchange orderExchange() {
-        return new TopicExchange(ORDER_EXCHANGE);
-    }
 
     @Bean
     public MessageConverter jsonMessageConverter() {
@@ -28,54 +19,51 @@ public class RabbitMQConfig {
 
     @Bean
     public TopicExchange paymentExchange() {
-        return new TopicExchange("payment.events");
+        return new TopicExchange(PAYMENT_EXCHANGE);
     }
 
     @Bean
-    public TopicExchange stockExchange() {
-        return new TopicExchange("stock.exchange");
+    public TopicExchange orderExchange() {
+        return new TopicExchange(ORDER_EXCHANGE);
     }
 
     @Bean
-    public Queue orderPaymentApprovedQueue() {
-        return new Queue("order.queue.payment-approved");
+    public Queue paymentApprovedQueue() {
+        return new Queue("order.payment.approved.queue", true);
     }
 
     @Bean
-    public Queue orderPaymentFailedQueue() {
-        return new Queue("order.queue.payment-failed");
+    public Queue paymentRefusedQueue() {
+        return new Queue("order.payment.refused.queue", true);
     }
 
     @Bean
-    public Queue orderStockFailedQueue() {
-        return new Queue("order.queue.stock-failed");
+    public Queue paymentCanceledQueue() {
+        return new Queue("order.payment.canceled.queue", true);
     }
 
     @Bean
-    public Binding bindOrderPaymentApproved() {
-        return BindingBuilder.bind(orderPaymentApprovedQueue())
-                .to(paymentExchange())
-                .with("payment.approved");
+    public Queue paymentRefundedQueue() {
+        return new Queue("order.payment.refunded.queue", true);
     }
 
     @Bean
-    public Binding bindOrderPaymentRefused() {
-        return BindingBuilder.bind(orderPaymentFailedQueue())
-                .to(paymentExchange())
-                .with("payment.refused");
+    public Binding bindingPaymentApproved(Queue paymentApprovedQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentApprovedQueue).to(paymentExchange).with("payment.approved");
     }
 
     @Bean
-    public Binding bindOrderPaymentCanceled() {
-        return BindingBuilder.bind(orderPaymentFailedQueue())
-                .to(paymentExchange())
-                .with("payment.canceled");
+    public Binding bindingPaymentRefused(Queue paymentRefusedQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentRefusedQueue).to(paymentExchange).with("payment.refused");
     }
 
     @Bean
-    public Binding bindOrderStockFailed() {
-        return BindingBuilder.bind(orderStockFailedQueue())
-                .to(stockExchange())
-                .with("stock.reservation.failed");
+    public Binding bindingPaymentCanceled(Queue paymentCanceledQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentCanceledQueue).to(paymentExchange).with("payment.canceled");
+    }
+
+    @Bean
+    public Binding bindingPaymentRefunded(Queue paymentRefundedQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentRefundedQueue).to(paymentExchange).with("payment.refunded");
     }
 }

@@ -1,4 +1,4 @@
-package br.com.accenture.order.infrastructure.messaging;
+package br.com.accenture.order.infrastructure.messaging.listener;
 
 import br.com.accenture.order.application.dto.event.PaymentEvent;
 import br.com.accenture.order.application.dto.event.StockFailedEvent;

@@ -67,6 +67,7 @@ public class Order {
     }
 
     public void markAsPaid() {
+        if (this.status == OrderStatus.PAID) return;
         if (this.status != OrderStatus.PENDING) {
             throw new IllegalStateException("Cannot mark as paid from current state: " + this.status);
         }
@@ -75,10 +76,20 @@ public class Order {
     }
 
     public void cancel() {
-        if (this.status == OrderStatus.PAID) {
-            throw new IllegalStateException("Cannot cancel an already paid order.");
+        if (this.status == OrderStatus.CANCELED) return;
+        if (this.status == OrderStatus.PAID || this.status == OrderStatus.REFUNDED) {
+            throw new IllegalStateException("Cannot cancel an already paid or refunded order. Use refund.");
         }
         this.status = OrderStatus.CANCELED;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markAsRefunded() {
+        if (this.status == OrderStatus.REFUNDED) return;
+        if (this.status != OrderStatus.PAID) {
+            throw new IllegalStateException("Cannot refund an order that is not paid.");
+        }
+        this.status = OrderStatus.REFUNDED;
         this.updatedAt = Instant.now();
     }
 

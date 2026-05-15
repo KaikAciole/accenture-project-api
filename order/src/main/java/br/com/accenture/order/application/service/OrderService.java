@@ -64,15 +64,24 @@ public class OrderService {
     @Transactional
     public Order cancelOrder(UUID id, String reason) {
         Order order = findById(id);
+
         if (order.getStatus() == OrderStatus.CANCELED) {
             return order;
         }
 
-        order.cancel();
-        Order savedOrder = orderRepository.save(order);
+        try {
+            order.cancel();
+            Order savedOrder = orderRepository.save(order);
+            eventPublisher.publishOrderCanceledEvent(savedOrder, reason);
+            return savedOrder;
 
-        eventPublisher.publishOrderCanceledEvent(savedOrder, reason);
-        return savedOrder;
+        } catch (IllegalStateException e) {
+            if (order.getStatus() == OrderStatus.PAID) {
+                eventPublisher.publishOrderCanceledEvent(order, "Cancelamento de pedido já pago. Estorno em processamento: " + reason);
+                return order;
+            }
+            throw e;
+        }
     }
 
     @Transactional

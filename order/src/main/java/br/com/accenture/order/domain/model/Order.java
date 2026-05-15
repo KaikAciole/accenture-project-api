@@ -68,9 +68,11 @@ public class Order {
 
     public void markAsPaid() {
         if (this.status == OrderStatus.PAID) return;
-        if (this.status != OrderStatus.PENDING) {
-            throw new IllegalStateException("Cannot mark as paid from current state: " + this.status);
+
+        if (this.status != OrderStatus.RESERVED) {
+            throw new IllegalStateException("Cannot mark as paid from current state: " + this.status + ". Order must be RESERVED first.");
         }
+
         this.status = OrderStatus.PAID;
         this.updatedAt = Instant.now();
     }

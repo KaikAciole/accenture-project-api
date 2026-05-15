@@ -79,7 +79,7 @@ class ProductServiceTest {
     @Test
     void updateChangesExistingProductAndSaves() {
         Product existing = TestFixtures.restoredProduct();
-        Product updated = Product.createNew("IGNORED-SKU", "Mouse", "Accessories", BigDecimal.valueOf(99), 20);
+        Product updated = Product.createNew("IGNORED-SKU", "Mouse", "Accessories", BigDecimal.valueOf(99), 20, null);
         when(repository.findById(TestFixtures.PRODUCT_ID)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(existing);
 
@@ -95,7 +95,7 @@ class ProductServiceTest {
 
     @Test
     void updateThrowsWhenProductDoesNotExist() {
-        Product updated = Product.createNew("IGNORED-SKU", "Mouse", "Accessories", BigDecimal.valueOf(99), 20);
+        Product updated = Product.createNew("IGNORED-SKU", "Mouse", "Accessories", BigDecimal.valueOf(99), 20, null);
         when(repository.findById(TestFixtures.PRODUCT_ID)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ProductNotFoundException.class)
@@ -126,6 +126,7 @@ class ProductServiceTest {
                 "Accessories",
                 BigDecimal.TEN,
                 1,
+                null,
                 0L
         );
 

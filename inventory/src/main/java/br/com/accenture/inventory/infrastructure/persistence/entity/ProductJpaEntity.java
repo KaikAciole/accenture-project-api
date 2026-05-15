@@ -35,6 +35,9 @@ public class ProductJpaEntity {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @Version
     @Column(nullable = false)
     private Long version;

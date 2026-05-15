@@ -19,11 +19,11 @@ public final class TestFixtures {
     }
 
     public static Product newProduct() {
-        return Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.valueOf(1999.90), 10);
+        return Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.valueOf(1999.90), 10, null);
     }
 
     public static Product restoredProduct() {
-        return Product.restore(PRODUCT_ID, "SKU-001", "Notebook", "Electronics", BigDecimal.valueOf(1999.90), 10, 0L);
+        return Product.restore(PRODUCT_ID, "SKU-001", "Notebook", "Electronics", BigDecimal.valueOf(1999.90), 10, null, 0L);
     }
 
     public static StockReservation activeReservation() {

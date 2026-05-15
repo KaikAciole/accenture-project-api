@@ -18,7 +18,7 @@ class ApiMapperTest {
 
     @Test
     void productRequestMapsToDomainAndResponse() {
-        ProductRequest request = new ProductRequest("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5);
+        ProductRequest request = new ProductRequest("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5, "https://cdn.example.com/img.jpg");
 
         Product product = ProductDtoMapper.toDomain(request);
         var response = ProductDtoMapper.toResponse(Product.restore(
@@ -28,14 +28,17 @@ class ApiMapperTest {
                 product.getCategory(),
                 product.getBasePrice(),
                 product.getStockQuantity(),
+                product.getImageUrl(),
                 0L
         ));
 
         assertThat(ProductDtoMapper.toDomain(null)).isNull();
         assertThat(ProductDtoMapper.toResponse(null)).isNull();
         assertThat(product.getSku()).isEqualTo("SKU-001");
+        assertThat(product.getImageUrl()).isEqualTo("https://cdn.example.com/img.jpg");
         assertThat(response.name()).isEqualTo("Notebook");
         assertThat(response.stockQuantity()).isEqualTo(5);
+        assertThat(response.imageUrl()).isEqualTo("https://cdn.example.com/img.jpg");
     }
 
     @Test
@@ -43,7 +46,7 @@ class ApiMapperTest {
         UUID productId = UUID.randomUUID();
         UUID reservationId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
-        Product product = Product.restore(productId, "SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5, 0L);
+        Product product = Product.restore(productId, "SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5, null, 0L);
         StockReservation reservation = StockReservation.restore(
                 reservationId,
                 orderId,

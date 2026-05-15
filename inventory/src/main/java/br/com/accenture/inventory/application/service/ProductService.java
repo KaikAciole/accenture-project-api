@@ -95,7 +95,8 @@ public class ProductService {
                 updated.getName(),
                 updated.getCategory(),
                 updated.getBasePrice(),
-                updated.getStockQuantity()
+                updated.getStockQuantity(),
+                updated.getImageUrl()
         );
 
         return productRepository.save(existing);

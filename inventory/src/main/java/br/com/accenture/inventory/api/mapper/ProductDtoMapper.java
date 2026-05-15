@@ -19,7 +19,8 @@ public final class ProductDtoMapper {
                 request.name(),
                 request.category(),
                 request.basePrice(),
-                request.stockQuantity()
+                request.stockQuantity(),
+                request.imageUrl()
         );
     }
 
@@ -34,7 +35,8 @@ public final class ProductDtoMapper {
                 product.getName(),
                 product.getCategory(),
                 product.getBasePrice(),
-                product.getStockQuantity()
+                product.getStockQuantity(),
+                product.getImageUrl()
         );
     }
 }

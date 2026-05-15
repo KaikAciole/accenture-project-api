@@ -1,11 +1,8 @@
 package br.com.accenture.payment.application.service.wallet;
 
 import br.com.accenture.payment.application.port.WalletTopUpGateway;
-import br.com.accenture.payment.domain.wallet.model.Wallet;
 import br.com.accenture.payment.domain.wallet.model.WalletTopUp;
-import br.com.accenture.payment.domain.wallet.repository.WalletTopUpRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -13,36 +10,28 @@ import java.util.UUID;
 @Service
 public class WalletTopUpService {
 
-    private final WalletService walletService;
-    private final WalletTopUpRepository walletTopUpRepository;
+    private final WalletTopUpTransactionService transactionService;
     private final WalletTopUpGateway walletTopUpGateway;
 
     public WalletTopUpService(
-            WalletService walletService,
-            WalletTopUpRepository walletTopUpRepository,
+            WalletTopUpTransactionService transactionService,
             WalletTopUpGateway walletTopUpGateway
     ) {
-        this.walletService = walletService;
-        this.walletTopUpRepository = walletTopUpRepository;
+        this.transactionService = transactionService;
         this.walletTopUpGateway = walletTopUpGateway;
     }
 
-    @Transactional
     public WalletTopUp startTopUp(
             UUID walletId,
             UUID customerId,
             BigDecimal amount,
             String customerEmail
     ) {
-        Wallet wallet = walletService.findById(walletId);
-
-        WalletTopUp topUp = WalletTopUp.createNew(
-                wallet.getId(),
+        WalletTopUp savedTopUp = transactionService.createPendingTopUp(
+                walletId,
                 customerId,
                 amount
         );
-
-        WalletTopUp savedTopUp = walletTopUpRepository.save(topUp);
 
         WalletTopUpGateway.WalletTopUpGatewayResponse gatewayResponse = walletTopUpGateway.createOrder(
                 new WalletTopUpGateway.WalletTopUpGatewayRequest(
@@ -54,11 +43,10 @@ public class WalletTopUpService {
                 )
         );
 
-        savedTopUp.attachExternalOrder(
+        return transactionService.attachExternalOrder(
+                savedTopUp.getId(),
                 gatewayResponse.externalOrderId(),
                 gatewayResponse.clientToken()
         );
-
-        return walletTopUpRepository.save(savedTopUp);
     }
 }

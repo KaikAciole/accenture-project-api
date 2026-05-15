@@ -26,7 +26,7 @@ public class WalletTopUpJpaEntity {
     @Column(nullable = false)
     private UUID customerId;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)

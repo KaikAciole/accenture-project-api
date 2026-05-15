@@ -2,6 +2,7 @@ package br.com.accenture.order.application.service;
 
 import br.com.accenture.order.application.dto.OrderItemCommand;
 import br.com.accenture.order.application.dto.PaginatedResult;
+import br.com.accenture.order.domain.enums.OrderStatus;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.model.OrderItem;
@@ -49,6 +50,10 @@ public class OrderService {
     @Transactional
     public Order markOrderAsPaid(UUID id) {
         Order order = findById(id);
+        if (order.getStatus() == OrderStatus.PAID) {
+            return order;
+        }
+
         order.markAsPaid();
         Order savedOrder = orderRepository.save(order);
 
@@ -59,12 +64,26 @@ public class OrderService {
     @Transactional
     public Order cancelOrder(UUID id, String reason) {
         Order order = findById(id);
+        if (order.getStatus() == OrderStatus.CANCELED) {
+            return order;
+        }
 
         order.cancel();
         Order savedOrder = orderRepository.save(order);
 
         eventPublisher.publishOrderCanceledEvent(savedOrder, reason);
         return savedOrder;
+    }
+
+    @Transactional
+    public Order refundOrder(UUID id, String reason) {
+        Order order = findById(id);
+        if (order.getStatus() == OrderStatus.REFUNDED) {
+            return order;
+        }
+
+        order.markAsRefunded();
+        return orderRepository.save(order);
     }
 
     @Transactional(readOnly = true)

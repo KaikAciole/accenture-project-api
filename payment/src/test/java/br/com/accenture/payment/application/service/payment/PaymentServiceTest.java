@@ -99,7 +99,7 @@ class PaymentServiceTest {
         paymentRepository.findByIdResponses.add(Optional.of(processingPayment()));
         paymentRepository.findByIdResponses.add(Optional.of(processingPayment()));
         paymentRepository.findByIdResponses.add(Optional.of(pendingPayment()));
-        paymentRepository.findByIdResponses.add(Optional.of(approvedPayment()));
+        paymentRepository.findByIdResponses.add(Optional.of(approvedWalletPayment()));
 
         Payment processing = service.process(PAYMENT_ID, "tx-123");
         Payment approved = service.approve(PAYMENT_ID);
@@ -117,9 +117,43 @@ class PaymentServiceTest {
         assertThat(canceled.getFailureReason()).isEqualTo("Customer requested");
         assertThat(refunded.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(paymentRepository.savedPayments).hasSize(5);
+        assertThat(walletService.refundCalls).containsExactly(new RefundCall(
+                COMPANY_OWNER_ID,
+                CUSTOMER_ID,
+                AMOUNT,
+                PAYMENT_ID
+        ));
         assertThat(eventPublisher.approvedPayments).containsExactly(approved);
         assertThat(eventPublisher.refusedPayments).containsExactly(refused);
         assertThat(eventPublisher.canceledPayments).containsExactly(canceled);
+        assertThat(eventPublisher.refundedPayments).containsExactly(
+                new RefundedPaymentCall(refunded, "Estorno solicitado manualmente via API")
+        );
+    }
+
+    @Test
+    void manualRefundReturnsSamePaymentWhenAlreadyRefunded() {
+        Payment payment = refundedPayment();
+        paymentRepository.findByIdResponses.add(Optional.of(payment));
+
+        Payment result = service.refund(PAYMENT_ID);
+
+        assertThat(result).isSameAs(payment);
+        assertThat(paymentRepository.savedPayments).isEmpty();
+        assertThat(walletService.refundCalls).isEmpty();
+        assertThat(eventPublisher.refundedPayments).isEmpty();
+    }
+
+    @Test
+    void manualRefundThrowsWhenPaymentIsNotApproved() {
+        paymentRepository.findByIdResponses.add(Optional.of(pendingPayment()));
+
+        assertThatExceptionOfType(InvalidPaymentStatusException.class)
+                .isThrownBy(() -> service.refund(PAYMENT_ID))
+                .withMessage("Cannot refund payment from current status: PENDING");
+        assertThat(paymentRepository.savedPayments).isEmpty();
+        assertThat(walletService.refundCalls).isEmpty();
+        assertThat(eventPublisher.refundedPayments).isEmpty();
     }
 
     @Test

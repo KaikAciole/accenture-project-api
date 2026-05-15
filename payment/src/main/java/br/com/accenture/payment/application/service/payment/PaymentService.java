@@ -7,6 +7,7 @@ import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.payment.enums.PaymentMethod;
 import br.com.accenture.payment.domain.payment.enums.PaymentStatus;
 import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentException;
+import br.com.accenture.payment.domain.payment.exception.InvalidPaymentStatusException;
 import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundException;
 import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
@@ -156,9 +157,15 @@ public class PaymentService {
     public Payment refund(UUID id) {
         Payment payment = loadById(id);
 
-        payment.refund();
+        if (payment.getStatus() == PaymentStatus.REFUNDED) {
+            return payment;
+        }
 
-        return paymentRepository.save(payment);
+        if (payment.getStatus() != PaymentStatus.APPROVED) {
+            throw new InvalidPaymentStatusException(payment.getStatus(), "refund");
+        }
+
+        return processApprovedPaymentRefund(payment, "Estorno solicitado manualmente via API");
     }
 
     @Transactional
@@ -202,7 +209,7 @@ public class PaymentService {
         }
 
         if (payment.getStatus() == PaymentStatus.APPROVED) {
-            refundApprovedPaymentFromOrderCancellation(payment, reason);
+            processApprovedPaymentRefund(payment, reason);
         }
     }
 
@@ -214,14 +221,16 @@ public class PaymentService {
         paymentEventPublisher.publishPaymentCanceled(savedPayment);
     }
 
-    private void refundApprovedPaymentFromOrderCancellation(Payment payment, String reason) {
-        boolean refundAlreadyExists = walletTransactionRepository.existsByPaymentIdAndReason(
-                payment.getId(),
-                WalletTransactionReason.REFUND
-        );
+    private Payment processApprovedPaymentRefund(Payment payment, String reason) {
+        if (payment.getMethod() == PaymentMethod.WALLET) {
+            boolean refundAlreadyExists = walletTransactionRepository.existsByPaymentIdAndReason(
+                    payment.getId(),
+                    WalletTransactionReason.REFUND
+            );
 
-        if (!refundAlreadyExists) {
-            refundWalletPayment(payment);
+            if (!refundAlreadyExists) {
+                refundWalletPayment(payment);
+            }
         }
 
         payment.refund();
@@ -229,6 +238,8 @@ public class PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         paymentEventPublisher.publishPaymentRefunded(savedPayment, reason);
+
+        return savedPayment;
     }
 
     private void refundWalletPayment(Payment payment) {

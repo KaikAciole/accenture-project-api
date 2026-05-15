@@ -10,6 +10,9 @@ import br.com.accenture.payment.domain.wallet.model.Wallet;
 import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
 import br.com.accenture.payment.domain.wallet.repository.WalletRepository;
 import br.com.accenture.payment.domain.wallet.repository.WalletTransactionRepository;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,6 +94,11 @@ public class WalletService {
     }
 
     @Transactional
+    @Retryable(
+            retryFor = OptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 100)
+    )
     public Wallet credit(
             UUID walletId,
             BigDecimal amount,
@@ -116,6 +124,11 @@ public class WalletService {
     }
 
     @Transactional
+    @Retryable(
+            retryFor = OptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 100)
+    )
     public Wallet debit(
             UUID walletId,
             BigDecimal amount,
@@ -141,6 +154,11 @@ public class WalletService {
     }
 
     @Transactional
+    @Retryable(
+            retryFor = OptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 100)
+    )
     public void transfer(
             UUID fromOwnerId,
             WalletOwnerType fromOwnerType,
@@ -178,6 +196,11 @@ public class WalletService {
     }
 
     @Transactional
+    @Retryable(
+            retryFor = OptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 100)
+    )
     public void refund(
             UUID companyOwnerId,
             UUID customerId,

@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
+@Order(1)
 public class InternalTrafficFilter extends OncePerRequestFilter {
 
     @Value("${api.security.internal.secret:senha-secreta-microsservicos-1234}")

@@ -1,3 +1,6 @@
+server:
+  port: 8087
+
 spring:
   application:
     name: assistant
@@ -9,10 +12,22 @@ spring:
           options:
             model: gemini-2.5-flash
             temperature: 0.7
+            max-output-tokens: 800
 
 assistant:
   gemini:
     chunk-idle-timeout-seconds: 30
+    total-stream-timeout-seconds: 60
+    max-chunks-per-stream: 200
+  rate-limit:
+    user:
+      per-minute: 10
+      per-day: 100
+    ip:
+      per-minute: 30
+      per-day: 300
+    concurrency:
+      max-concurrent-streams: 20
 
 springdoc:
   api-docs:

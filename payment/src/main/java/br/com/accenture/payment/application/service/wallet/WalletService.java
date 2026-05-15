@@ -42,6 +42,25 @@ public class WalletService {
     }
 
     @Transactional
+    public void createCompanyWalletIfNotExists(UUID companyOwnerId) {
+        boolean alreadyExists = walletRepository.findByOwnerIdAndOwnerType(
+                companyOwnerId,
+                WalletOwnerType.COMPANY
+        ).isPresent();
+
+        if (alreadyExists) {
+            return;
+        }
+
+        Wallet wallet = Wallet.createNew(
+                companyOwnerId,
+                WalletOwnerType.COMPANY
+        );
+
+        walletRepository.save(wallet);
+    }
+
+    @Transactional
     public void createCustomerWalletIfNotExists(UUID customerId) {
         if (walletRepository.existsByOwnerIdAndOwnerType(customerId, WalletOwnerType.CUSTOMER)) {
             return;

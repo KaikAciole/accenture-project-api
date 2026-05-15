@@ -15,6 +15,6 @@ public interface OrderRepository {
 
     void deleteById(UUID id);
 
-    PaginatedResult<Order> findByCustomerId(String customerId, int page, int size);
+    PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size);
 
 }

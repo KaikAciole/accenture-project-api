@@ -38,7 +38,7 @@ public class OrderRepositoryAdapter implements OrderRepository {
     }
 
     @Override
-    public PaginatedResult<Order> findByCustomerId(String customerId, int page, int size) {
+    public PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size) {
         org.springframework.data.domain.PageRequest pageRequest =
                 org.springframework.data.domain.PageRequest.of(page, size);
 
@@ -57,5 +57,4 @@ public class OrderRepositoryAdapter implements OrderRepository {
                 entityPage.getTotalPages()
         );
     }
-
 }

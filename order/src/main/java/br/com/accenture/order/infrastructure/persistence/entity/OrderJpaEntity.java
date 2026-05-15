@@ -29,7 +29,7 @@ public class OrderJpaEntity {
     private UUID id;
 
     @Column(nullable = false, updatable = false)
-    private String customerId;
+    private UUID customerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -49,5 +49,9 @@ public class OrderJpaEntity {
     @LastModifiedDate
     @Column(nullable = false)
     private Instant updatedAt;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
 }

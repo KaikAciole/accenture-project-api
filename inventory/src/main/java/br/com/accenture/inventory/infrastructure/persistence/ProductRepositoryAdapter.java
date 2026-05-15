@@ -10,6 +10,7 @@ import br.com.accenture.inventory.infrastructure.persistence.mapper.ProductPersi
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +40,13 @@ public class ProductRepositoryAdapter implements ProductRepository {
     public Optional<Product> findBySku(String sku) {
         return jpaRepository.findBySku(sku)
                 .map(ProductPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public List<Product> findBySkuIn(List<String> skus) {
+        return jpaRepository.findBySkuIn(skus).stream()
+                .map(ProductPersistenceMapper::toDomain)
+                .toList();
     }
 
     @Override

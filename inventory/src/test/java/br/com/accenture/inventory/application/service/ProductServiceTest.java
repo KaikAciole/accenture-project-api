@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -128,9 +129,7 @@ class ProductServiceTest {
                 0L
         );
 
-        when(repository.findBySku("SKU-001")).thenReturn(Optional.of(availableProduct));
-        when(repository.findBySku("SKU-LOW")).thenReturn(Optional.of(lowStockProduct));
-        when(repository.findBySku("SKU-MISS")).thenReturn(Optional.empty());
+        when(repository.findBySkuIn(anyList())).thenReturn(List.of(availableProduct, lowStockProduct));
 
         List<ProductService.ProductAvailabilityResult> result = service.checkAvailability(List.of(
                 new ProductService.ProductAvailabilityCheckItem("SKU-001", 2),
@@ -143,5 +142,7 @@ class ProductServiceTest {
                 new ProductService.ProductAvailabilityResult("SKU-LOW", 2, 1, false),
                 new ProductService.ProductAvailabilityResult("SKU-MISS", 1, 0, false)
         );
+
+        verify(repository).findBySkuIn(List.of("SKU-001", "SKU-LOW", "SKU-MISS"));
     }
 }

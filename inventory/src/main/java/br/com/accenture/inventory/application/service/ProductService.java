@@ -9,8 +9,11 @@ import br.com.accenture.inventory.domain.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -51,24 +54,35 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductAvailabilityResult> checkAvailability(List<ProductAvailabilityCheckItem> items) {
+        List<String> skus = items.stream()
+                .map(ProductAvailabilityCheckItem::sku)
+                .distinct()
+                .toList();
+
+        Map<String, Product> productBySku = productRepository.findBySkuIn(skus).stream()
+                .collect(Collectors.toMap(Product::getSku, Function.identity()));
+
         return items.stream()
-                .map(item -> productRepository.findBySku(item.sku())
-                        .map(product -> {
-                            int availableQuantity = product.getStockQuantity();
-                            boolean available = availableQuantity >= item.quantity();
-                            return new ProductAvailabilityResult(
-                                    item.sku(),
-                                    item.quantity(),
-                                    availableQuantity,
-                                    available
-                            );
-                        })
-                        .orElseGet(() -> new ProductAvailabilityResult(
+                .map(item -> {
+                    Product product = productBySku.get(item.sku());
+                    if (product == null) {
+                        return new ProductAvailabilityResult(
                                 item.sku(),
                                 item.quantity(),
                                 0,
                                 false
-                        )))
+                        );
+                    }
+
+                    int availableQuantity = product.getStockQuantity();
+                    boolean available = availableQuantity >= item.quantity();
+                    return new ProductAvailabilityResult(
+                            item.sku(),
+                            item.quantity(),
+                            availableQuantity,
+                            available
+                    );
+                })
                 .toList();
     }
 

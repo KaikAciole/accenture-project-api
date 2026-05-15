@@ -31,6 +31,7 @@ class RepositoryAdapterTest {
         when(productJpaRepository.save(any(ProductJpaEntity.class))).thenReturn(entity);
         when(productJpaRepository.findById(TestFixtures.PRODUCT_ID)).thenReturn(Optional.of(entity));
         when(productJpaRepository.findBySku("SKU-001")).thenReturn(Optional.of(entity));
+        when(productJpaRepository.findBySkuIn(List.of("SKU-001"))).thenReturn(List.of(entity));
         when(productJpaRepository.existsBySku("SKU-001")).thenReturn(true);
         when(productJpaRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
@@ -40,6 +41,7 @@ class RepositoryAdapterTest {
         assertThat(productAdapter.save(TestFixtures.restoredProduct()).getId()).isEqualTo(TestFixtures.PRODUCT_ID);
         assertThat(productAdapter.findById(TestFixtures.PRODUCT_ID)).isPresent();
         assertThat(productAdapter.findBySku("SKU-001")).isPresent();
+        assertThat(productAdapter.findBySkuIn(List.of("SKU-001"))).hasSize(1);
         assertThat(productAdapter.existsBySku("SKU-001")).isTrue();
         assertThat(productAdapter.findAll(PageRequest.of(0, 10)).content()).hasSize(1);
         assertThat(productAdapter.findByNameContainingIgnoreCase("note", PageRequest.of(0, 10)).content()).hasSize(1);

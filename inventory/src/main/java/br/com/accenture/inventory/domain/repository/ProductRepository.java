@@ -4,6 +4,7 @@ import br.com.accenture.inventory.domain.model.Product;
 import br.com.accenture.inventory.domain.pagination.PageRequest;
 import br.com.accenture.inventory.domain.pagination.PageResult;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,8 @@ public interface ProductRepository {
     Optional<Product> findById(UUID id);
 
     Optional<Product> findBySku(String sku);
+
+    List<Product> findBySkuIn(List<String> skus);
 
     boolean existsBySku(String sku);
 

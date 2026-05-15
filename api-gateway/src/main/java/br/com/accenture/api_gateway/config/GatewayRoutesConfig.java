@@ -16,7 +16,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.path;
 @Configuration
 public class GatewayRoutesConfig {
 
-    @Value("${api.security.internal.secret:senha-secreta-microsservicos-123}")
+    @Value("${api.security.internal.secret:senha-secreta-microsservicos-1234}")
     private String internalSecret;
 
     @Bean
@@ -26,6 +26,19 @@ public class GatewayRoutesConfig {
                 .route(path("/api/v1/auth/**"), http())
                 .before(addRequestHeader("X-Internal-Secret", internalSecret))
                 .before(uri("http://localhost:8081"))
+                .build();
+
+        RouterFunction<ServerResponse> cepRoute = route("cep-lookup")
+                .route(path("/api/v1/cep/lookup/**"), http())
+                .before(rewritePath("/api/v1/cep/lookup/(?<segment>.*)", "/cep/lookup/${segment}"))
+                .before(addRequestHeader("X-Internal-Secret", internalSecret))
+                .before(uri("http://localhost:8082"))
+                .build();
+
+        RouterFunction<ServerResponse> orderPublicRoute = route("order-customer-list")
+                .route(path("/api/v1/orders/my-orders"), http())
+                .before(addRequestHeader("X-Internal-Secret", internalSecret))
+                .before(uri("http://localhost:8085"))
                 .build();
 
         RouterFunction<ServerResponse> customerRoute = route("customer-service")
@@ -66,6 +79,8 @@ public class GatewayRoutesConfig {
                 .build();
 
         return authRoute
+                .and(cepRoute)
+                .and(orderPublicRoute)
                 .and(customerRoute)
                 .and(inventoryRoute)
                 .and(notificationRoute)

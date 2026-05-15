@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -33,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
         boolean isPublic = publicRoutes.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
@@ -58,10 +59,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .build();
 
             DecodedJWT decodedJWT = verifier.verify(token);
+            String customerId = decodedJWT.getSubject();
 
-            log.info("Token validado com sucesso para o usuário: {}", decodedJWT.getSubject());
+            log.info("Token validado com sucesso para o usuario: {}", customerId);
 
-            filterChain.doFilter(request, response);
+            HttpServletRequest wrappedRequest = new jakarta.servlet.http.HttpServletRequestWrapper(request) {
+                @Override
+                public String getHeader(String name) {
+                    if ("X-Customer-Id".equalsIgnoreCase(name)) {
+                        return customerId;
+                    }
+                    return super.getHeader(name);
+                }
+            };
+
+            filterChain.doFilter(wrappedRequest, response);
 
         } catch (Exception e) {
             log.error("Token expirado, corrompido ou adulterado: {}", e.getMessage());

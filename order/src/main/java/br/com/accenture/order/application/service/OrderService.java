@@ -25,7 +25,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order createOrder(String customerId, List<OrderItemCommand> itemsRequest) {
+    public Order createOrder(UUID customerId, List<OrderItemCommand> itemsRequest) {
 
         Order newOrder = Order.createNew(customerId);
 
@@ -68,7 +68,7 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public PaginatedResult<Order> findByCustomerId(String customerId, int page, int size) {
+    public PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size) {
         return orderRepository.findByCustomerId(customerId, page, size);
     }
 }

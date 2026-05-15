@@ -4,6 +4,6 @@ import java.util.UUID;
 
 public record OrderCanceledEvent(
         UUID orderId,
-        String customerId,
+        UUID customerId,
         String reason
 ) {}

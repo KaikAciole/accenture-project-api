@@ -4,7 +4,6 @@ import br.com.accenture.order.api.dto.request.OrderCreateRequest;
 import br.com.accenture.order.api.dto.request.OrderItemRequest;
 import br.com.accenture.order.api.dto.response.OrderResponse;
 import br.com.accenture.order.application.dto.OrderItemCommand;
-import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.application.service.OrderService;
 import br.com.accenture.order.domain.model.Order;
 import jakarta.validation.Valid;
@@ -47,27 +46,5 @@ public class OrderController {
     public ResponseEntity<OrderResponse> getOrderById(@PathVariable UUID id) {
         Order order = orderService.findById(id);
         return ResponseEntity.ok(new OrderResponse(order));
-    }
-
-    @GetMapping("/customers/{customerId}")
-    public ResponseEntity<PaginatedResult<OrderResponse>> getOrdersByCustomer(
-            @PathVariable String customerId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        PaginatedResult<Order> paginatedOrders = orderService.findByCustomerId(customerId, page, size);
-
-        List<OrderResponse> responses = paginatedOrders.data().stream()
-                .map(OrderResponse::new)
-                .toList();
-
-        PaginatedResult<OrderResponse> responsePage = new PaginatedResult<>(
-                responses,
-                paginatedOrders.page(),
-                paginatedOrders.size(),
-                paginatedOrders.totalElements(),
-                paginatedOrders.totalPages()
-        );
-        return ResponseEntity.ok(responsePage);
     }
 }

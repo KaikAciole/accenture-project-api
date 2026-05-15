@@ -6,6 +6,7 @@ import br.com.accenture.order.domain.model.OrderItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
@@ -33,7 +34,7 @@ class OrderRepositoryAdapterTest {
     @Test
     @DisplayName("Deve persistir um pedido e seus itens com sucesso e cascade")
     void shouldPersistOrderAndItemsSuccessfully() {
-        Order order = Order.createNew("customer-test");
+        Order order = Order.createNew(UUID.randomUUID());
         order.addItem(OrderItem.createNew("PROD-001", 2, new BigDecimal("75.00")));
 
         Order savedOrder = adapter.save(order);
@@ -47,14 +48,15 @@ class OrderRepositoryAdapterTest {
     @Test
     @DisplayName("Deve recuperar um pedido por ID com todos os itens mapeados")
     void shouldFindOrderById() {
-        Order order = Order.createNew("customer-test");
+        UUID customerId = UUID.randomUUID();
+        Order order = Order.createNew(customerId);
         order.addItem(OrderItem.createNew("ITEM-1", 1, BigDecimal.TEN));
         UUID id = adapter.save(order).getId();
 
         Optional<Order> foundOrder = adapter.findById(id);
 
         assertThat(foundOrder).isPresent();
-        assertThat(foundOrder.get().getCustomerId()).isEqualTo("customer-test");
+        assertThat(foundOrder.get().getCustomerId()).isEqualTo(customerId);
         assertThat(foundOrder.get().getItems()).hasSize(1);
     }
 
@@ -68,10 +70,10 @@ class OrderRepositoryAdapterTest {
     @Test
     @DisplayName("Deve buscar pedidos paginados filtrando por customerId")
     void shouldFindOrdersByCustomerIdWithPagination() {
-        String targetCustomer = "customer-paginated";
+        UUID targetCustomer = UUID.randomUUID();
         adapter.save(Order.createNew(targetCustomer));
         adapter.save(Order.createNew(targetCustomer));
-        adapter.save(Order.createNew("other-customer"));
+        adapter.save(Order.createNew(UUID.randomUUID()));
 
         PaginatedResult<Order> result = adapter.findByCustomerId(targetCustomer, 0, 10);
 
@@ -83,7 +85,7 @@ class OrderRepositoryAdapterTest {
     @Test
     @DisplayName("Deve deletar pedido e remover itens dependentes")
     void shouldDeleteOrderAndOrphanItems() {
-        Order order = Order.createNew("customer-delete");
+        Order order = Order.createNew(UUID.randomUUID());
         order.addItem(OrderItem.createNew("ITEM-X", 1, BigDecimal.ONE));
         Order saved = adapter.save(order);
 

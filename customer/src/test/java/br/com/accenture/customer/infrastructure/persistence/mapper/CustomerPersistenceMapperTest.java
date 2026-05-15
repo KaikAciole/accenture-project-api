@@ -34,15 +34,18 @@ class CustomerPersistenceMapperTest {
     }
 
     @Test
-    void toEntity_shouldMapMinimalCustomerWithOnlyEmail() {
-        Customer customer = Customer.createMinimal("maria@example.com");
+    void toEntity_shouldMapNewCustomerWithoutAuditFields() {
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
         CustomerJpaEntity entity = CustomerPersistenceMapper.toEntity(customer);
 
+        assertThat(entity.getId()).isNull();
+        assertThat(entity.getName()).isEqualTo("Maria");
         assertThat(entity.getEmail()).isEqualTo("maria@example.com");
-        assertThat(entity.getName()).isNull();
-        assertThat(entity.getCpf()).isNull();
-        assertThat(entity.getPhone()).isNull();
+        assertThat(entity.getCpf()).isEqualTo("12345678901");
+        assertThat(entity.getPhone()).isEqualTo("11999998888");
+        assertThat(entity.getCreatedAt()).isNull();
+        assertThat(entity.getUpdatedAt()).isNull();
     }
 
     @Test

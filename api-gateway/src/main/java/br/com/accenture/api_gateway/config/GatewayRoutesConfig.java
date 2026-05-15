@@ -7,6 +7,7 @@ import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.addRequestHeader;
+import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.rewritePath;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.uri;
 import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.route;
 import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.http;
@@ -57,11 +58,19 @@ public class GatewayRoutesConfig {
                 .before(uri("http://localhost:8086"))
                 .build();
 
+        RouterFunction<ServerResponse> assistantRoute = route("assistant-service")
+                .route(path("/api/v1/assistant/**"), http())
+                .before(rewritePath("/api/v1/assistant/(?<segment>.*)", "/assistant/${segment}"))
+                .before(addRequestHeader("X-Internal-Secret", internalSecret))
+                .before(uri("http://localhost:8087"))
+                .build();
+
         return authRoute
                 .and(customerRoute)
                 .and(inventoryRoute)
                 .and(notificationRoute)
                 .and(orderRoute)
-                .and(paymentRoute);
+                .and(paymentRoute)
+                .and(assistantRoute);
     }
 }

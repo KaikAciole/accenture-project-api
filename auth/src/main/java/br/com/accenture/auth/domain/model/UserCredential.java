@@ -36,7 +36,7 @@ public class UserCredential {
         this.updatedAt = updatedAt;
     }
 
-    public static UserCredential registerNew(UUID customerId, String rawEmail, String rawPassword,
+    public static UserCredential registerNew(UUID customerId, String rawEmail, String password,
                                              Set<Role> roles, PasswordEncoder encoder) {
         if (customerId == null) {
             throw new IllegalArgumentException("Customer ID is required");
@@ -49,7 +49,7 @@ public class UserCredential {
                 UUID.randomUUID(),
                 customerId,
                 new Email(rawEmail),
-                Password.create(rawPassword, encoder),
+                Password.create(password, encoder),
                 roles,
                 true,
                 Instant.now(),
@@ -71,8 +71,8 @@ public class UserCredential {
         );
     }
 
-    public void changePassword(String newRawPassword, PasswordEncoder encoder) {
-        this.password = Password.create(newRawPassword, encoder);
+    public void changePassword(String newPassword, PasswordEncoder encoder) {
+        this.password = Password.create(newPassword, encoder);
         this.updatedAt = Instant.now();
     }
 

@@ -10,11 +10,11 @@ public record Password(String value) {
         }
     }
 
-    public static Password create(String rawPassword, PasswordEncoder encoder) {
-        if (rawPassword == null || rawPassword.length() < 8) {
+    public static Password create(String password, PasswordEncoder encoder) {
+        if (password == null || password.length() < 8) {
             throw new IllegalArgumentException("Raw password must be at least 8 characters long");
         }
-        return new Password(encoder.encode(rawPassword));
+        return new Password(encoder.encode(password));
     }
 
     public static Password restore(String hashedPassword) {

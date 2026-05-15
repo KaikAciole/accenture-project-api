@@ -36,56 +36,83 @@ class CustomerLifecycleE2eTest {
     private EntityManager entityManager;
 
     @Test
-    void shouldCreateMinimalCustomerViaInternalEndpoint() throws Exception {
-        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest("maria.e2e@example.com");
+    void shouldCreateCustomerViaInternalEndpoint() throws Exception {
+        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest(
+                "Maria E2E", "maria.e2e@example.com", "10000000001", "11900000001"
+        );
 
         mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.name").value("Maria E2E"))
                 .andExpect(jsonPath("$.email").value("maria.e2e@example.com"))
-                .andExpect(jsonPath("$.name").doesNotExist())
-                .andExpect(jsonPath("$.cpf").doesNotExist())
-                .andExpect(jsonPath("$.phone").doesNotExist())
+                .andExpect(jsonPath("$.cpf").value("10000000001"))
+                .andExpect(jsonPath("$.phone").value("11900000001"))
                 .andExpect(jsonPath("$.createdAt").exists());
     }
 
     @Test
     void shouldReturn409WhenCreatingCustomerWithDuplicateEmail() throws Exception {
-        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest("ana.e2e@example.com");
+        CreateCustomerInternalRequest first = new CreateCustomerInternalRequest(
+                "Ana", "ana.e2e@example.com", "10000000002", "11900000002"
+        );
         mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(first)))
                 .andExpect(status().isCreated());
 
+        CreateCustomerInternalRequest duplicate = new CreateCustomerInternalRequest(
+                "Ana 2", "ana.e2e@example.com", "10000000003", "11900000003"
+        );
         mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(duplicate)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Duplicate customer"))
                 .andExpect(jsonPath("$.detail").value("Customer already exists with email: ana.e2e@example.com"));
     }
 
     @Test
-    void shouldCompletePartialProfileViaPatch() throws Exception {
-        String customerId = createCustomer("carlos.e2e@example.com");
+    void shouldReturn409WhenCreatingCustomerWithDuplicateCpf() throws Exception {
+        CreateCustomerInternalRequest first = new CreateCustomerInternalRequest(
+                "Bruna", "bruna.e2e@example.com", "10000000004", "11900000004"
+        );
+        mockMvc.perform(post("/internal/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(first)))
+                .andExpect(status().isCreated());
 
-        UpdateProfileRequest update = new UpdateProfileRequest("Carlos E2E", "12312312312", "11900000041");
+        CreateCustomerInternalRequest sameCpf = new CreateCustomerInternalRequest(
+                "Bruna 2", "bruna2.e2e@example.com", "10000000004", "11900000005"
+        );
+        mockMvc.perform(post("/internal/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sameCpf)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Customer already exists with cpf: 10000000004"));
+    }
+
+    @Test
+    void shouldUpdateProfileViaPatch() throws Exception {
+        String customerId = createCustomer("Carlos", "carlos.e2e@example.com", "10000000006", "11900000006");
+
+        UpdateProfileRequest update = new UpdateProfileRequest("Carlos Updated", null, "11900000099");
         mockMvc.perform(patch("/customers/{id}", customerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(update)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(customerId))
-                .andExpect(jsonPath("$.name").value("Carlos E2E"))
-                .andExpect(jsonPath("$.cpf").value("12312312312"))
-                .andExpect(jsonPath("$.phone").value("11900000041"))
+                .andExpect(jsonPath("$.name").value("Carlos Updated"))
+                .andExpect(jsonPath("$.cpf").value("10000000006"))
+                .andExpect(jsonPath("$.phone").value("11900000099"))
                 .andExpect(jsonPath("$.email").value("carlos.e2e@example.com"));
     }
 
     @Test
     void shouldApplyPatchPartiallyIgnoringNullFields() throws Exception {
-        String customerId = createCustomer("partial.e2e@example.com");
+        String customerId = createCustomer("Original Name", "partial.e2e@example.com", "10000000007", "11900000007");
 
         UpdateProfileRequest onlyName = new UpdateProfileRequest("Just Name", null, null);
         mockMvc.perform(patch("/customers/{id}", customerId)
@@ -93,18 +120,13 @@ class CustomerLifecycleE2eTest {
                         .content(objectMapper.writeValueAsString(onlyName)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Just Name"))
-                .andExpect(jsonPath("$.cpf").doesNotExist())
-                .andExpect(jsonPath("$.phone").doesNotExist());
+                .andExpect(jsonPath("$.cpf").value("10000000007"))
+                .andExpect(jsonPath("$.phone").value("11900000007"));
     }
 
     @Test
     void shouldReturn422WhenChangingAlreadyDefinedCpf() throws Exception {
-        String customerId = createCustomer("diana.e2e@example.com");
-
-        mockMvc.perform(patch("/customers/{id}", customerId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest(null, "32132132132", null))))
-                .andExpect(status().isOk());
+        String customerId = createCustomer("Diana", "diana.e2e@example.com", "10000000008", "11900000008");
 
         mockMvc.perform(patch("/customers/{id}", customerId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,7 +148,7 @@ class CustomerLifecycleE2eTest {
 
     @Test
     void shouldCreateAddressUnderCustomerAndListIt() throws Exception {
-        String customerId = createCustomer("joao.e2e@example.com");
+        String customerId = createCustomer("João", "joao.e2e@example.com", "10000000009", "11900000009");
 
         AddressRequest addressRequest = new AddressRequest(
                 "Rua das Flores", "123", "Apto 45", "Centro", "São Paulo", "SP", "01001000"
@@ -145,10 +167,11 @@ class CustomerLifecycleE2eTest {
                 .andExpect(jsonPath("$.content[0].zipCode").value("01001000"));
     }
 
-    private String createCustomer(String email) throws Exception {
+    private String createCustomer(String name, String email, String cpf, String phone) throws Exception {
         MvcResult result = mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreateCustomerInternalRequest(email))))
+                        .content(objectMapper.writeValueAsString(
+                                new CreateCustomerInternalRequest(name, email, cpf, phone))))
                 .andExpect(status().isCreated())
                 .andReturn();
         return objectMapper.readTree(result.getResponse().getContentAsString())

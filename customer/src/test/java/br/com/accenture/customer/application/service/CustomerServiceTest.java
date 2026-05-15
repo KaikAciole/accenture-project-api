@@ -41,7 +41,7 @@ class CustomerServiceTest {
 
     @BeforeEach
     void setUp() {
-        newCustomer = Customer.createMinimal("maria@example.com");
+        newCustomer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
         existingId = UUID.randomUUID();
         existing = Customer.restore(
                 existingId, "Maria", "maria@example.com", "12345678901", "11999998888",
@@ -94,8 +94,10 @@ class CustomerServiceTest {
     }
 
     @Test
-    void create_shouldPersistWhenEmailIsUnique() {
+    void create_shouldPersistWhenAllFieldsAreUnique() {
         when(customerRepository.existsByEmail(newCustomer.getEmail())).thenReturn(false);
+        when(customerRepository.existsByCpf(newCustomer.getCpf())).thenReturn(false);
+        when(customerRepository.existsByPhone(newCustomer.getPhone())).thenReturn(false);
         when(customerRepository.save(newCustomer)).thenReturn(existing);
 
         Customer saved = customerService.create(newCustomer);
@@ -111,6 +113,31 @@ class CustomerServiceTest {
         assertThatThrownBy(() -> customerService.create(newCustomer))
                 .isInstanceOf(DuplicateCustomerException.class)
                 .hasMessageContaining("email");
+
+        verify(customerRepository, never()).save(any());
+    }
+
+    @Test
+    void create_shouldFailWhenCpfAlreadyExists() {
+        when(customerRepository.existsByEmail(newCustomer.getEmail())).thenReturn(false);
+        when(customerRepository.existsByCpf(newCustomer.getCpf())).thenReturn(true);
+
+        assertThatThrownBy(() -> customerService.create(newCustomer))
+                .isInstanceOf(DuplicateCustomerException.class)
+                .hasMessageContaining("cpf");
+
+        verify(customerRepository, never()).save(any());
+    }
+
+    @Test
+    void create_shouldFailWhenPhoneAlreadyExists() {
+        when(customerRepository.existsByEmail(newCustomer.getEmail())).thenReturn(false);
+        when(customerRepository.existsByCpf(newCustomer.getCpf())).thenReturn(false);
+        when(customerRepository.existsByPhone(newCustomer.getPhone())).thenReturn(true);
+
+        assertThatThrownBy(() -> customerService.create(newCustomer))
+                .isInstanceOf(DuplicateCustomerException.class)
+                .hasMessageContaining("phone");
 
         verify(customerRepository, never()).save(any());
     }
@@ -151,40 +178,6 @@ class CustomerServiceTest {
 
         assertThatThrownBy(() -> customerService.update(existingId, payload))
                 .isInstanceOf(ImmutableFieldException.class)
-                .hasMessageContaining("cpf");
-
-        verify(customerRepository, never()).save(any());
-    }
-
-    @Test
-    void update_shouldAllowFirstCpfDefinition() {
-        Customer minimal = Customer.restore(
-                existingId, null, "maria@example.com", null, null, Instant.now(), Instant.now()
-        );
-        Customer payload = Customer.restore(null, null, null, "12345678901", null, null, null);
-
-        when(customerRepository.findById(existingId)).thenReturn(Optional.of(minimal));
-        when(customerRepository.existsByCpf("12345678901")).thenReturn(false);
-        when(customerRepository.save(minimal)).thenReturn(minimal);
-
-        customerService.update(existingId, payload);
-
-        assertThat(minimal.getCpf()).isEqualTo("12345678901");
-        verify(customerRepository).existsByCpf("12345678901");
-    }
-
-    @Test
-    void update_shouldFailWhenCpfAlreadyTakenByAnotherCustomer() {
-        Customer minimal = Customer.restore(
-                existingId, null, "maria@example.com", null, null, Instant.now(), Instant.now()
-        );
-        Customer payload = Customer.restore(null, null, null, "12345678901", null, null, null);
-
-        when(customerRepository.findById(existingId)).thenReturn(Optional.of(minimal));
-        when(customerRepository.existsByCpf("12345678901")).thenReturn(true);
-
-        assertThatThrownBy(() -> customerService.update(existingId, payload))
-                .isInstanceOf(DuplicateCustomerException.class)
                 .hasMessageContaining("cpf");
 
         verify(customerRepository, never()).save(any());

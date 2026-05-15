@@ -4,6 +4,7 @@ import br.com.accenture.payment.infrastructure.config.PaymentMessagingProperties
 import br.com.accenture.payment.infrastructure.messaging.event.PaymentApprovedEvent;
 import br.com.accenture.payment.infrastructure.messaging.event.PaymentCanceledEvent;
 import br.com.accenture.payment.infrastructure.messaging.event.PaymentRefusedEvent;
+import br.com.accenture.payment.infrastructure.messaging.event.PaymentRefundedEvent;
 import br.com.accenture.payment.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -23,7 +24,8 @@ class RabbitPaymentEventPublisherTest {
                     new PaymentMessagingProperties.RoutingKey(
                             "payment.approved",
                             "payment.refused",
-                            "payment.canceled"
+                            "payment.canceled",
+                            "payment.refunded"
                     )
             )
     );
@@ -81,6 +83,28 @@ class RabbitPaymentEventPublisherTest {
                     PaymentCanceledEvent event = (PaymentCanceledEvent) message.payload();
                     assertThat(event.paymentId()).isEqualTo(TestFixtures.PAYMENT_ID);
                     assertThat(event.cancellationReason()).isEqualTo("Customer requested");
+                    assertThat(event.eventId()).isNotNull();
+                    assertThat(event.occurredAt()).isNotNull();
+                });
+    }
+
+    @Test
+    void publishPaymentRefundedSendsRefundedEvent() {
+        publisher.publishPaymentRefunded(TestFixtures.refundedPayment(), "Order canceled");
+
+        assertThat(rabbitTemplate.messages)
+                .singleElement()
+                .satisfies(message -> {
+                    assertThat(message.exchange()).isEqualTo("payment.events");
+                    assertThat(message.routingKey()).isEqualTo("payment.refunded");
+                    assertThat(message.payload()).isInstanceOf(PaymentRefundedEvent.class);
+                    PaymentRefundedEvent event = (PaymentRefundedEvent) message.payload();
+                    assertThat(event.paymentId()).isEqualTo(TestFixtures.PAYMENT_ID);
+                    assertThat(event.orderId()).isEqualTo(TestFixtures.ORDER_ID);
+                    assertThat(event.customerId()).isEqualTo(TestFixtures.CUSTOMER_ID);
+                    assertThat(event.amount()).isEqualByComparingTo(TestFixtures.AMOUNT);
+                    assertThat(event.method()).isEqualTo(TestFixtures.refundedPayment().getMethod());
+                    assertThat(event.reason()).isEqualTo("Order canceled");
                     assertThat(event.eventId()).isNotNull();
                     assertThat(event.occurredAt()).isNotNull();
                 });

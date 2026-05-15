@@ -169,6 +169,55 @@ class WalletServiceTest {
     }
 
     @Test
+    void refundMovesBalanceFromCompanyToCustomerAndRegistersRefundTransactions() {
+        UUID companyOwnerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Wallet companyWallet = TestFixtures.walletWithBalance(
+                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                companyOwnerId,
+                WalletOwnerType.COMPANY,
+                new BigDecimal("250.00")
+        );
+        Wallet customerWallet = TestFixtures.walletWithBalance(
+                TestFixtures.WALLET_ID,
+                TestFixtures.CUSTOMER_ID,
+                WalletOwnerType.CUSTOMER,
+                BigDecimal.ZERO
+        );
+        walletRepository.walletByOwnerResponses.add(companyWallet);
+        walletRepository.walletByOwnerResponses.add(customerWallet);
+
+        service.refund(companyOwnerId, TestFixtures.CUSTOMER_ID, new BigDecimal("100.00"), TestFixtures.PAYMENT_ID);
+
+        assertThat(transactionRepository.existsByPaymentAndReasonCalls)
+                .containsExactly(new ExistsByPaymentAndReasonCall(TestFixtures.PAYMENT_ID, WalletTransactionReason.REFUND));
+        assertThat(walletRepository.findByOwnerCalls)
+                .containsExactly(
+                        new FindByOwnerCall(companyOwnerId, WalletOwnerType.COMPANY),
+                        new FindByOwnerCall(TestFixtures.CUSTOMER_ID, WalletOwnerType.CUSTOMER)
+                );
+        assertThat(walletRepository.savedWallets).extracting(Wallet::getBalance)
+                .containsExactly(new BigDecimal("150.00"), new BigDecimal("100.00"));
+        assertThat(transactionRepository.savedTransactions).extracting(WalletTransaction::getType)
+                .containsExactly(WalletTransactionType.DEBIT, WalletTransactionType.CREDIT);
+        assertThat(transactionRepository.savedTransactions).extracting(WalletTransaction::getReason)
+                .containsExactly(WalletTransactionReason.REFUND, WalletTransactionReason.REFUND);
+    }
+
+    @Test
+    void refundReturnsWithoutMovingBalanceWhenRefundTransactionAlreadyExists() {
+        UUID companyOwnerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        transactionRepository.existsByPaymentIdAndReason = true;
+
+        service.refund(companyOwnerId, TestFixtures.CUSTOMER_ID, new BigDecimal("100.00"), TestFixtures.PAYMENT_ID);
+
+        assertThat(transactionRepository.existsByPaymentAndReasonCalls)
+                .containsExactly(new ExistsByPaymentAndReasonCall(TestFixtures.PAYMENT_ID, WalletTransactionReason.REFUND));
+        assertThat(walletRepository.findByOwnerCalls).isEmpty();
+        assertThat(walletRepository.savedWallets).isEmpty();
+        assertThat(transactionRepository.savedTransactions).isEmpty();
+    }
+
+    @Test
     void findTransactionsRequiresExistingWalletAndDelegatesToRepository() {
         PageRequest pageRequest = PageRequest.of(0, 10);
         PageResult<WalletTransaction> page = new PageResult<>(List.of(TestFixtures.walletCreditTransaction()), 0, 10, 1, 1);
@@ -181,6 +230,12 @@ class WalletServiceTest {
         assertThat(transactionRepository.findByWalletCalls).containsExactly(TestFixtures.WALLET_ID);
     }
 
+    private record FindByOwnerCall(UUID ownerId, WalletOwnerType ownerType) {
+    }
+
+    private record ExistsByPaymentAndReasonCall(UUID paymentId, WalletTransactionReason reason) {
+    }
+
     private static final class FakeWalletRepository implements WalletRepository {
 
         private boolean existsByOwner;
@@ -190,6 +245,7 @@ class WalletServiceTest {
         private final List<UUID> existsByOwnerCalls = new ArrayList<>();
         private final List<Wallet> savedWallets = new ArrayList<>();
         private final List<Wallet> walletByOwnerResponses = new ArrayList<>();
+        private final List<FindByOwnerCall> findByOwnerCalls = new ArrayList<>();
 
         @Override
         public Wallet save(Wallet wallet) {
@@ -204,6 +260,7 @@ class WalletServiceTest {
 
         @Override
         public Optional<Wallet> findByOwnerIdAndOwnerType(UUID ownerId, WalletOwnerType ownerType) {
+            findByOwnerCalls.add(new FindByOwnerCall(ownerId, ownerType));
             if (!walletByOwnerResponses.isEmpty()) {
                 return Optional.of(walletByOwnerResponses.removeFirst());
             }
@@ -220,8 +277,10 @@ class WalletServiceTest {
     private static final class FakeWalletTransactionRepository implements WalletTransactionRepository {
 
         private PageResult<WalletTransaction> pageResult;
+        private boolean existsByPaymentIdAndReason;
         private final List<WalletTransaction> savedTransactions = new ArrayList<>();
         private final List<UUID> findByWalletCalls = new ArrayList<>();
+        private final List<ExistsByPaymentAndReasonCall> existsByPaymentAndReasonCalls = new ArrayList<>();
 
         @Override
         public WalletTransaction save(WalletTransaction transaction) {
@@ -233,6 +292,12 @@ class WalletServiceTest {
         public PageResult<WalletTransaction> findByWalletId(UUID walletId, PageRequest pageRequest) {
             findByWalletCalls.add(walletId);
             return pageResult;
+        }
+
+        @Override
+        public boolean existsByPaymentIdAndReason(UUID paymentId, WalletTransactionReason reason) {
+            existsByPaymentAndReasonCalls.add(new ExistsByPaymentAndReasonCall(paymentId, reason));
+            return existsByPaymentIdAndReason;
         }
     }
 }

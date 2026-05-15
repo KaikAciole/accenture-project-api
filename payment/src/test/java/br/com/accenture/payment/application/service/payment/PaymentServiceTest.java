@@ -12,6 +12,7 @@ import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
 import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
+import br.com.accenture.payment.domain.wallet.enums.WalletTransactionReason;
 import br.com.accenture.payment.domain.wallet.model.Wallet;
 import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
 import br.com.accenture.payment.domain.wallet.repository.WalletRepository;
@@ -39,11 +40,13 @@ class PaymentServiceTest {
     private static final BigDecimal AMOUNT = new BigDecimal("149.90");
 
     private final FakePaymentRepository paymentRepository = new FakePaymentRepository();
+    private final NoopWalletTransactionRepository walletTransactionRepository = new NoopWalletTransactionRepository();
     private final FakeWalletService walletService = new FakeWalletService();
     private final FakePaymentEventPublisher eventPublisher = new FakePaymentEventPublisher();
     private final PaymentService service = new PaymentService(
             paymentRepository,
             walletService,
+            walletTransactionRepository,
             new PaymentWalletProperties(COMPANY_OWNER_ID),
             eventPublisher
     );
@@ -166,15 +169,68 @@ class PaymentServiceTest {
     }
 
     @Test
+    void cancelByOrderIdCancelsProcessingPaymentAndPublishesCanceledEvent() {
+        Payment payment = processingPayment();
+        paymentRepository.findByOrderIdResponses.add(Optional.of(payment));
+
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
+
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCELED);
+        assertThat(payment.getFailureReason()).isEqualTo("Order canceled");
+        assertThat(paymentRepository.savedPayments).containsExactly(payment);
+        assertThat(eventPublisher.canceledPayments).containsExactly(payment);
+    }
+
+    @Test
+    void cancelByOrderIdRefundsApprovedWalletPaymentAndPublishesRefundedEvent() {
+        Payment payment = approvedWalletPayment();
+        paymentRepository.findByOrderIdResponses.add(Optional.of(payment));
+
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
+
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(walletTransactionRepository.existsByPaymentIdAndReasonCalls)
+                .containsExactly(new ExistsByPaymentIdAndReasonCall(PAYMENT_ID, WalletTransactionReason.REFUND));
+        assertThat(walletService.refundCalls).containsExactly(new RefundCall(
+                COMPANY_OWNER_ID,
+                CUSTOMER_ID,
+                AMOUNT,
+                PAYMENT_ID
+        ));
+        assertThat(paymentRepository.savedPayments).containsExactly(payment);
+        assertThat(eventPublisher.refundedPayments).containsExactly(new RefundedPaymentCall(payment, "Order canceled"));
+    }
+
+    @Test
+    void cancelByOrderIdDoesNotMoveWalletAgainWhenRefundTransactionAlreadyExists() {
+        Payment payment = approvedWalletPayment();
+        walletTransactionRepository.existsByPaymentIdAndReason = true;
+        paymentRepository.findByOrderIdResponses.add(Optional.of(payment));
+
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
+
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(walletService.refundCalls).isEmpty();
+        assertThat(paymentRepository.savedPayments).containsExactly(payment);
+        assertThat(eventPublisher.refundedPayments).containsExactly(new RefundedPaymentCall(payment, "Order canceled"));
+    }
+
+    @Test
     void cancelByOrderIdDoesNothingWhenPaymentIsAlreadyFinalOrMissing() {
-        paymentRepository.findByOrderIdResponses.add(Optional.of(approvedPayment()));
+        paymentRepository.findByOrderIdResponses.add(Optional.of(refusedPayment()));
+        paymentRepository.findByOrderIdResponses.add(Optional.of(canceledPayment()));
+        paymentRepository.findByOrderIdResponses.add(Optional.of(refundedPayment()));
         paymentRepository.findByOrderIdResponses.add(Optional.empty());
 
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
+        service.cancelByOrderId(ORDER_ID, "Order canceled");
         service.cancelByOrderId(ORDER_ID, "Order canceled");
         service.cancelByOrderId(ORDER_ID, "Order canceled");
 
         assertThat(paymentRepository.savedPayments).isEmpty();
         assertThat(eventPublisher.canceledPayments).isEmpty();
+        assertThat(eventPublisher.refundedPayments).isEmpty();
+        assertThat(walletService.refundCalls).isEmpty();
     }
 
     @Test
@@ -263,6 +319,41 @@ class PaymentServiceTest {
         );
     }
 
+    private static Payment approvedWalletPayment() {
+        return Payment.restore(
+                PAYMENT_ID,
+                ORDER_ID,
+                CUSTOMER_ID,
+                AMOUNT,
+                PaymentMethod.WALLET,
+                PaymentStatus.APPROVED,
+                "WALLET-123",
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private static Payment refusedPayment() {
+        Payment payment = processingPayment();
+        payment.refuse("Payment refused");
+        return payment;
+    }
+
+    private static Payment canceledPayment() {
+        Payment payment = pendingPayment();
+        payment.cancel("Payment canceled");
+        return payment;
+    }
+
+    private static Payment refundedPayment() {
+        Payment payment = approvedWalletPayment();
+        payment.refund();
+        return payment;
+    }
+
     private record TransferCall(
             UUID fromOwnerId,
             WalletOwnerType fromOwnerType,
@@ -273,9 +364,24 @@ class PaymentServiceTest {
     ) {
     }
 
+    private record RefundCall(
+            UUID companyOwnerId,
+            UUID customerId,
+            BigDecimal amount,
+            UUID paymentId
+    ) {
+    }
+
+    private record RefundedPaymentCall(Payment payment, String reason) {
+    }
+
+    private record ExistsByPaymentIdAndReasonCall(UUID paymentId, WalletTransactionReason reason) {
+    }
+
     private static final class FakeWalletService extends WalletService {
 
         private final List<TransferCall> transferCalls = new ArrayList<>();
+        private final List<RefundCall> refundCalls = new ArrayList<>();
 
         private FakeWalletService() {
             super(new NoopWalletRepository(), new NoopWalletTransactionRepository());
@@ -299,6 +405,11 @@ class PaymentServiceTest {
                     paymentId
             ));
         }
+
+        @Override
+        public void refund(UUID companyOwnerId, UUID customerId, BigDecimal amount, UUID paymentId) {
+            refundCalls.add(new RefundCall(companyOwnerId, customerId, amount, paymentId));
+        }
     }
 
     private static final class FakePaymentEventPublisher implements PaymentEventPublisher {
@@ -306,6 +417,7 @@ class PaymentServiceTest {
         private final List<Payment> approvedPayments = new ArrayList<>();
         private final List<Payment> refusedPayments = new ArrayList<>();
         private final List<Payment> canceledPayments = new ArrayList<>();
+        private final List<RefundedPaymentCall> refundedPayments = new ArrayList<>();
 
         @Override
         public void publishPaymentApproved(Payment payment) {
@@ -320,6 +432,11 @@ class PaymentServiceTest {
         @Override
         public void publishPaymentCanceled(Payment payment) {
             canceledPayments.add(payment);
+        }
+
+        @Override
+        public void publishPaymentRefunded(Payment payment, String reason) {
+            refundedPayments.add(new RefundedPaymentCall(payment, reason));
         }
     }
 
@@ -348,6 +465,9 @@ class PaymentServiceTest {
 
     private static final class NoopWalletTransactionRepository implements WalletTransactionRepository {
 
+        private boolean existsByPaymentIdAndReason;
+        private final List<ExistsByPaymentIdAndReasonCall> existsByPaymentIdAndReasonCalls = new ArrayList<>();
+
         @Override
         public WalletTransaction save(WalletTransaction transaction) {
             return transaction;
@@ -356,6 +476,12 @@ class PaymentServiceTest {
         @Override
         public PageResult<WalletTransaction> findByWalletId(UUID walletId, PageRequest pageRequest) {
             return new PageResult<>(List.of(), pageRequest.page(), pageRequest.size(), 0, 0);
+        }
+
+        @Override
+        public boolean existsByPaymentIdAndReason(UUID paymentId, WalletTransactionReason reason) {
+            existsByPaymentIdAndReasonCalls.add(new ExistsByPaymentIdAndReasonCall(paymentId, reason));
+            return existsByPaymentIdAndReason;
         }
     }
 

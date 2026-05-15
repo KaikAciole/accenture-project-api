@@ -10,7 +10,9 @@ import br.com.accenture.payment.domain.payment.exception.DuplicatePaymentExcepti
 import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundException;
 import br.com.accenture.payment.domain.payment.model.Payment;
 import br.com.accenture.payment.domain.payment.repository.PaymentRepository;
+import br.com.accenture.payment.domain.wallet.enums.WalletTransactionReason;
 import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
+import br.com.accenture.payment.domain.wallet.repository.WalletTransactionRepository;
 import br.com.accenture.payment.infrastructure.config.PaymentWalletProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,17 +27,20 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final WalletService walletService;
+    private final WalletTransactionRepository walletTransactionRepository;
     private final PaymentWalletProperties paymentWalletProperties;
     private final PaymentEventPublisher paymentEventPublisher;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             WalletService walletService,
+            WalletTransactionRepository walletTransactionRepository,
             PaymentWalletProperties paymentWalletProperties,
             PaymentEventPublisher paymentEventPublisher
     ) {
         this.paymentRepository = paymentRepository;
         this.walletService = walletService;
+        this.walletTransactionRepository = walletTransactionRepository;
         this.paymentWalletProperties = paymentWalletProperties;
         this.paymentEventPublisher = paymentEventPublisher;
     }
@@ -144,17 +149,7 @@ public class PaymentService {
     @Transactional
     public void cancelByOrderId(UUID orderId, String reason) {
         paymentRepository.findByOrderId(orderId)
-                .ifPresent(payment -> {
-                    if (payment.getStatus() == PaymentStatus.PENDING ||
-                            payment.getStatus() == PaymentStatus.PROCESSING) {
-
-                        payment.cancel(reason);
-
-                        Payment savedPayment = paymentRepository.save(payment);
-
-                        paymentEventPublisher.publishPaymentCanceled(savedPayment);
-                    }
-                });
+                .ifPresent(payment -> handleOrderCanceledPayment(payment, reason));
     }
 
     @Transactional
@@ -197,5 +192,55 @@ public class PaymentService {
 
     private String generateWalletPaymentTransactionId() {
         return WALLET_TRANSACTION_PREFIX + UUID.randomUUID();
+    }
+
+    private void handleOrderCanceledPayment(Payment payment, String reason) {
+        if (payment.getStatus() == PaymentStatus.PENDING ||
+                payment.getStatus() == PaymentStatus.PROCESSING) {
+            cancelPaymentFromOrderCancellation(payment, reason);
+            return;
+        }
+
+        if (payment.getStatus() == PaymentStatus.APPROVED) {
+            refundApprovedPaymentFromOrderCancellation(payment, reason);
+        }
+    }
+
+    private void cancelPaymentFromOrderCancellation(Payment payment, String reason) {
+        payment.cancel(reason);
+
+        Payment savedPayment = paymentRepository.save(payment);
+
+        paymentEventPublisher.publishPaymentCanceled(savedPayment);
+    }
+
+    private void refundApprovedPaymentFromOrderCancellation(Payment payment, String reason) {
+        boolean refundAlreadyExists = walletTransactionRepository.existsByPaymentIdAndReason(
+                payment.getId(),
+                WalletTransactionReason.REFUND
+        );
+
+        if (!refundAlreadyExists) {
+            refundWalletPayment(payment);
+        }
+
+        payment.refund();
+
+        Payment savedPayment = paymentRepository.save(payment);
+
+        paymentEventPublisher.publishPaymentRefunded(savedPayment, reason);
+    }
+
+    private void refundWalletPayment(Payment payment) {
+        if (payment.getMethod() != PaymentMethod.WALLET) {
+            throw new IllegalArgumentException("Refund is only supported for wallet payments");
+        }
+
+        walletService.refund(
+                paymentWalletProperties.companyOwnerId(),
+                payment.getCustomerId(),
+                payment.getAmount(),
+                payment.getId()
+        );
     }
 }

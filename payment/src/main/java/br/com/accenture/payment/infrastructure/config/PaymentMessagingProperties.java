@@ -10,6 +10,7 @@ public record PaymentMessagingProperties(
     public record RoutingKey(
             String approved,
             String refused,
-            String canceled
+            String canceled,
+            String refunded
     ) {}
 }

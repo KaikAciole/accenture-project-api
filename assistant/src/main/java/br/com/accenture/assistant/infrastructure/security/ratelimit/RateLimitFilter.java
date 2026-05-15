@@ -24,7 +24,7 @@ import java.util.List;
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final String USER_HEADER = "X-User-Id";
+    private static final String USER_HEADER = "X-Customer-Id";
     private static final List<String> PROTECTED_PATTERNS = List.of("/assistant/**");
 
     private final BucketRegistry registry;

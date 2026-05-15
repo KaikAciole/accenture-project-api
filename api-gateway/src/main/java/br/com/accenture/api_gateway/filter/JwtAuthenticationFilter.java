@@ -31,6 +31,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/v1/gateway/register-flow"
     );
 
+    private final List<String> publicGetRoutes = List.of(
+            "/products",
+            "/products/**"
+    );
+
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
@@ -46,6 +51,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (isPublic) {
             filterChain.doFilter(request, response);
             return;
+        }
+
+        if ("GET".equalsIgnoreCase(request.getMethod())) {
+            boolean isPublicGet = publicGetRoutes.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
+            if (isPublicGet) {
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
 
         String authHeader = request.getHeader("Authorization");

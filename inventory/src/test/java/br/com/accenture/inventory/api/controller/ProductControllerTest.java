@@ -1,6 +1,8 @@
 package br.com.accenture.inventory.api.controller;
 
 import br.com.accenture.inventory.api.dto.request.ProductRequest;
+import br.com.accenture.inventory.api.dto.request.ProductAvailabilityItemRequest;
+import br.com.accenture.inventory.api.dto.request.ProductAvailabilityRequest;
 import br.com.accenture.inventory.application.service.ProductService;
 import br.com.accenture.inventory.domain.model.Product;
 import br.com.accenture.inventory.domain.pagination.PageRequest;
@@ -72,5 +74,27 @@ class ProductControllerTest {
         assertThat(deleted.getStatusCode().value()).isEqualTo(204);
         verify(service).update(any(), any(Product.class));
         verify(service).delete(TestFixtures.PRODUCT_ID);
+    }
+
+    @Test
+    void checkAvailabilityReturnsBatchAvailabilityResponse() {
+        when(service.checkAvailability(any())).thenReturn(List.of(
+                new ProductService.ProductAvailabilityResult("SKU-001", 2, 5, true),
+                new ProductService.ProductAvailabilityResult("SKU-999", 1, 0, false)
+        ));
+
+        ProductAvailabilityRequest request = new ProductAvailabilityRequest(List.of(
+                new ProductAvailabilityItemRequest("SKU-001", 2),
+                new ProductAvailabilityItemRequest("SKU-999", 1)
+        ));
+
+        var response = controller.checkAvailability(request);
+
+        assertThat(response).hasSize(2);
+        assertThat(response.get(0).sku()).isEqualTo("SKU-001");
+        assertThat(response.get(0).available()).isTrue();
+        assertThat(response.get(1).sku()).isEqualTo("SKU-999");
+        assertThat(response.get(1).available()).isFalse();
+        verify(service).checkAvailability(any());
     }
 }

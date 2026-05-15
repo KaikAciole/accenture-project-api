@@ -1,7 +1,9 @@
 package br.com.accenture.inventory.api.controller;
 
 import br.com.accenture.inventory.api.dto.request.ProductRequest;
+import br.com.accenture.inventory.api.dto.request.ProductAvailabilityRequest;
 import br.com.accenture.inventory.api.dto.response.ProductResponse;
+import br.com.accenture.inventory.api.dto.response.ProductAvailabilityItemResponse;
 import br.com.accenture.inventory.api.mapper.PageRequestMapper;
 import br.com.accenture.inventory.api.mapper.ProductDtoMapper;
 import br.com.accenture.inventory.application.service.ProductService;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -60,6 +63,36 @@ public class ProductController {
                 .toUri();
 
         return ResponseEntity.created(location).body(ProductDtoMapper.toResponse(created));
+    }
+
+    @PostMapping("/check-availability")
+    @Operation(
+            summary = "Verificar disponibilidade de produtos em lote",
+            description = "Recebe uma lista de SKUs com quantidade solicitada e retorna a disponibilidade de cada item."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Disponibilidade calculada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados invÃ¡lidos na requisiÃ§Ã£o",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public List<ProductAvailabilityItemResponse> checkAvailability(
+            @RequestBody @Valid ProductAvailabilityRequest request) {
+
+        return productService.checkAvailability(
+                        request.items().stream()
+                                .map(item -> new ProductService.ProductAvailabilityCheckItem(
+                                        item.sku(),
+                                        item.quantity()
+                                ))
+                                .toList()
+                ).stream()
+                .map(result -> new ProductAvailabilityItemResponse(
+                        result.sku(),
+                        result.requestedQuantity(),
+                        result.availableQuantity(),
+                        result.available()
+                ))
+                .toList();
     }
 
     @GetMapping

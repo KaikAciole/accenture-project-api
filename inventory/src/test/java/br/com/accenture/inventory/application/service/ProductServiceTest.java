@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -113,5 +114,35 @@ class ProductServiceTest {
         assertThatExceptionOfType(ProductNotFoundException.class)
                 .isThrownBy(() -> service.delete(id))
                 .withMessage("Product not found with id: " + id);
+    }
+
+    @Test
+    void checkAvailabilityReturnsBatchStatusForAllSkus() {
+        Product availableProduct = TestFixtures.restoredProduct();
+        Product lowStockProduct = Product.restore(
+                UUID.randomUUID(),
+                "SKU-LOW",
+                "Mouse",
+                "Accessories",
+                BigDecimal.TEN,
+                1,
+                0L
+        );
+
+        when(repository.findBySkuIn(anyList())).thenReturn(List.of(availableProduct, lowStockProduct));
+
+        List<ProductService.ProductAvailabilityResult> result = service.checkAvailability(List.of(
+                new ProductService.ProductAvailabilityCheckItem("SKU-001", 2),
+                new ProductService.ProductAvailabilityCheckItem("SKU-LOW", 2),
+                new ProductService.ProductAvailabilityCheckItem("SKU-MISS", 1)
+        ));
+
+        assertThat(result).containsExactly(
+                new ProductService.ProductAvailabilityResult("SKU-001", 2, 10, true),
+                new ProductService.ProductAvailabilityResult("SKU-LOW", 2, 1, false),
+                new ProductService.ProductAvailabilityResult("SKU-MISS", 1, 0, false)
+        );
+
+        verify(repository).findBySkuIn(List.of("SKU-001", "SKU-LOW", "SKU-MISS"));
     }
 }

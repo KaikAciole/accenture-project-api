@@ -43,7 +43,7 @@ public class RegisterUserUseCase {
         UserCredential user = UserCredential.registerNew(
                 command.customerId(),
                 command.email(),
-                command.rawPassword(),
+                command.password(),
                 roles,
                 passwordEncoder
         );

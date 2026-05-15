@@ -6,6 +6,6 @@ import java.util.UUID;
 public record RegisterCommand(
         UUID customerId,
         String email,
-        String rawPassword,
+        String password,
         Set<String> roles
 ) {}

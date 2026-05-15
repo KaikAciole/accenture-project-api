@@ -6,6 +6,7 @@ import br.com.accenture.payment.infrastructure.config.PaymentMessagingProperties
 import br.com.accenture.payment.infrastructure.messaging.event.PaymentApprovedEvent;
 import br.com.accenture.payment.infrastructure.messaging.event.PaymentCanceledEvent;
 import br.com.accenture.payment.infrastructure.messaging.event.PaymentRefusedEvent;
+import br.com.accenture.payment.infrastructure.messaging.event.PaymentRefundedEvent;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
@@ -82,6 +83,26 @@ public class RabbitPaymentEventPublisher implements PaymentEventPublisher {
         rabbitTemplate.convertAndSend(
                 properties.exchange(),
                 properties.routingKey().canceled(),
+                event
+        );
+    }
+
+    @Override
+    public void publishPaymentRefunded(Payment payment, String reason) {
+        PaymentRefundedEvent event = new PaymentRefundedEvent(
+                UUID.randomUUID(),
+                payment.getId(),
+                payment.getOrderId(),
+                payment.getCustomerId(),
+                payment.getAmount(),
+                payment.getMethod(),
+                reason,
+                Instant.now()
+        );
+
+        rabbitTemplate.convertAndSend(
+                properties.exchange(),
+                properties.routingKey().refunded(),
                 event
         );
     }

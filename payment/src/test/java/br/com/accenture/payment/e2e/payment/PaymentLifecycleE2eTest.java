@@ -251,6 +251,7 @@ class PaymentLifecycleE2eTest {
         private final List<Payment> approvedPayments = new ArrayList<>();
         private final List<Payment> refusedPayments = new ArrayList<>();
         private final List<Payment> canceledPayments = new ArrayList<>();
+        private final List<Payment> refundedPayments = new ArrayList<>();
 
         @Override
         public void publishPaymentApproved(Payment payment) {
@@ -267,10 +268,16 @@ class PaymentLifecycleE2eTest {
             canceledPayments.add(payment);
         }
 
+        @Override
+        public void publishPaymentRefunded(Payment payment, String reason) {
+            refundedPayments.add(payment);
+        }
+
         void clear() {
             approvedPayments.clear();
             refusedPayments.clear();
             canceledPayments.clear();
+            refundedPayments.clear();
         }
     }
 }

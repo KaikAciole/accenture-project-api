@@ -39,6 +39,7 @@ payment:
       approved: payment.approved
       refused: payment.refused
       canceled: payment.canceled
+      refunded: payment.refunded
 
     order:
       exchange: order.exchange

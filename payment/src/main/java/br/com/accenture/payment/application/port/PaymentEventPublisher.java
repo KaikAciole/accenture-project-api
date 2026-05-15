@@ -9,4 +9,6 @@ public interface PaymentEventPublisher {
     void publishPaymentRefused(Payment payment);
 
     void publishPaymentCanceled(Payment payment);
+
+    void publishPaymentRefunded(Payment payment, String reason);
 }

@@ -16,7 +16,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "wallet_transactions")
+@Table(
+        name = "wallet_transactions",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_wallet_transaction_payment_reason_type",
+                        columnNames = {"payment_id", "reason", "type"}
+                )
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter

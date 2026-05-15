@@ -176,4 +176,48 @@ public class WalletService {
                 )
         );
     }
+
+    @Transactional
+    public void refund(
+            UUID companyOwnerId,
+            UUID customerId,
+            BigDecimal amount,
+            UUID paymentId
+    ) {
+        boolean refundAlreadyExists = walletTransactionRepository.existsByPaymentIdAndReason(
+                paymentId,
+                WalletTransactionReason.REFUND
+        );
+
+        if (refundAlreadyExists) {
+            return;
+        }
+
+        Wallet companyWallet = findByOwner(companyOwnerId, WalletOwnerType.COMPANY);
+        Wallet customerWallet = findByOwner(customerId, WalletOwnerType.CUSTOMER);
+
+        companyWallet.debit(amount);
+        customerWallet.credit(amount);
+
+        Wallet savedCompanyWallet = walletRepository.save(companyWallet);
+        Wallet savedCustomerWallet = walletRepository.save(customerWallet);
+
+        walletTransactionRepository.save(
+                WalletTransaction.debit(
+                        savedCompanyWallet.getId(),
+                        paymentId,
+                        amount,
+                        WalletTransactionReason.REFUND
+                )
+        );
+
+        walletTransactionRepository.save(
+                WalletTransaction.credit(
+                        savedCustomerWallet.getId(),
+                        paymentId,
+                        amount,
+                        WalletTransactionReason.REFUND
+                )
+        );
+    }
 }

@@ -2,6 +2,7 @@ package br.com.accenture.payment.infrastructure.persistence.wallet;
 
 import br.com.accenture.payment.domain.pagination.PageRequest;
 import br.com.accenture.payment.domain.pagination.PageResult;
+import br.com.accenture.payment.domain.wallet.enums.WalletTransactionReason;
 import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
 import br.com.accenture.payment.domain.wallet.repository.WalletTransactionRepository;
 import br.com.accenture.payment.infrastructure.persistence.mapper.PageableMapper;
@@ -50,5 +51,10 @@ public class WalletTransactionRepositoryAdapter implements WalletTransactionRepo
                 page.getTotalElements(),
                 page.getTotalPages()
         );
+    }
+
+    @Override
+    public boolean existsByPaymentIdAndReason(UUID paymentId, WalletTransactionReason reason) {
+        return walletTransactionJpaRepository.existsByPaymentIdAndReason(paymentId, reason);
     }
 }

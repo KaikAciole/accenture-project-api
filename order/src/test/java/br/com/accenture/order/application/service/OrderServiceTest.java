@@ -4,9 +4,13 @@ import br.com.accenture.order.application.dto.OrderItemCommand;
 import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.application.publisher.OrderEventPublisher;
 import br.com.accenture.order.domain.enums.OrderStatus;
+import br.com.accenture.order.domain.exception.InsufficientStockException;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.repository.OrderRepository;
+import br.com.accenture.order.infrastructure.feign.InventoryClient;
+import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityItemResponse;
+import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,16 +37,25 @@ class OrderServiceTest {
     @Mock
     private OrderEventPublisher eventPublisher;
 
+    @Mock
+    private InventoryClient inventoryClient;
+
     @InjectMocks
     private OrderService orderService;
 
     @Test
-    @DisplayName("Deve orquestrar a criacao de um pedido, salvar e publicar evento")
+    @DisplayName("Deve orquestrar a criacao de um pedido validando estoque em lote")
     void shouldCreateOrderAndSaveToRepositoryAndPublishEvent() {
         UUID customerId = UUID.randomUUID();
         List<OrderItemCommand> commands = List.of(
                 new OrderItemCommand("LAPTOP-XYZ", 1, new BigDecimal("5000.00"))
         );
+
+        List<ProductAvailabilityItemResponse> mockAvailability = List.of(
+                new ProductAvailabilityItemResponse("LAPTOP-XYZ", 1, 10, true)
+        );
+        when(inventoryClient.checkAvailability(any(ProductAvailabilityRequest.class), any()))
+                .thenReturn(mockAvailability);
 
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -53,6 +66,7 @@ class OrderServiceTest {
         assertThat(savedOrder.getTotalAmount()).isEqualByComparingTo(new BigDecimal("5000.00"));
         assertThat(savedOrder.getItems()).hasSize(1);
 
+        verify(inventoryClient, times(1)).checkAvailability(any(), any());
         verify(orderRepository, times(1)).save(any(Order.class));
         verify(eventPublisher, times(1)).publishOrderCreatedEvent(any(Order.class));
     }
@@ -113,7 +127,7 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Deve marcar o pedido como PAGO, salvar e publicar evento (transição de RESERVED)")
+    @DisplayName("Deve marcar o pedido como PAGO, salvar e publicar evento (transicao de RESERVED)")
     void shouldMarkOrderAsPaidAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
         Order mockOrder = Order.createNew(UUID.randomUUID());
@@ -150,7 +164,7 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Deve marcar o pedido como REFUNDED após o estorno no payment")
+    @DisplayName("Deve marcar o pedido como REFUNDED apos o estorno no payment")
     void shouldMarkOrderAsRefunded() {
         UUID orderId = UUID.randomUUID();
         Order mockOrder = Order.createNew(UUID.randomUUID());
@@ -195,5 +209,30 @@ class OrderServiceTest {
 
         verify(orderRepository, never()).save(any());
         verify(eventPublisher, never()).publishOrderPaidEvent(any());
+    }
+
+    @Test
+    @DisplayName("Deve lancar InsufficientStockException quando o estoque for menor que o solicitado na verificacao em lote")
+    void shouldThrowExceptionWhenStockIsInsufficient() {
+        UUID customerId = UUID.randomUUID();
+        List<OrderItemCommand> commands = List.of(
+                new OrderItemCommand("LAPTOP-XYZ", 2, new BigDecimal("5000.00")),
+                new OrderItemCommand("MOUSE-ABC", 1, new BigDecimal("50.00"))
+        );
+
+        List<ProductAvailabilityItemResponse> mockAvailability = List.of(
+                new ProductAvailabilityItemResponse("LAPTOP-XYZ", 2, 10, true),
+                new ProductAvailabilityItemResponse("MOUSE-ABC", 1, 0, false) // Faltou estoque aqui!
+        );
+
+        when(inventoryClient.checkAvailability(any(ProductAvailabilityRequest.class), any()))
+                .thenReturn(mockAvailability);
+
+        assertThatThrownBy(() -> orderService.createOrder(customerId, commands))
+                .isInstanceOf(InsufficientStockException.class)
+                .hasMessageContaining("Estoque insuficiente ou produto não encontrado para o SKU: MOUSE-ABC");
+
+        verify(orderRepository, never()).save(any());
+        verify(eventPublisher, never()).publishOrderCreatedEvent(any());
     }
 }

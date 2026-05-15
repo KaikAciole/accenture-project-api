@@ -39,7 +39,7 @@ class OrderServiceTest {
     @Test
     @DisplayName("Deve orquestrar a criacao de um pedido, salvar e publicar evento")
     void shouldCreateOrderAndSaveToRepositoryAndPublishEvent() {
-        String customerId = "customer-007";
+        UUID customerId = UUID.randomUUID();
         List<OrderItemCommand> commands = List.of(
                 new OrderItemCommand("LAPTOP-XYZ", 1, new BigDecimal("5000.00"))
         );
@@ -61,14 +61,15 @@ class OrderServiceTest {
     @DisplayName("Deve buscar pedido pelo ID com sucesso")
     void shouldFindOrderByIdSuccessfully() {
         UUID orderId = UUID.randomUUID();
-        Order mockOrder = Order.createNew("customer-007");
+        UUID customerId = UUID.randomUUID();
+        Order mockOrder = Order.createNew(customerId);
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
 
         Order foundOrder = orderService.findById(orderId);
 
         assertThat(foundOrder).isNotNull();
-        assertThat(foundOrder.getCustomerId()).isEqualTo("customer-007");
+        assertThat(foundOrder.getCustomerId()).isEqualTo(customerId);
 
         verify(orderRepository, times(1)).findById(orderId);
     }
@@ -88,7 +89,7 @@ class OrderServiceTest {
     @Test
     @DisplayName("Deve retornar o resultado paginado ao buscar historico do cliente")
     void shouldReturnPaginatedResultForCustomerHistory() {
-        String customerId = "customer-007";
+        UUID customerId = UUID.randomUUID();
         Order dummyOrder = Order.createNew(customerId);
 
         PaginatedResult<Order> expectedPage = new PaginatedResult<>(
@@ -111,7 +112,8 @@ class OrderServiceTest {
     @DisplayName("Deve marcar o pedido como pago, salvar e publicar evento")
     void shouldMarkOrderAsPaidAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
-        Order mockOrder = Order.createNew("customer-007");
+        UUID customerId = UUID.randomUUID();
+        Order mockOrder = Order.createNew(customerId);
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -129,8 +131,9 @@ class OrderServiceTest {
     @DisplayName("Deve cancelar o pedido, salvar e publicar evento com motivo")
     void shouldCancelOrderAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
         String cancelReason = "Cliente solicitou cancelamento";
-        Order mockOrder = Order.createNew("customer-007");
+        Order mockOrder = Order.createNew(customerId);
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));

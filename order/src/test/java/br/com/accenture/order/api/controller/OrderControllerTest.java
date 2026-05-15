@@ -39,13 +39,14 @@ class OrderControllerTest {
     @Test
     @DisplayName("Deve retornar 201 ao criar pedido com dados validos")
     void shouldReturn201WhenCreatingOrderWithValidData() throws Exception {
+        UUID customerId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         var itemRequest = new OrderItemRequest("SKU-123", 2, new BigDecimal("50.00"));
-        var request = new OrderCreateRequest("customer-1", List.of(itemRequest));
+        var request = new OrderCreateRequest(customerId, List.of(itemRequest));
 
-        Order mockOrder = Order.restore(UUID.randomUUID(), "customer-1", OrderStatus.PENDING,
+        Order mockOrder = Order.restore(UUID.randomUUID(), customerId, OrderStatus.PENDING,
                 new BigDecimal("100.00"), List.of(), null, null);
 
-        when(orderService.createOrder(eq("customer-1"), anyList())).thenReturn(mockOrder);
+        when(orderService.createOrder(eq(customerId), anyList())).thenReturn(mockOrder);
 
         mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -53,13 +54,14 @@ class OrderControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.orderId").exists())
-                .andExpect(jsonPath("$.customerId").value("customer-1"));
+                .andExpect(jsonPath("$.customerId").value(customerId.toString()));
     }
 
     @Test
     @DisplayName("Deve retornar 400 ao tentar criar pedido com lista de itens vazia")
     void shouldReturn400WhenItemsListIsEmpty() throws Exception {
-        var request = new OrderCreateRequest("customer-1", List.of());
+        UUID customerId = UUID.randomUUID();
+        var request = new OrderCreateRequest(customerId, List.of());
 
         mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -68,10 +70,10 @@ class OrderControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 400 ao tentar criar pedido com customerId em branco")
-    void shouldReturn400WhenCustomerIdIsBlank() throws Exception {
+    @DisplayName("Deve retornar 400 ao tentar criar pedido com customerId nulo")
+    void shouldReturn400WhenCustomerIdIsNull() throws Exception {
         var itemRequest = new OrderItemRequest("SKU-123", 1, BigDecimal.TEN);
-        var request = new OrderCreateRequest("", List.of(itemRequest));
+        var request = new OrderCreateRequest(null, List.of(itemRequest));
 
         mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -82,7 +84,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("Deve retornar 200 e resultado paginado ao buscar por cliente")
     void shouldReturn200AndPaginatedResult() throws Exception {
-        String customerId = "customer-1";
+        UUID customerId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         Order mockOrder = Order.createNew(customerId);
         PaginatedResult<Order> paginatedResult = new PaginatedResult<>(List.of(mockOrder), 0, 10, 1, 1);
 

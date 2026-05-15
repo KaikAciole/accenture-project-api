@@ -2,6 +2,8 @@ package br.com.accenture.payment.application.service.wallet;
 
 import br.com.accenture.payment.domain.wallet.model.Wallet;
 import br.com.accenture.payment.domain.wallet.model.WalletTopUp;
+import br.com.accenture.payment.domain.wallet.enums.WalletTopUpStatus;
+import br.com.accenture.payment.domain.wallet.enums.WalletTransactionReason;
 import br.com.accenture.payment.domain.wallet.repository.WalletTopUpRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,4 +55,30 @@ public class WalletTopUpTransactionService {
 
         return walletTopUpRepository.save(topUp);
     }
+
+    @Transactional
+    public void approveTopUpAndCreditWallet(UUID topUpId, BigDecimal paidAmount) {
+        WalletTopUp topUp = walletTopUpRepository.findById(topUpId)
+                .orElseThrow(() -> new IllegalArgumentException("Wallet top-up not found: " + topUpId));
+
+        if (topUp.getStatus() == WalletTopUpStatus.APPROVED) {
+            return;
+        }
+
+        if (paidAmount == null || paidAmount.compareTo(topUp.getAmount()) < 0) {
+            throw new IllegalArgumentException("Paid amount is lower than top-up amount");
+        }
+
+        walletService.credit(
+                topUp.getWalletId(),
+                topUp.getAmount(),
+                WalletTransactionReason.TOP_UP,
+                null
+        );
+
+        topUp.approve();
+
+        walletTopUpRepository.save(topUp);
+    }
+
 }

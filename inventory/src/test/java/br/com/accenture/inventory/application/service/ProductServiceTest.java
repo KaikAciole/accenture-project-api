@@ -114,4 +114,34 @@ class ProductServiceTest {
                 .isThrownBy(() -> service.delete(id))
                 .withMessage("Product not found with id: " + id);
     }
+
+    @Test
+    void checkAvailabilityReturnsBatchStatusForAllSkus() {
+        Product availableProduct = TestFixtures.restoredProduct();
+        Product lowStockProduct = Product.restore(
+                UUID.randomUUID(),
+                "SKU-LOW",
+                "Mouse",
+                "Accessories",
+                BigDecimal.TEN,
+                1,
+                0L
+        );
+
+        when(repository.findBySku("SKU-001")).thenReturn(Optional.of(availableProduct));
+        when(repository.findBySku("SKU-LOW")).thenReturn(Optional.of(lowStockProduct));
+        when(repository.findBySku("SKU-MISS")).thenReturn(Optional.empty());
+
+        List<ProductService.ProductAvailabilityResult> result = service.checkAvailability(List.of(
+                new ProductService.ProductAvailabilityCheckItem("SKU-001", 2),
+                new ProductService.ProductAvailabilityCheckItem("SKU-LOW", 2),
+                new ProductService.ProductAvailabilityCheckItem("SKU-MISS", 1)
+        ));
+
+        assertThat(result).containsExactly(
+                new ProductService.ProductAvailabilityResult("SKU-001", 2, 10, true),
+                new ProductService.ProductAvailabilityResult("SKU-LOW", 2, 1, false),
+                new ProductService.ProductAvailabilityResult("SKU-MISS", 1, 0, false)
+        );
+    }
 }

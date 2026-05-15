@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class ProductService {
@@ -48,6 +49,29 @@ public class ProductService {
                 .orElseThrow(() -> new ProductNotFoundException(sku));
     }
 
+    @Transactional(readOnly = true)
+    public List<ProductAvailabilityResult> checkAvailability(List<ProductAvailabilityCheckItem> items) {
+        return items.stream()
+                .map(item -> productRepository.findBySku(item.sku())
+                        .map(product -> {
+                            int availableQuantity = product.getStockQuantity();
+                            boolean available = availableQuantity >= item.quantity();
+                            return new ProductAvailabilityResult(
+                                    item.sku(),
+                                    item.quantity(),
+                                    availableQuantity,
+                                    available
+                            );
+                        })
+                        .orElseGet(() -> new ProductAvailabilityResult(
+                                item.sku(),
+                                item.quantity(),
+                                0,
+                                false
+                        )))
+                .toList();
+    }
+
     @Transactional
     public Product update(UUID id, Product updated) {
         Product existing = productRepository.findById(id)
@@ -76,5 +100,16 @@ public class ProductService {
         if (productRepository.existsBySku(product.getSku())) {
             throw new DuplicateProductException("sku", product.getSku());
         }
+    }
+
+    public record ProductAvailabilityCheckItem(String sku, Integer quantity) {
+    }
+
+    public record ProductAvailabilityResult(
+            String sku,
+            Integer requestedQuantity,
+            Integer availableQuantity,
+            boolean available
+    ) {
     }
 }

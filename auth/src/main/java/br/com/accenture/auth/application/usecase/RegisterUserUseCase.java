@@ -1,20 +1,17 @@
 package br.com.accenture.auth.application.usecase;
 
 import br.com.accenture.auth.application.command.RegisterCommand;
-import br.com.accenture.auth.application.event.UserRegisteredEvent;
 import br.com.accenture.auth.application.exception.UserAlreadyExistsException;
+import br.com.accenture.auth.application.publisher.AuthEventPublisher;
 import br.com.accenture.auth.domain.enums.Role;
 import br.com.accenture.auth.domain.model.UserCredential;
 import br.com.accenture.auth.domain.repository.UserCredentialRepository;
 import br.com.accenture.auth.domain.service.PasswordEncoder;
 import br.com.accenture.auth.domain.vo.Email;
-import br.com.accenture.auth.infrastructure.persistence.entity.OutboxEventJpaEntity;
-import br.com.accenture.auth.infrastructure.persistence.repository.OutboxEventRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,8 +21,7 @@ public class RegisterUserUseCase {
 
     private final UserCredentialRepository repository;
     private final PasswordEncoder passwordEncoder;
-    private final OutboxEventRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final AuthEventPublisher eventPublisher;
 
     @Transactional
     public void execute(RegisterCommand command) {
@@ -43,30 +39,14 @@ public class RegisterUserUseCase {
         UserCredential user = UserCredential.registerNew(
                 command.customerId(),
                 command.email(),
-                command.rawPassword(),
+                command.password(),
                 roles,
                 passwordEncoder
         );
 
         repository.save(user);
 
-        try {
-            UserRegisteredEvent event = new UserRegisteredEvent(
-                    user.getCustomerId(),
-                    user.getEmail().value()
-            );
-
-            String jsonPayload = objectMapper.writeValueAsString(event);
-
-            OutboxEventJpaEntity outboxEvent = new OutboxEventJpaEntity(
-                    "user.registered",
-                    jsonPayload
-            );
-
-            outboxRepository.save(outboxEvent);
-
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Erro ao serializar o evento user.registered", e);
-        }
+        // A mágica do Outbox acontece aqui dentro, de forma invisível para o Use Case
+        eventPublisher.publishUserRegisteredEvent(user);
     }
 }

@@ -45,10 +45,10 @@ public class CustomerJpaEntity {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(unique = true, length = 11)
+    @Column(nullable = false, unique = true, length = 11)
     private String cpf;
 
-    @Column(unique = true, length = 11)
+    @Column(nullable = false, unique = true, length = 11)
     private String phone;
 
     @CreatedDate

@@ -4,34 +4,17 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 
-@Component
 public class InternalTrafficFilter extends OncePerRequestFilter {
 
-    @Value("${api.security.internal.secret:senha-secreta-microsservicos-1234}")
-    private String internalSecret;
+    private final String internalSecret;
 
-    private final List<String> excludedPaths = List.of(
-            "/cep/lookup/**",
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/error"
-    );
-
-    private final AntPathMatcher pathMatcher = new AntPathMatcher();
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String path = request.getRequestURI();
-        return excludedPaths.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
+    public InternalTrafficFilter(String internalSecret) {
+        this.internalSecret = internalSecret;
     }
 
     @Override

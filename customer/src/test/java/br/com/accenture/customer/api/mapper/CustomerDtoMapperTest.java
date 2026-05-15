@@ -14,16 +14,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CustomerDtoMapperTest {
 
     @Test
-    void toDomain_shouldMapMinimalCustomerFromInternalRequest() {
-        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest("maria@example.com");
+    void toDomain_shouldMapAllFieldsFromInternalRequest() {
+        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest(
+                "Maria", "maria@example.com", "12345678901", "11999998888"
+        );
 
         Customer customer = CustomerDtoMapper.toDomain(request);
 
         assertThat(customer.getId()).isNull();
+        assertThat(customer.getName()).isEqualTo("Maria");
         assertThat(customer.getEmail()).isEqualTo("maria@example.com");
-        assertThat(customer.getName()).isNull();
-        assertThat(customer.getCpf()).isNull();
-        assertThat(customer.getPhone()).isNull();
+        assertThat(customer.getCpf()).isEqualTo("12345678901");
+        assertThat(customer.getPhone()).isEqualTo("11999998888");
     }
 
     @Test
@@ -83,18 +85,6 @@ class CustomerDtoMapperTest {
     @Test
     void toResponse_shouldReturnNullForNullCustomer() {
         assertThat(CustomerDtoMapper.toResponse(null)).isNull();
-    }
-
-    @Test
-    void toResponse_shouldMapMinimalCustomerWithNullFields() {
-        Customer customer = Customer.createMinimal("maria@example.com");
-
-        CustomerResponse response = CustomerDtoMapper.toResponse(customer);
-
-        assertThat(response.email()).isEqualTo("maria@example.com");
-        assertThat(response.name()).isNull();
-        assertThat(response.cpf()).isNull();
-        assertThat(response.phone()).isNull();
     }
 
 }

@@ -32,7 +32,7 @@ class CustomerRepositoryAdapterTest {
 
     @BeforeEach
     void setUp() {
-        baseCustomer = Customer.createMinimal("maria@example.com");
+        baseCustomer = aCustomer(1);
     }
 
     @Test
@@ -43,7 +43,7 @@ class CustomerRepositoryAdapterTest {
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getCreatedAt()).isNotNull();
         assertThat(saved.getUpdatedAt()).isNotNull();
-        assertThat(saved.getEmail()).isEqualTo("maria@example.com");
+        assertThat(saved.getEmail()).isEqualTo(baseCustomer.getEmail());
     }
 
     @Test
@@ -52,7 +52,9 @@ class CustomerRepositoryAdapterTest {
         em.flush();
         em.clear();
 
-        Customer duplicateEmail = Customer.createMinimal("maria@example.com");
+        Customer duplicateEmail = Customer.create(
+                "Other", baseCustomer.getEmail(), "20000000000", "21900000000"
+        );
 
         assertThatThrownBy(() -> {
             adapter.save(duplicateEmail);
@@ -61,51 +63,35 @@ class CustomerRepositoryAdapterTest {
     }
 
     @Test
-    void save_shouldRejectDuplicateCpfWhenBothDefined() {
-        Customer first = Customer.createMinimal("maria@example.com");
-        first.updateProfile(null, "12345678901", null);
-        adapter.save(first);
+    void save_shouldRejectDuplicateCpf() {
+        adapter.save(baseCustomer);
         em.flush();
         em.clear();
 
-        Customer second = Customer.createMinimal("joana@example.com");
-        second.updateProfile(null, "12345678901", null);
+        Customer duplicateCpf = Customer.create(
+                "Other", "other@example.com", baseCustomer.getCpf(), "21900000001"
+        );
 
         assertThatThrownBy(() -> {
-            adapter.save(second);
+            adapter.save(duplicateCpf);
             em.flush();
         }).isInstanceOf(ConstraintViolationException.class);
     }
 
     @Test
-    void save_shouldRejectDuplicatePhoneWhenBothDefined() {
-        Customer first = Customer.createMinimal("maria@example.com");
-        first.updateProfile(null, null, "11999998888");
-        adapter.save(first);
+    void save_shouldRejectDuplicatePhone() {
+        adapter.save(baseCustomer);
         em.flush();
         em.clear();
 
-        Customer second = Customer.createMinimal("joana@example.com");
-        second.updateProfile(null, null, "11999998888");
+        Customer duplicatePhone = Customer.create(
+                "Other", "other@example.com", "20000000002", baseCustomer.getPhone()
+        );
 
         assertThatThrownBy(() -> {
-            adapter.save(second);
+            adapter.save(duplicatePhone);
             em.flush();
         }).isInstanceOf(ConstraintViolationException.class);
-    }
-
-    @Test
-    void save_shouldAllowMultipleCustomersWithNullCpfAndPhone() {
-        adapter.save(Customer.createMinimal("a@example.com"));
-        em.flush();
-        adapter.save(Customer.createMinimal("b@example.com"));
-        em.flush();
-        adapter.save(Customer.createMinimal("c@example.com"));
-        em.flush();
-
-        assertThat(adapter.existsByEmail("a@example.com")).isTrue();
-        assertThat(adapter.existsByEmail("b@example.com")).isTrue();
-        assertThat(adapter.existsByEmail("c@example.com")).isTrue();
     }
 
     @Test
@@ -123,17 +109,15 @@ class CustomerRepositoryAdapterTest {
         Optional<Customer> result = adapter.findById(saved.getId());
 
         assertThat(result).isPresent();
-        assertThat(result.get().getEmail()).isEqualTo("maria@example.com");
+        assertThat(result.get().getEmail()).isEqualTo(baseCustomer.getEmail());
     }
 
     @Test
     void existsByCpf_shouldReflectPresence() {
-        Customer customer = Customer.createMinimal("maria@example.com");
-        customer.updateProfile(null, "12345678901", null);
-        adapter.save(customer);
+        adapter.save(baseCustomer);
         em.flush();
 
-        assertThat(adapter.existsByCpf("12345678901")).isTrue();
+        assertThat(adapter.existsByCpf(baseCustomer.getCpf())).isTrue();
         assertThat(adapter.existsByCpf("00000000000")).isFalse();
     }
 
@@ -142,18 +126,16 @@ class CustomerRepositoryAdapterTest {
         adapter.save(baseCustomer);
         em.flush();
 
-        assertThat(adapter.existsByEmail("maria@example.com")).isTrue();
+        assertThat(adapter.existsByEmail(baseCustomer.getEmail())).isTrue();
         assertThat(adapter.existsByEmail("nope@example.com")).isFalse();
     }
 
     @Test
     void existsByPhone_shouldReflectPresence() {
-        Customer customer = Customer.createMinimal("maria@example.com");
-        customer.updateProfile(null, null, "11999998888");
-        adapter.save(customer);
+        adapter.save(baseCustomer);
         em.flush();
 
-        assertThat(adapter.existsByPhone("11999998888")).isTrue();
+        assertThat(adapter.existsByPhone(baseCustomer.getPhone())).isTrue();
         assertThat(adapter.existsByPhone("00000000000")).isFalse();
     }
 
@@ -167,7 +149,7 @@ class CustomerRepositoryAdapterTest {
         em.flush();
 
         assertThat(adapter.findById(saved.getId())).isEmpty();
-        assertThat(adapter.existsByEmail("maria@example.com")).isFalse();
+        assertThat(adapter.existsByEmail(baseCustomer.getEmail())).isFalse();
     }
 
     @Test
@@ -179,7 +161,7 @@ class CustomerRepositoryAdapterTest {
         em.flush();
         em.clear();
 
-        Customer reinserted = adapter.save(Customer.createMinimal("maria@example.com"));
+        Customer reinserted = adapter.save(aCustomer(1));
         em.flush();
 
         assertThat(reinserted.getId()).isNotNull();
@@ -188,9 +170,9 @@ class CustomerRepositoryAdapterTest {
 
     @Test
     void findAll_shouldReturnAllCustomersPaginated() {
-        adapter.save(Customer.createMinimal("a@example.com"));
-        adapter.save(Customer.createMinimal("b@example.com"));
-        adapter.save(Customer.createMinimal("c@example.com"));
+        adapter.save(aCustomer(10));
+        adapter.save(aCustomer(11));
+        adapter.save(aCustomer(12));
         em.flush();
 
         PageResult<Customer> page = adapter.findAll(PageRequest.of(0, 10));
@@ -198,14 +180,18 @@ class CustomerRepositoryAdapterTest {
         assertThat(page.totalElements()).isEqualTo(3);
         assertThat(page.totalPages()).isEqualTo(1);
         assertThat(page.content()).extracting(Customer::getEmail)
-                .containsExactlyInAnyOrder("a@example.com", "b@example.com", "c@example.com");
+                .containsExactlyInAnyOrder(
+                        "customer10@example.com",
+                        "customer11@example.com",
+                        "customer12@example.com"
+                );
     }
 
     @Test
     void findAll_shouldRespectPaginationSize() {
-        adapter.save(Customer.createMinimal("a@example.com"));
-        adapter.save(Customer.createMinimal("b@example.com"));
-        adapter.save(Customer.createMinimal("c@example.com"));
+        adapter.save(aCustomer(20));
+        adapter.save(aCustomer(21));
+        adapter.save(aCustomer(22));
         em.flush();
 
         PageResult<Customer> firstPage = adapter.findAll(PageRequest.of(0, 2));
@@ -223,6 +209,15 @@ class CustomerRepositoryAdapterTest {
 
         assertThat(page.totalElements()).isZero();
         assertThat(page.content()).isEmpty();
+    }
+
+    private Customer aCustomer(int seed) {
+        return Customer.create(
+                "Customer " + seed,
+                "customer" + seed + "@example.com",
+                String.format("%011d", 10000000000L + seed),
+                String.format("%011d", 11000000000L + seed)
+        );
     }
 
 }

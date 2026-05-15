@@ -7,6 +7,8 @@ public interface WalletTopUpGateway {
 
     WalletTopUpGatewayResponse createOrder(WalletTopUpGatewayRequest request);
 
+    WalletTopUpOrderResponse getOrderById(String externalOrderId);
+
     record WalletTopUpGatewayRequest(
             UUID topUpId,
             UUID walletId,
@@ -21,6 +23,16 @@ public interface WalletTopUpGateway {
             String clientToken,
             String status,
             BigDecimal amount
+    ) {
+    }
+
+    record WalletTopUpOrderResponse(
+            String externalOrderId,
+            String externalReference,
+            String status,
+            String statusDetail,
+            BigDecimal totalAmount,
+            BigDecimal totalPaidAmount
     ) {
     }
 }

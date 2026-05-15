@@ -9,5 +9,6 @@ import java.util.UUID;
 public interface UserCredentialRepository {
     void save(UserCredential userCredential);
     Optional<UserCredential> findByEmail(Email email);
+    Optional<UserCredential> findByCustomerId(UUID customerId);
     boolean existsByEmail(Email email);
 }

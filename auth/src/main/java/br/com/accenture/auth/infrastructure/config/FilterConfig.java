@@ -18,7 +18,7 @@ public class FilterConfig {
         FilterRegistrationBean<Filter> registrationBean = new FilterRegistrationBean<>();
 
         registrationBean.setFilter(new InternalTrafficFilter(internalSecret));
-        registrationBean.addUrlPatterns("/api/v1/auth/register");
+        registrationBean.addUrlPatterns("/api/v1/auth/register", "/internal/auth/credentials/email");
 
         return registrationBean;
     }

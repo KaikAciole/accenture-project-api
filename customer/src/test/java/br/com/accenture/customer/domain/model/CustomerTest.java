@@ -86,11 +86,20 @@ class CustomerTest {
     void updateProfile_shouldUpdateMutableFieldsWhenProvided() {
         Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
-        customer.updateProfile("Maria Updated", null, "11900000000");
+        customer.updateProfile("Maria Updated", null, null, "11900000000");
 
         assertThat(customer.getName()).isEqualTo("Maria Updated");
         assertThat(customer.getPhone()).isEqualTo("11900000000");
         assertThat(customer.getCpf()).isEqualTo("12345678901");
+    }
+
+    @Test
+    void updateProfile_shouldUpdateEmailWhenProvided() {
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
+
+        customer.updateProfile(null, "maria.updated@example.com", null, null);
+
+        assertThat(customer.getEmail()).isEqualTo("maria.updated@example.com");
     }
 
     @Test
@@ -100,9 +109,10 @@ class CustomerTest {
                 Instant.now(), Instant.now()
         );
 
-        customer.updateProfile("Maria Updated", null, null);
+        customer.updateProfile("Maria Updated", null, null, null);
 
         assertThat(customer.getName()).isEqualTo("Maria Updated");
+        assertThat(customer.getEmail()).isEqualTo("maria@example.com");
         assertThat(customer.getCpf()).isEqualTo("12345678901");
         assertThat(customer.getPhone()).isEqualTo("11999998888");
     }
@@ -111,16 +121,25 @@ class CustomerTest {
     @ValueSource(strings = {"", " ", "\t"})
     void updateProfile_shouldRejectBlankName(String value) {
         Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
-        assertThatThrownBy(() -> customer.updateProfile(value, null, null))
+        assertThatThrownBy(() -> customer.updateProfile(value, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("name");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "\t"})
+    void updateProfile_shouldRejectBlankEmail(String value) {
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
+        assertThatThrownBy(() -> customer.updateProfile(null, value, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("email");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "\t"})
     void updateProfile_shouldRejectBlankCpf(String value) {
         Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
-        assertThatThrownBy(() -> customer.updateProfile(null, value, null))
+        assertThatThrownBy(() -> customer.updateProfile(null, null, value, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cpf");
     }
@@ -129,7 +148,7 @@ class CustomerTest {
     @ValueSource(strings = {"", " ", "\t"})
     void updateProfile_shouldRejectBlankPhone(String value) {
         Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
-        assertThatThrownBy(() -> customer.updateProfile(null, null, value))
+        assertThatThrownBy(() -> customer.updateProfile(null, null, null, value))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("phone");
     }
@@ -138,7 +157,7 @@ class CustomerTest {
     void updateProfile_shouldRejectCpfChange() {
         Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
-        assertThatThrownBy(() -> customer.updateProfile(null, "99999999999", null))
+        assertThatThrownBy(() -> customer.updateProfile(null, null, "99999999999", null))
                 .isInstanceOf(ImmutableFieldException.class)
                 .hasMessageContaining("cpf");
     }
@@ -147,7 +166,7 @@ class CustomerTest {
     void updateProfile_shouldAllowSameCpfValue() {
         Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
-        customer.updateProfile(null, "12345678901", null);
+        customer.updateProfile(null, null, "12345678901", null);
 
         assertThat(customer.getCpf()).isEqualTo("12345678901");
     }

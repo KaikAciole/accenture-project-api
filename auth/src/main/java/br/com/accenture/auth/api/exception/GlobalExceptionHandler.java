@@ -1,5 +1,6 @@
 package br.com.accenture.auth.api.exception;
 
+import br.com.accenture.auth.application.exception.CredentialNotFoundException;
 import br.com.accenture.auth.application.exception.InvalidCredentialsException;
 import br.com.accenture.auth.application.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
@@ -51,6 +52,15 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problemDetail.setTitle("Unauthorized");
         problemDetail.setType(URI.create("https://api.accenture.com/errors/invalid-credentials"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(CredentialNotFoundException.class)
+    public ProblemDetail handleCredentialNotFoundException(CredentialNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problemDetail.setTitle("Credential Not Found");
+        problemDetail.setType(URI.create("https://api.accenture.com/errors/credential-not-found"));
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }

@@ -24,7 +24,7 @@ public final class CustomerDtoMapper {
         return Customer.restore(
                 null,
                 request.name(),
-                null,
+                request.email(),
                 request.cpf(),
                 request.phone(),
                 null,

@@ -98,7 +98,7 @@ class CustomerLifecycleE2eTest {
     void shouldUpdateProfileViaPatch() throws Exception {
         String customerId = createCustomer("Carlos", "carlos.e2e@example.com", "10000000006", "11900000006");
 
-        UpdateProfileRequest update = new UpdateProfileRequest("Carlos Updated", null, "11900000099");
+        UpdateProfileRequest update = new UpdateProfileRequest("Carlos Updated", null, null, "11900000099");
         mockMvc.perform(patch("/customers/{id}", customerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(update)))
@@ -114,7 +114,7 @@ class CustomerLifecycleE2eTest {
     void shouldApplyPatchPartiallyIgnoringNullFields() throws Exception {
         String customerId = createCustomer("Original Name", "partial.e2e@example.com", "10000000007", "11900000007");
 
-        UpdateProfileRequest onlyName = new UpdateProfileRequest("Just Name", null, null);
+        UpdateProfileRequest onlyName = new UpdateProfileRequest("Just Name", null, null, null);
         mockMvc.perform(patch("/customers/{id}", customerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(onlyName)))
@@ -130,7 +130,7 @@ class CustomerLifecycleE2eTest {
 
         mockMvc.perform(patch("/customers/{id}", customerId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest(null, "99999999999", null))))
+                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest(null, null, "99999999999", null))))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title").value("Immutable field"))
                 .andExpect(jsonPath("$.detail").value("Field 'cpf' cannot be changed after creation"));
@@ -141,7 +141,7 @@ class CustomerLifecycleE2eTest {
         String randomId = "550e8400-e29b-41d4-a716-446655449999";
         mockMvc.perform(patch("/customers/{id}", randomId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("X", null, null))))
+                        .content(objectMapper.writeValueAsString(new UpdateProfileRequest("X", null, null, null))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Customer not found"));
     }

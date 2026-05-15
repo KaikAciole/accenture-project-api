@@ -227,7 +227,7 @@ class CustomerControllerTest {
     void updateProfile_shouldReturnUpdatedCustomer() throws Exception {
         when(customerService.update(eq(existingId), any())).thenReturn(existing);
 
-        UpdateProfileRequest request = new UpdateProfileRequest("Maria", "12345678901", "11999998888");
+        UpdateProfileRequest request = new UpdateProfileRequest("Maria", null, "12345678901", "11999998888");
 
         mockMvc.perform(patch("/customers/{id}", existingId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -239,7 +239,7 @@ class CustomerControllerTest {
 
     @Test
     void updateProfile_shouldReturn400OnInvalidPayload() throws Exception {
-        UpdateProfileRequest invalid = new UpdateProfileRequest(null, "123", "abc");
+        UpdateProfileRequest invalid = new UpdateProfileRequest(null, null, "123", "abc");
 
         mockMvc.perform(patch("/customers/{id}", existingId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -254,7 +254,7 @@ class CustomerControllerTest {
         when(customerService.update(eq(existingId), any()))
                 .thenThrow(new CustomerNotFoundException(existingId));
 
-        UpdateProfileRequest request = new UpdateProfileRequest("Maria", null, null);
+        UpdateProfileRequest request = new UpdateProfileRequest("Maria", null, null, null);
 
         mockMvc.perform(patch("/customers/{id}", existingId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -267,7 +267,7 @@ class CustomerControllerTest {
         when(customerService.update(eq(existingId), any()))
                 .thenThrow(new ImmutableFieldException("cpf"));
 
-        UpdateProfileRequest request = new UpdateProfileRequest(null, "99999999999", null);
+        UpdateProfileRequest request = new UpdateProfileRequest(null, null, "99999999999", null);
 
         mockMvc.perform(patch("/customers/{id}", existingId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -281,7 +281,7 @@ class CustomerControllerTest {
         when(customerService.update(eq(existingId), any()))
                 .thenThrow(new DuplicateCustomerException("cpf", "12345678901"));
 
-        UpdateProfileRequest request = new UpdateProfileRequest(null, "12345678901", null);
+        UpdateProfileRequest request = new UpdateProfileRequest(null, null, "12345678901", null);
 
         mockMvc.perform(patch("/customers/{id}", existingId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -295,7 +295,7 @@ class CustomerControllerTest {
         when(customerService.update(eq(existingId), any()))
                 .thenThrow(new DuplicateCustomerException("phone", "11900000000"));
 
-        UpdateProfileRequest request = new UpdateProfileRequest(null, null, "11900000000");
+        UpdateProfileRequest request = new UpdateProfileRequest(null, null, null, "11900000000");
 
         mockMvc.perform(patch("/customers/{id}", existingId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -327,7 +327,7 @@ class CustomerControllerTest {
     void shouldReturn500WithProblemDetailOnUnexpectedException() throws Exception {
         when(customerService.update(eq(existingId), any())).thenThrow(new RuntimeException("boom"));
 
-        UpdateProfileRequest request = new UpdateProfileRequest("Maria", null, null);
+        UpdateProfileRequest request = new UpdateProfileRequest("Maria", null, null, null);
 
         mockMvc.perform(patch("/customers/{id}", existingId)
                         .contentType(MediaType.APPLICATION_JSON)

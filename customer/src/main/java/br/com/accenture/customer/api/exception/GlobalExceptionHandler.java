@@ -1,10 +1,12 @@
 package br.com.accenture.customer.api.exception;
 
 import br.com.accenture.customer.domain.exception.AddressNotFoundException;
+import br.com.accenture.customer.domain.exception.AuthSyncException;
 import br.com.accenture.customer.domain.exception.CepLookupException;
 import br.com.accenture.customer.domain.exception.CepNotFoundException;
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
+import br.com.accenture.customer.domain.exception.DuplicateEmailInAuthException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -61,6 +63,23 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleDuplicateCustomer(DuplicateCustomerException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setTitle("Duplicate customer");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(DuplicateEmailInAuthException.class)
+    public ProblemDetail handleDuplicateEmailInAuth(DuplicateEmailInAuthException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Duplicate email");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(AuthSyncException.class)
+    public ProblemDetail handleAuthSync(AuthSyncException ex) {
+        log.error("Auth sync failed", ex);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
+        problem.setTitle("Auth sync error");
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }

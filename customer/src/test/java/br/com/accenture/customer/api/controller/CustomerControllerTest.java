@@ -65,13 +65,11 @@ class CustomerControllerTest {
 
     @Test
     void createInternal_shouldReturn201WithLocationHeader() throws Exception {
-        Customer minimal = Customer.restore(
-                existingId, null, "maria@example.com", null, null,
-                Instant.parse("2024-01-01T10:00:00Z"), Instant.parse("2024-01-01T10:00:00Z")
-        );
-        when(customerService.create(any())).thenReturn(minimal);
+        when(customerService.create(any())).thenReturn(existing);
 
-        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest("maria@example.com");
+        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest(
+                "Maria", "maria@example.com", "12345678901", "11999998888"
+        );
 
         mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,14 +77,17 @@ class CustomerControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/customers/" + existingId)))
                 .andExpect(jsonPath("$.id").value(existingId.toString()))
+                .andExpect(jsonPath("$.name").value("Maria"))
                 .andExpect(jsonPath("$.email").value("maria@example.com"))
-                .andExpect(jsonPath("$.name").doesNotExist())
-                .andExpect(jsonPath("$.cpf").doesNotExist());
+                .andExpect(jsonPath("$.cpf").value("12345678901"))
+                .andExpect(jsonPath("$.phone").value("11999998888"));
     }
 
     @Test
     void createInternal_shouldReturn400OnInvalidEmail() throws Exception {
-        CreateCustomerInternalRequest invalid = new CreateCustomerInternalRequest("not-an-email");
+        CreateCustomerInternalRequest invalid = new CreateCustomerInternalRequest(
+                "Maria", "not-an-email", "12345678901", "11999998888"
+        );
 
         mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -97,14 +98,30 @@ class CustomerControllerTest {
     }
 
     @Test
-    void createInternal_shouldReturn400OnBlankEmail() throws Exception {
-        CreateCustomerInternalRequest invalid = new CreateCustomerInternalRequest("");
+    void createInternal_shouldReturn400OnBlankRequiredFields() throws Exception {
+        CreateCustomerInternalRequest invalid = new CreateCustomerInternalRequest("", "", "", "");
 
         mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalid)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.email").exists());
+                .andExpect(jsonPath("$.errors.name").exists())
+                .andExpect(jsonPath("$.errors.email").exists())
+                .andExpect(jsonPath("$.errors.cpf").exists())
+                .andExpect(jsonPath("$.errors.phone").exists());
+    }
+
+    @Test
+    void createInternal_shouldReturn400OnInvalidCpfPattern() throws Exception {
+        CreateCustomerInternalRequest invalid = new CreateCustomerInternalRequest(
+                "Maria", "maria@example.com", "abc", "11999998888"
+        );
+
+        mockMvc.perform(post("/internal/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.cpf").exists());
     }
 
     @Test
@@ -112,13 +129,47 @@ class CustomerControllerTest {
         when(customerService.create(any()))
                 .thenThrow(new DuplicateCustomerException("email", "maria@example.com"));
 
-        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest("maria@example.com");
+        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest(
+                "Maria", "maria@example.com", "12345678901", "11999998888"
+        );
 
         mockMvc.perform(post("/internal/customers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Duplicate customer"));
+    }
+
+    @Test
+    void createInternal_shouldReturn409WhenCpfAlreadyExists() throws Exception {
+        when(customerService.create(any()))
+                .thenThrow(new DuplicateCustomerException("cpf", "12345678901"));
+
+        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest(
+                "Maria", "maria@example.com", "12345678901", "11999998888"
+        );
+
+        mockMvc.perform(post("/internal/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Customer already exists with cpf: 12345678901"));
+    }
+
+    @Test
+    void createInternal_shouldReturn409WhenPhoneAlreadyExists() throws Exception {
+        when(customerService.create(any()))
+                .thenThrow(new DuplicateCustomerException("phone", "11999998888"));
+
+        CreateCustomerInternalRequest request = new CreateCustomerInternalRequest(
+                "Maria", "maria@example.com", "12345678901", "11999998888"
+        );
+
+        mockMvc.perform(post("/internal/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Customer already exists with phone: 11999998888"));
     }
 
     @Test

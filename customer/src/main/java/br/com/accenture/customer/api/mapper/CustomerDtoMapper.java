@@ -14,7 +14,7 @@ public final class CustomerDtoMapper {
         if (request == null) {
             return null;
         }
-        return Customer.createMinimal(request.email());
+        return Customer.create(request.name(), request.email(), request.cpf(), request.phone());
     }
 
     public static Customer toDomainForUpdate(UpdateProfileRequest request) {

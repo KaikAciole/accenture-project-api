@@ -36,6 +36,12 @@ public class CustomerService {
         if (customerRepository.existsByEmail(customer.getEmail())) {
             throw new DuplicateCustomerException("email", customer.getEmail());
         }
+        if (customerRepository.existsByCpf(customer.getCpf())) {
+            throw new DuplicateCustomerException("cpf", customer.getCpf());
+        }
+        if (customerRepository.existsByPhone(customer.getPhone())) {
+            throw new DuplicateCustomerException("phone", customer.getPhone());
+        }
         return customerRepository.save(customer);
     }
 

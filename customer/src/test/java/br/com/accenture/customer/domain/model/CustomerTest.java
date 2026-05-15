@@ -15,25 +15,52 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CustomerTest {
 
     @Test
-    void createMinimal_shouldBuildCustomerWithOnlyEmail() {
-        Customer customer = Customer.createMinimal("maria@example.com");
+    void create_shouldBuildCustomerWithAllFields() {
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
         assertThat(customer.getId()).isNull();
         assertThat(customer.getCreatedAt()).isNull();
         assertThat(customer.getUpdatedAt()).isNull();
+        assertThat(customer.getName()).isEqualTo("Maria");
         assertThat(customer.getEmail()).isEqualTo("maria@example.com");
-        assertThat(customer.getName()).isNull();
-        assertThat(customer.getCpf()).isNull();
-        assertThat(customer.getPhone()).isNull();
+        assertThat(customer.getCpf()).isEqualTo("12345678901");
+        assertThat(customer.getPhone()).isEqualTo("11999998888");
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {" ", "\t"})
-    void createMinimal_shouldRejectBlankEmail(String value) {
-        assertThatThrownBy(() -> Customer.createMinimal(value))
+    void create_shouldRejectBlankName(String value) {
+        assertThatThrownBy(() -> Customer.create(value, "maria@example.com", "12345678901", "11999998888"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("name");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    void create_shouldRejectBlankEmail(String value) {
+        assertThatThrownBy(() -> Customer.create("Maria", value, "12345678901", "11999998888"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("email");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    void create_shouldRejectBlankCpf(String value) {
+        assertThatThrownBy(() -> Customer.create("Maria", "maria@example.com", value, "11999998888"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cpf");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    void create_shouldRejectBlankPhone(String value) {
+        assertThatThrownBy(() -> Customer.create("Maria", "maria@example.com", "12345678901", value))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("phone");
     }
 
     @Test
@@ -56,25 +83,14 @@ class CustomerTest {
     }
 
     @Test
-    void restore_shouldAllowNullableProfileFields() {
-        Customer customer = Customer.restore(
-                UUID.randomUUID(), null, "maria@example.com", null, null, Instant.now(), Instant.now()
-        );
+    void updateProfile_shouldUpdateMutableFieldsWhenProvided() {
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
-        assertThat(customer.getName()).isNull();
-        assertThat(customer.getCpf()).isNull();
-        assertThat(customer.getPhone()).isNull();
-    }
+        customer.updateProfile("Maria Updated", null, "11900000000");
 
-    @Test
-    void updateProfile_shouldUpdateAllFieldsWhenAllProvided() {
-        Customer customer = Customer.createMinimal("maria@example.com");
-
-        customer.updateProfile("Maria", "12345678901", "11999998888");
-
-        assertThat(customer.getName()).isEqualTo("Maria");
+        assertThat(customer.getName()).isEqualTo("Maria Updated");
+        assertThat(customer.getPhone()).isEqualTo("11900000000");
         assertThat(customer.getCpf()).isEqualTo("12345678901");
-        assertThat(customer.getPhone()).isEqualTo("11999998888");
     }
 
     @Test
@@ -94,7 +110,7 @@ class CustomerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "\t"})
     void updateProfile_shouldRejectBlankName(String value) {
-        Customer customer = Customer.createMinimal("maria@example.com");
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
         assertThatThrownBy(() -> customer.updateProfile(value, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("name");
@@ -103,7 +119,7 @@ class CustomerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "\t"})
     void updateProfile_shouldRejectBlankCpf(String value) {
-        Customer customer = Customer.createMinimal("maria@example.com");
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
         assertThatThrownBy(() -> customer.updateProfile(null, value, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cpf");
@@ -112,27 +128,15 @@ class CustomerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "\t"})
     void updateProfile_shouldRejectBlankPhone(String value) {
-        Customer customer = Customer.createMinimal("maria@example.com");
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
         assertThatThrownBy(() -> customer.updateProfile(null, null, value))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("phone");
     }
 
     @Test
-    void updateProfile_shouldAllowFirstCpfDefinition() {
-        Customer customer = Customer.createMinimal("maria@example.com");
-
-        customer.updateProfile(null, "12345678901", null);
-
-        assertThat(customer.getCpf()).isEqualTo("12345678901");
-    }
-
-    @Test
-    void updateProfile_shouldRejectCpfChangeAfterDefinition() {
-        Customer customer = Customer.restore(
-                UUID.randomUUID(), "Maria", "maria@example.com", "12345678901", "11999998888",
-                Instant.now(), Instant.now()
-        );
+    void updateProfile_shouldRejectCpfChange() {
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
         assertThatThrownBy(() -> customer.updateProfile(null, "99999999999", null))
                 .isInstanceOf(ImmutableFieldException.class)
@@ -141,10 +145,7 @@ class CustomerTest {
 
     @Test
     void updateProfile_shouldAllowSameCpfValue() {
-        Customer customer = Customer.restore(
-                UUID.randomUUID(), "Maria", "maria@example.com", "12345678901", "11999998888",
-                Instant.now(), Instant.now()
-        );
+        Customer customer = Customer.create("Maria", "maria@example.com", "12345678901", "11999998888");
 
         customer.updateProfile(null, "12345678901", null);
 

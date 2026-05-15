@@ -45,15 +45,15 @@ public class CustomerController {
     @PostMapping("/internal/customers")
     @Operation(
             summary = "Cria um cliente a partir do serviço de auth (rota interna)",
-            description = "Endpoint interno chamado pelo auth durante o registro. Cria um perfil mínimo " +
-                    "apenas com email; os demais dados são preenchidos pelo cliente via PATCH."
+            description = "Endpoint interno chamado pelo auth durante o registro. Recebe os dados " +
+                    "completos do cliente (name, email, cpf, phone) coletados no formulário de registro."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Cliente criado com sucesso",
                     content = @Content(schema = @Schema(implementation = CustomerResponse.class))),
             @ApiResponse(responseCode = "400", description = "Falha de validação no payload",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "409", description = "Já existe cliente com o mesmo email",
+            @ApiResponse(responseCode = "409", description = "Já existe cliente com o mesmo email, cpf ou phone",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "500", description = "Erro interno inesperado",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))

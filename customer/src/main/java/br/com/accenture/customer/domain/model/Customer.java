@@ -33,9 +33,12 @@ public class Customer {
         this.updatedAt = updatedAt;
     }
 
-    public static Customer createMinimal(String email) {
+    public static Customer create(String name, String email, String cpf, String phone) {
+        requireNotBlank(name, "name");
         requireNotBlank(email, "email");
-        return new Customer(null, null, email, null, null, null, null);
+        requireNotBlank(cpf, "cpf");
+        requireNotBlank(phone, "phone");
+        return new Customer(null, name, email, cpf, phone, null, null);
     }
 
     public static Customer restore(UUID id,

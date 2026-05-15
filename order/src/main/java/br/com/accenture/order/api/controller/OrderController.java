@@ -4,6 +4,7 @@ import br.com.accenture.order.api.dto.request.OrderCreateRequest;
 import br.com.accenture.order.api.dto.request.OrderItemRequest;
 import br.com.accenture.order.api.dto.response.OrderResponse;
 import br.com.accenture.order.application.dto.OrderItemCommand;
+import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.application.service.OrderService;
 import br.com.accenture.order.domain.model.Order;
 import jakarta.validation.Valid;
@@ -26,13 +27,15 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@RequestBody @Valid OrderCreateRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(
+            @RequestHeader("X-Customer-Id") UUID customerId,
+            @RequestBody @Valid OrderCreateRequest request) {
 
         List<OrderItemCommand> commands = request.items().stream()
                 .map(OrderItemRequest::toCommand)
                 .toList();
 
-        Order savedOrder = orderService.createOrder(request.customerId(), commands);
+        Order savedOrder = orderService.createOrder(customerId, commands);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
@@ -46,5 +49,34 @@ public class OrderController {
     public ResponseEntity<OrderResponse> getOrderById(@PathVariable UUID id) {
         Order order = orderService.findById(id);
         return ResponseEntity.ok(new OrderResponse(order));
+    }
+
+    @GetMapping("/my-orders")
+    public ResponseEntity<PaginatedResult<OrderResponse>> getMyOrders(
+            @RequestHeader("X-Customer-Id") UUID customerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        PaginatedResult<Order> paginatedOrders = orderService.findByCustomerId(customerId, page, size);
+
+        List<OrderResponse> responses = paginatedOrders.data().stream()
+                .map(OrderResponse::new)
+                .toList();
+
+        PaginatedResult<OrderResponse> responsePage = new PaginatedResult<>(
+                responses,
+                paginatedOrders.page(),
+                paginatedOrders.size(),
+                paginatedOrders.totalElements(),
+                paginatedOrders.totalPages()
+        );
+
+        return ResponseEntity.ok(responsePage);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable UUID id) {
+        Order canceledOrder = orderService.cancelOrder(id, "Cancelamento solicitado pelo cliente via API");
+        return ResponseEntity.ok(new OrderResponse(canceledOrder));
     }
 }

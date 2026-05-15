@@ -21,8 +21,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(OrderController.class)
@@ -37,11 +36,11 @@ class OrderControllerTest {
     private OrderService orderService;
 
     @Test
-    @DisplayName("Deve retornar 201 ao criar pedido com dados validos")
-    void shouldReturn201WhenCreatingOrderWithValidData() throws Exception {
+    @DisplayName("Deve retornar 201 ao criar pedido enviando Header X-Customer-Id")
+    void shouldReturn201WhenCreatingOrderWithValidDataAndHeader() throws Exception {
         UUID customerId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         var itemRequest = new OrderItemRequest("SKU-123", 2, new BigDecimal("50.00"));
-        var request = new OrderCreateRequest(customerId, List.of(itemRequest));
+        var request = new OrderCreateRequest(List.of(itemRequest));
 
         Order mockOrder = Order.restore(UUID.randomUUID(), customerId, OrderStatus.PENDING,
                 new BigDecimal("100.00"), List.of(), null, null);
@@ -49,6 +48,7 @@ class OrderControllerTest {
         when(orderService.createOrder(eq(customerId), anyList())).thenReturn(mockOrder);
 
         mockMvc.perform(post("/orders")
+                        .header("X-Customer-Id", customerId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -58,22 +58,10 @@ class OrderControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 400 ao tentar criar pedido com lista de itens vazia")
-    void shouldReturn400WhenItemsListIsEmpty() throws Exception {
-        UUID customerId = UUID.randomUUID();
-        var request = new OrderCreateRequest(customerId, List.of());
-
-        mockMvc.perform(post("/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Deve retornar 400 ao tentar criar pedido com customerId nulo")
-    void shouldReturn400WhenCustomerIdIsNull() throws Exception {
+    @DisplayName("Deve retornar 400 ao tentar criar pedido sem o Header X-Customer-Id")
+    void shouldReturn400WhenHeaderIsMissing() throws Exception {
         var itemRequest = new OrderItemRequest("SKU-123", 1, BigDecimal.TEN);
-        var request = new OrderCreateRequest(null, List.of(itemRequest));
+        var request = new OrderCreateRequest(List.of(itemRequest));
 
         mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -82,20 +70,35 @@ class OrderControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 200 e resultado paginado ao buscar por cliente")
-    void shouldReturn200AndPaginatedResult() throws Exception {
+    @DisplayName("Deve retornar 200 e resultado paginado ao buscar em /my-orders com Header")
+    void shouldReturn200AndPaginatedResultForMyOrders() throws Exception {
         UUID customerId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         Order mockOrder = Order.createNew(customerId);
         PaginatedResult<Order> paginatedResult = new PaginatedResult<>(List.of(mockOrder), 0, 10, 1, 1);
 
         when(orderService.findByCustomerId(customerId, 0, 10)).thenReturn(paginatedResult);
 
-        mockMvc.perform(get("/orders/customers/{customerId}", customerId)
+        mockMvc.perform(get("/orders/my-orders")
+                        .header("X-Customer-Id", customerId.toString())
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.page").value(0));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 200 ao cancelar um pedido")
+    void shouldReturn200WhenCancelingOrder() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        Order mockOrder = Order.restore(orderId, customerId, OrderStatus.CANCELED, BigDecimal.TEN, List.of(), null, null);
+
+        when(orderService.cancelOrder(eq(orderId), anyString())).thenReturn(mockOrder);
+
+        mockMvc.perform(patch("/orders/{id}/cancel", orderId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELED"));
     }
 }

@@ -107,6 +107,28 @@ public class CustomerController {
         );
     }
 
+    @GetMapping("/customers/{id}")
+    @Operation(
+            summary = "Busca um cliente pelo id",
+            description = "Retorna os dados de um cliente a partir do seu identificador. " +
+                    "Endpoint público (autenticado via JWT no gateway)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cliente encontrado",
+                    content = @Content(schema = @Schema(implementation = CustomerResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Cliente não encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Erro interno inesperado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public CustomerResponse findById(
+            @Parameter(description = "Identificador único do cliente",
+                    example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id) {
+        Customer customer = customerService.findById(id);
+        return CustomerDtoMapper.toResponse(customer);
+    }
+
     @PatchMapping("/customers/{id}")
     @Operation(
             summary = "Atualiza parcialmente o perfil de um cliente",

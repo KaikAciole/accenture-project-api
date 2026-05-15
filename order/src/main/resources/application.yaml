@@ -7,3 +7,11 @@ spring:
 
   rabbitmq:
     addresses: ${RABBITMQ_URL:amqps://seu-usuario:sua-senha@seu-host.rmq.cloudamqp.com/seu-vhost}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000ms
+          multiplier: 2.0
+          max-retries: 5
+

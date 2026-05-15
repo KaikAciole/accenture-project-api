@@ -19,6 +19,6 @@ public class StockEventListener {
 
     @RabbitListener(queues = "order.stock.failed.queue")
     public void handleStockFailed(StockEvents.Failed event) {
-        orderService.failOrderDueToStock(event.orderId(), "Stock reservation failed: " + event.reason());
+        orderService.cancelOrder(event.orderId(), "Stock reservation failed: " + event.reason());
     }
 }

@@ -12,7 +12,15 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "stock_reservations")
+@Table(
+        name = "stock_reservations",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_stock_reservation_order_product",
+                        columnNames = {"order_id", "product_id"}
+                )
+        }
+)
 public class StockReservationJpaEntity {
 
     @Id

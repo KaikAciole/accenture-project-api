@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,8 @@ class StockReservationServiceTest {
         Product product = TestFixtures.restoredProduct();
         StockReservation saved = TestFixtures.activeReservation();
         when(productRepository.findById(TestFixtures.PRODUCT_ID)).thenReturn(Optional.of(product));
+        when(reservationRepository.findByOrderIdAndProductId(TestFixtures.ORDER_ID, TestFixtures.PRODUCT_ID))
+                .thenReturn(Optional.empty());
         when(reservationRepository.save(any(StockReservation.class))).thenReturn(saved);
 
         StockReservation result = service.create(TestFixtures.ORDER_ID, TestFixtures.PRODUCT_ID, 3);
@@ -57,6 +60,8 @@ class StockReservationServiceTest {
         Product product = TestFixtures.restoredProduct();
         StockReservation saved = TestFixtures.activeReservation();
         when(productRepository.findBySku("SKU-001")).thenReturn(Optional.of(product));
+        when(reservationRepository.findByOrderIdAndProductId(TestFixtures.ORDER_ID, TestFixtures.PRODUCT_ID))
+                .thenReturn(Optional.empty());
         when(reservationRepository.save(any(StockReservation.class))).thenReturn(saved);
 
         StockReservation result = service.createBySku(TestFixtures.ORDER_ID, "SKU-001", 3);
@@ -66,6 +71,23 @@ class StockReservationServiceTest {
         verify(productRepository).save(product);
         verify(reservationRepository).save(any(StockReservation.class));
         verify(stockEventPublisher).publishStockReserved(saved);
+    }
+
+    @Test
+    void createBySkuReturnsExistingReservationWithoutReservingStockAgain() {
+        Product product = TestFixtures.restoredProduct();
+        StockReservation existing = TestFixtures.activeReservation();
+        when(productRepository.findBySku("SKU-001")).thenReturn(Optional.of(product));
+        when(reservationRepository.findByOrderIdAndProductId(TestFixtures.ORDER_ID, TestFixtures.PRODUCT_ID))
+                .thenReturn(Optional.of(existing));
+
+        StockReservation result = service.createBySku(TestFixtures.ORDER_ID, "SKU-001", 3);
+
+        assertThat(result).isSameAs(existing);
+        assertThat(product.getStockQuantity()).isEqualTo(10);
+        verify(reservationRepository, never()).save(any(StockReservation.class));
+        verify(productRepository, never()).save(product);
+        verifyNoInteractions(stockEventPublisher);
     }
 
     @Test
@@ -170,16 +192,15 @@ class StockReservationServiceTest {
     }
 
     @Test
-    void confirmAndCancelByOrderIdThrowWhenNoActiveReservationExists() {
+    void confirmAndCancelByOrderIdIgnoreWhenNoActiveReservationExists() {
         when(reservationRepository.findAllByOrderIdAndStatus(TestFixtures.ORDER_ID, ReservationStatus.ACTIVE))
                 .thenReturn(List.of());
 
-        assertThatExceptionOfType(StockReservationNotFoundException.class)
-                .isThrownBy(() -> service.confirmByOrderId(TestFixtures.ORDER_ID))
-                .withMessage("Stock reservation not found with id: " + TestFixtures.ORDER_ID);
-        assertThatExceptionOfType(StockReservationNotFoundException.class)
-                .isThrownBy(() -> service.cancelByOrderId(TestFixtures.ORDER_ID))
-                .withMessage("Stock reservation not found with id: " + TestFixtures.ORDER_ID);
+        service.confirmByOrderId(TestFixtures.ORDER_ID);
+        service.cancelByOrderId(TestFixtures.ORDER_ID);
+
+        verify(reservationRepository, never()).save(any(StockReservation.class));
+        verifyNoInteractions(productRepository);
         verifyNoInteractions(stockEventPublisher);
     }
 

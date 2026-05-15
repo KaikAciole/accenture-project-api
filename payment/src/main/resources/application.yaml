@@ -54,6 +54,12 @@ payment:
       routing-key:
         created: user.registered
 
+mercado-pago:
+  access-token: ${MERCADO_PAGO_ACCESS_TOKEN}
+  public-key: ${MERCADO_PAGO_PUBLIC_KEY}
+  notification-url: ${MERCADO_PAGO_NOTIFICATION_URL:http://localhost:8086/webhooks/mercado-pago}
+
+
 springdoc:
   api-docs:
     path: /v3/api-docs

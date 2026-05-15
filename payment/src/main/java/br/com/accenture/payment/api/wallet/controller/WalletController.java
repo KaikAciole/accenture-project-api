@@ -4,14 +4,19 @@ import br.com.accenture.payment.api.mapper.PageRequestMapper;
 import br.com.accenture.payment.api.wallet.dto.request.WalletCreateRequest;
 import br.com.accenture.payment.api.wallet.dto.request.WalletCreditRequest;
 import br.com.accenture.payment.api.wallet.dto.request.WalletDebitRequest;
+import br.com.accenture.payment.api.wallet.dto.request.WalletTopUpRequest;
 import br.com.accenture.payment.api.wallet.dto.request.WalletTransferRequest;
 import br.com.accenture.payment.api.wallet.dto.response.WalletResponse;
+import br.com.accenture.payment.api.wallet.dto.response.WalletTopUpResponse;
 import br.com.accenture.payment.api.wallet.dto.response.WalletTransactionResponse;
 import br.com.accenture.payment.api.wallet.mapper.WalletDtoMapper;
+import br.com.accenture.payment.api.wallet.mapper.WalletTopUpDtoMapper;
 import br.com.accenture.payment.application.service.wallet.WalletService;
+import br.com.accenture.payment.application.service.wallet.WalletTopUpService;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
 import br.com.accenture.payment.domain.wallet.model.Wallet;
+import br.com.accenture.payment.domain.wallet.model.WalletTopUp;
 import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,9 +38,14 @@ import java.util.UUID;
 public class WalletController {
 
     private final WalletService walletService;
+    private final WalletTopUpService walletTopUpService;
 
-    public WalletController(WalletService walletService) {
+    public WalletController(
+            WalletService walletService,
+            WalletTopUpService walletTopUpService
+    ) {
         this.walletService = walletService;
+        this.walletTopUpService = walletTopUpService;
     }
 
     @PostMapping
@@ -116,6 +126,34 @@ public class WalletController {
         );
 
         return WalletDtoMapper.toTransactionPageResponse(transactions);
+    }
+
+    @PostMapping("/{walletId}/top-ups")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Iniciar recarga da Wallet",
+            description = "Cria uma Order de recarga no Mercado Pago e retorna os dados necessários para o frontend continuar o pagamento"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Recarga iniciada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Wallet não encontrada", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor", content = @Content)
+    })
+    public WalletTopUpResponse startTopUp(
+            @Parameter(description = "ID da Wallet")
+            @PathVariable UUID walletId,
+
+            @RequestBody @Valid WalletTopUpRequest request
+    ) {
+        WalletTopUp topUp = walletTopUpService.startTopUp(
+                walletId,
+                request.customerId(),
+                request.amount(),
+                request.customerEmail()
+        );
+
+        return WalletTopUpDtoMapper.toResponse(topUp);
     }
 
     @PatchMapping("/{walletId}/credit")

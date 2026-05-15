@@ -35,7 +35,7 @@ public class OrderController {
                 .map(OrderItemRequest::toCommand)
                 .toList();
 
-        Order savedOrder = orderService.createOrder(customerId, commands);
+        Order savedOrder = orderService.createOrder(customerId, request.addressId(), commands);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")

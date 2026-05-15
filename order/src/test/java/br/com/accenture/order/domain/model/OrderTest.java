@@ -5,39 +5,49 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OrderTest {
 
+    private static DeliveryAddress sampleAddress() {
+        return new DeliveryAddress(
+                "Rua das Flores", "123", "Apto 1", "Centro", "São Paulo", "SP", "01001000"
+        );
+    }
+
     @Test
     @DisplayName("Deve inicializar um pedido corretamente para um cliente")
     void shouldInitializeOrderCorrectly() {
-        Order order = Order.createNew("customer-99");
+        UUID customerId = UUID.randomUUID();
+        Order order = Order.createNew(customerId, sampleAddress());
 
-        assertThat(order.getCustomerId()).isEqualTo("customer-99");
+        assertThat(order.getCustomerId()).isEqualTo(customerId);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getTotalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(order.getItems()).isEmpty();
+        assertThat(order.getDeliveryAddress()).isNotNull();
+        assertThat(order.getDeliveryAddress().street()).isEqualTo("Rua das Flores");
         assertThat(order.getCreatedAt()).isNotNull();
         assertThat(order.getUpdatedAt()).isNotNull();
     }
 
     @Test
-    @DisplayName("Deve lancar excecao ao criar pedido sem customerId")
-    void shouldThrowExceptionWhenCustomerIdIsInvalid() {
-        assertThatThrownBy(() -> Order.createNew(""))
+    @DisplayName("Deve lancar excecao ao criar pedido sem customerId ou sem endereço")
+    void shouldThrowExceptionWhenCustomerIdOrAddressIsInvalid() {
+        assertThatThrownBy(() -> Order.createNew(null, sampleAddress()))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        assertThatThrownBy(() -> Order.createNew(null))
+        assertThatThrownBy(() -> Order.createNew(UUID.randomUUID(), null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("Deve adicionar itens e recalcular o valor total do pedido")
     void shouldAddItemsAndRecalculateTotalAmount() {
-        Order order = Order.createNew("customer-99");
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
         OrderItem item1 = OrderItem.createNew("SKU-A", 2, new BigDecimal("100.00"));
         OrderItem item2 = OrderItem.createNew("SKU-B", 1, new BigDecimal("50.00"));
 
@@ -51,7 +61,7 @@ class OrderTest {
     @Test
     @DisplayName("Deve lancar excecao ao tentar adicionar item nulo")
     void shouldThrowExceptionWhenAddingNullItem() {
-        Order order = Order.createNew("customer-99");
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         assertThatThrownBy(() -> order.addItem(null))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -60,7 +70,7 @@ class OrderTest {
     @Test
     @DisplayName("Deve remover item e recalcular o valor total do pedido")
     void shouldRemoveItemAndRecalculateTotalAmount() {
-        Order order = Order.createNew("customer-99");
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
         OrderItem item1 = OrderItem.createNew("SKU-A", 2, new BigDecimal("100.00"));
         OrderItem item2 = OrderItem.createNew("SKU-B", 1, new BigDecimal("50.00"));
 
@@ -75,27 +85,27 @@ class OrderTest {
     @Test
     @DisplayName("Deve lancar excecao ao tentar remover item nulo")
     void shouldThrowExceptionWhenRemovingNullItem() {
-        Order order = Order.createNew("customer-99");
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         assertThatThrownBy(() -> order.removeItem(null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    @DisplayName("Deve marcar o pedido como pago se estiver pendente")
-    void shouldMarkAsPaidWhenStatusIsPending() {
-        Order order = Order.createNew("customer-99");
+    @DisplayName("Deve marcar o pedido como pago apos transicao de RESERVED")
+    void shouldMarkAsPaidWhenStatusIsReserved() {
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
 
+        order.markAsReserved();
         order.markAsPaid();
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
 
     @Test
-    @DisplayName("Deve bloquear a marcacao como pago se o pedido ja estiver cancelado")
+    @DisplayName("Deve bloquear marcacao como pago quando estado nao e RESERVED")
     void shouldThrowExceptionWhenMarkingAsPaidFromInvalidState() {
-        Order order = Order.createNew("customer-99");
-        order.cancel();
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         assertThatThrownBy(order::markAsPaid)
                 .isInstanceOf(IllegalStateException.class)
@@ -105,7 +115,7 @@ class OrderTest {
     @Test
     @DisplayName("Deve cancelar o pedido com sucesso se nao estiver pago")
     void shouldCancelOrderSuccessfully() {
-        Order order = Order.createNew("customer-99");
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         order.cancel();
 
@@ -115,11 +125,12 @@ class OrderTest {
     @Test
     @DisplayName("Deve bloquear o cancelamento se o pedido ja estiver pago")
     void shouldThrowExceptionWhenCancelingAlreadyPaidOrder() {
-        Order order = Order.createNew("customer-99");
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
+        order.markAsReserved();
         order.markAsPaid();
 
         assertThatThrownBy(order::cancel)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Cannot cancel an already paid order");
+                .hasMessageContaining("Cannot cancel an already paid");
     }
 }

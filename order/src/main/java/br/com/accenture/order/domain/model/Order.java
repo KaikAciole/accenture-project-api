@@ -13,7 +13,7 @@ import java.util.UUID;
 public class Order {
 
     private UUID id;
-    private String customerId;
+    private UUID customerId;
     private OrderStatus status;
     private BigDecimal totalAmount;
     private List<OrderItem> items;
@@ -21,7 +21,7 @@ public class Order {
     private Instant updatedAt;
 
     private Order(UUID id,
-                  String customerId,
+                  UUID customerId,
                   OrderStatus status,
                   BigDecimal totalAmount,
                   List<OrderItem> items,
@@ -36,14 +36,14 @@ public class Order {
         this.updatedAt = updatedAt;
     }
 
-    public static Order createNew(String customerId) {
-        requireNotBlank(customerId, "customerId");
+    public static Order createNew(UUID customerId) {
+        requireNotNull(customerId, "customerId");
         Instant now = Instant.now();
         return new Order(null, customerId, OrderStatus.PENDING, BigDecimal.ZERO, new ArrayList<>(), now, now);
     }
 
     public static Order restore(UUID id,
-                                String customerId,
+                                UUID customerId,
                                 OrderStatus status,
                                 BigDecimal totalAmount,
                                 List<OrderItem> items,
@@ -86,12 +86,6 @@ public class Order {
         this.totalAmount = this.items.stream()
                 .map(OrderItem::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private static void requireNotBlank(String value, String field) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(field + " must not be blank");
-        }
     }
 
     private static void requireNotNull(Object value, String field) {

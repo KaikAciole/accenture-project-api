@@ -4,5 +4,5 @@ import java.util.UUID;
 
 public record OrderPaidEvent(
         UUID orderId,
-        String customerId
+        UUID customerId
 ) {}

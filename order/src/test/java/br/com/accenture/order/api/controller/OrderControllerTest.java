@@ -51,7 +51,7 @@ class OrderControllerTest {
         var request = new OrderCreateRequest(addressId, List.of(itemRequest));
 
         Order mockOrder = Order.restore(UUID.randomUUID(), customerId, OrderStatus.PENDING,
-                new BigDecimal("100.00"), List.of(), sampleAddress(), null, null);
+                new BigDecimal("100.00"), List.of(), sampleAddress(), null, null, null);
 
         when(orderService.createOrder(eq(customerId), eq(addressId), anyList())).thenReturn(mockOrder);
 
@@ -116,7 +116,7 @@ class OrderControllerTest {
     void shouldReturn200WhenCancelingOrder() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID customerId = UUID.randomUUID();
-        Order mockOrder = Order.restore(orderId, customerId, OrderStatus.CANCELED, BigDecimal.TEN, List.of(), sampleAddress(), null, null);
+        Order mockOrder = Order.restore(orderId, customerId, OrderStatus.CANCELED, BigDecimal.TEN, List.of(), sampleAddress(), null, null, null);
 
         when(orderService.cancelOrder(eq(orderId), anyString())).thenReturn(mockOrder);
 

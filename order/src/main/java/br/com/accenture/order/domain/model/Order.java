@@ -20,6 +20,7 @@ public class Order {
     private DeliveryAddress deliveryAddress;
     private Instant createdAt;
     private Instant updatedAt;
+    private Long version;
 
     private Order(UUID id,
                   UUID customerId,
@@ -28,7 +29,8 @@ public class Order {
                   List<OrderItem> items,
                   DeliveryAddress deliveryAddress,
                   Instant createdAt,
-                  Instant updatedAt) {
+                  Instant updatedAt,
+                  Long version) {
         this.id = id;
         this.customerId = customerId;
         this.status = status;
@@ -37,13 +39,14 @@ public class Order {
         this.deliveryAddress = deliveryAddress;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.version = version;
     }
 
     public static Order createNew(UUID customerId, DeliveryAddress deliveryAddress) {
         requireNotNull(customerId, "customerId");
         requireNotNull(deliveryAddress, "deliveryAddress");
         Instant now = Instant.now();
-        return new Order(null, customerId, OrderStatus.PENDING, BigDecimal.ZERO, new ArrayList<>(), deliveryAddress, now, now);
+        return new Order(null, customerId, OrderStatus.PENDING, BigDecimal.ZERO, new ArrayList<>(), deliveryAddress, now, now, null);
     }
 
     public static Order restore(UUID id,
@@ -53,8 +56,9 @@ public class Order {
                                 List<OrderItem> items,
                                 DeliveryAddress deliveryAddress,
                                 Instant createdAt,
-                                Instant updatedAt) {
-        return new Order(id, customerId, status, totalAmount, items, deliveryAddress, createdAt, updatedAt);
+                                Instant updatedAt,
+                                Long version) {
+        return new Order(id, customerId, status, totalAmount, items, deliveryAddress, createdAt, updatedAt, version);
     }
 
     public void addItem(OrderItem item) {

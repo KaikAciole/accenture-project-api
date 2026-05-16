@@ -4,4 +4,5 @@ import br.com.accenture.auth.domain.model.UserCredential;
 
 public interface AuthEventPublisher {
     void publishUserRegisteredEvent(UserCredential user);
+    void publishPasswordResetRequestedEvent(String email, String plainToken);
 }

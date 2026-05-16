@@ -26,3 +26,6 @@ api:
     token:
       secret: ${JWT_SECRET:my-super-secret-key-change-me-in-production}
       expiration-minutes: 60
+
+password-reset:
+  token-ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:30}

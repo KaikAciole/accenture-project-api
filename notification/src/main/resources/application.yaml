@@ -50,6 +50,9 @@ springdoc:
 customer-service:
   url: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
 
+frontend:
+  password-reset-url: ${FRONTEND_PASSWORD_RESET_URL:http://localhost:5173/reset-password}
+
 api:
   security:
     internal:

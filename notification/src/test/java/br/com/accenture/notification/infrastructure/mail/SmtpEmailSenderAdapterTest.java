@@ -149,6 +149,21 @@ class SmtpEmailSenderAdapterTest {
     }
 
     @Test
+    void sendPasswordResetEmailIncludesResetLink() throws Exception {
+        when(mailSender.createMimeMessage()).thenReturn(emptyMimeMessage());
+        String resetLink = "http://localhost:5173/reset-password?token=abc123&email=user@example.com";
+
+        adapter.sendPasswordResetEmail(RECIPIENT, resetLink);
+
+        MimeMessage sent = captureSent();
+        assertThat(sent.getSubject()).isEqualTo("Redefinicao de senha - AcceStore");
+        String raw = extractRaw(sent);
+        assertThat(raw).contains(resetLink);
+        assertThat(raw).contains("Redefinir minha senha");
+        assertThat(raw).contains("cid:accestoreLogo");
+    }
+
+    @Test
     void wrapsMailExceptionInEmailDeliveryException() {
         when(mailSender.createMimeMessage()).thenReturn(emptyMimeMessage());
         doThrow(new MailSendException("smtp down")).when(mailSender).send(any(MimeMessage.class));

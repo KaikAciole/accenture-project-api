@@ -50,6 +50,6 @@ public class RequestPasswordResetUseCase {
         PasswordResetToken token = PasswordResetToken.issue(user.getCustomerId(), tokenHash, expiresAt);
         tokenRepository.save(token);
 
-        eventPublisher.publishPasswordResetRequestedEvent(user.getEmail().value(), plainToken);
+        eventPublisher.publishPasswordResetRequestedEvent(user.getCustomerId(), user.getEmail().value(), plainToken);
     }
 }

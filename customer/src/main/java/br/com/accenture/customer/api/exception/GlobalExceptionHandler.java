@@ -11,6 +11,7 @@ import br.com.accenture.customer.domain.exception.ImmutableFieldException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -89,6 +90,18 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleImmutableField(ImmutableFieldException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
         problem.setTitle("Immutable field");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                "A operação viola uma restrição de unicidade ou integridade dos dados."
+        );
+        problem.setTitle("Data integrity conflict");
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }

@@ -34,7 +34,7 @@ class RateLimitFilterTest {
     void shouldAllowRequestsWithinUserMinuteLimit() throws Exception {
         for (int i = 0; i < 2; i++) {
             MockHttpServletRequest req = assistantRequest();
-            req.addHeader("X-User-Id", "user-1");
+            req.addHeader("X-Customer-Id", "user-1");
             MockHttpServletResponse resp = new MockHttpServletResponse();
             filter.doFilter(req, resp, chain);
             assertThat(resp.getStatus()).isEqualTo(200);
@@ -46,12 +46,12 @@ class RateLimitFilterTest {
     void shouldReturn429WhenUserMinuteLimitExceeded() throws Exception {
         for (int i = 0; i < 2; i++) {
             MockHttpServletRequest req = assistantRequest();
-            req.addHeader("X-User-Id", "user-2");
+            req.addHeader("X-Customer-Id", "user-2");
             filter.doFilter(req, new MockHttpServletResponse(), chain);
         }
 
         MockHttpServletRequest req = assistantRequest();
-        req.addHeader("X-User-Id", "user-2");
+        req.addHeader("X-Customer-Id", "user-2");
         MockHttpServletResponse resp = new MockHttpServletResponse();
         filter.doFilter(req, resp, chain);
 
@@ -92,12 +92,12 @@ class RateLimitFilterTest {
     void shouldKeepBucketsSeparatePerUser() throws Exception {
         for (int i = 0; i < 2; i++) {
             MockHttpServletRequest req = assistantRequest();
-            req.addHeader("X-User-Id", "user-A");
+            req.addHeader("X-Customer-Id", "user-A");
             filter.doFilter(req, new MockHttpServletResponse(), chain);
         }
 
         MockHttpServletRequest reqB = assistantRequest();
-        reqB.addHeader("X-User-Id", "user-B");
+        reqB.addHeader("X-Customer-Id", "user-B");
         MockHttpServletResponse respB = new MockHttpServletResponse();
         filter.doFilter(reqB, respB, chain);
 

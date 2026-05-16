@@ -335,7 +335,7 @@ public class SeedDataService {
         if (body == null) {
             throw new IllegalStateException("Login retornou body vazio para " + email);
         }
-        return (String) body.get("token");
+        return (String) body.get("accessToken");
     }
 
     private List<ProductSeed> productSeeds() {

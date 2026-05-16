@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String PAYMENT_EXCHANGE = "payment.exchange";
+    public static final String PAYMENT_EXCHANGE = "payment.events";
     public static final String ORDER_EXCHANGE = "order.exchange";
     public static final String STOCK_EXCHANGE = "stock.exchange";
 

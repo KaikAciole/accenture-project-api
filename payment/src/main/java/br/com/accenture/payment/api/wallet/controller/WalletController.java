@@ -15,6 +15,7 @@ import br.com.accenture.payment.application.service.wallet.WalletService;
 import br.com.accenture.payment.application.service.wallet.WalletTopUpService;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
+import br.com.accenture.payment.domain.wallet.exception.WalletNotFoundException;
 import br.com.accenture.payment.domain.wallet.model.Wallet;
 import br.com.accenture.payment.domain.wallet.model.WalletTopUp;
 import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
@@ -147,8 +148,13 @@ public class WalletController {
             @Parameter(description = "ID do dono da Wallet")
             @PathVariable UUID ownerId,
 
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID customerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles,
+
             @Parameter(hidden = true) Pageable pageable
     ) {
+        validateTransactionsOwnership(ownerType, ownerId, customerId, roles);
+
         Wallet wallet = walletService.findByOwner(ownerId, ownerType);
         PageResult<WalletTransaction> transactions = walletService.findTransactions(
                 wallet.getId(),
@@ -156,6 +162,19 @@ public class WalletController {
         );
 
         return WalletDtoMapper.toTransactionPageResponse(transactions);
+    }
+
+    private void validateTransactionsOwnership(WalletOwnerType ownerType, UUID ownerId, UUID customerId, String roles) {
+        if (customerId == null) {
+            return;
+        }
+        boolean isAdmin = roles != null && roles.contains("ADMIN");
+        if (isAdmin) {
+            return;
+        }
+        if (ownerType != WalletOwnerType.CUSTOMER || !customerId.equals(ownerId)) {
+            throw WalletNotFoundException.byOwner(ownerId, ownerType);
+        }
     }
 
     @PostMapping("/{walletId}/top-ups")

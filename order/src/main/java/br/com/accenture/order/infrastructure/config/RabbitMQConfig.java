@@ -11,10 +11,16 @@ public class RabbitMQConfig {
 
     public static final String PAYMENT_EXCHANGE = "payment.exchange";
     public static final String ORDER_EXCHANGE = "order.exchange";
+    public static final String STOCK_EXCHANGE = "stock.exchange";
 
     public static final String ORDER_DLX = "order.dlx";
     public static final String ORDER_DLQ = "order.dlq";
     public static final String ORDER_DLQ_ROUTING_KEY = "order.dead-letter";
+
+    public static final String STOCK_RESERVED_QUEUE = "order.stock.reserved.queue";
+    public static final String STOCK_FAILED_QUEUE = "order.stock.failed.queue";
+    public static final String STOCK_RESERVED_ROUTING_KEY = "stock.reserved";
+    public static final String STOCK_FAILED_ROUTING_KEY = "stock.reservation.failed";
 
     @Bean
     public MessageConverter jsonMessageConverter() {
@@ -96,5 +102,36 @@ public class RabbitMQConfig {
     @Bean
     public Binding bindingPaymentRefunded(Queue paymentRefundedQueue, TopicExchange paymentExchange) {
         return BindingBuilder.bind(paymentRefundedQueue).to(paymentExchange).with("payment.refunded");
+    }
+
+    @Bean
+    public TopicExchange stockExchange() {
+        return new TopicExchange(STOCK_EXCHANGE);
+    }
+
+    @Bean
+    public Queue stockReservedQueue() {
+        return QueueBuilder.durable(STOCK_RESERVED_QUEUE)
+                .withArgument("x-dead-letter-exchange", ORDER_DLX)
+                .withArgument("x-dead-letter-routing-key", ORDER_DLQ_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Queue stockFailedQueue() {
+        return QueueBuilder.durable(STOCK_FAILED_QUEUE)
+                .withArgument("x-dead-letter-exchange", ORDER_DLX)
+                .withArgument("x-dead-letter-routing-key", ORDER_DLQ_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Binding bindingStockReserved(Queue stockReservedQueue, TopicExchange stockExchange) {
+        return BindingBuilder.bind(stockReservedQueue).to(stockExchange).with(STOCK_RESERVED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding bindingStockFailed(Queue stockFailedQueue, TopicExchange stockExchange) {
+        return BindingBuilder.bind(stockFailedQueue).to(stockExchange).with(STOCK_FAILED_ROUTING_KEY);
     }
 }

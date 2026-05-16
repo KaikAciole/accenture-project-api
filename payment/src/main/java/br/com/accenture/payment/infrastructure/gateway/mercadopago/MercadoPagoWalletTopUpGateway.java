@@ -1,12 +1,16 @@
 package br.com.accenture.payment.infrastructure.gateway.mercadopago;
 
 import br.com.accenture.payment.application.port.WalletTopUpGateway;
+import br.com.accenture.payment.domain.wallet.exception.InvalidTopUpRequestException;
 import br.com.accenture.payment.infrastructure.config.MercadoPagoProperties;
 import br.com.accenture.payment.infrastructure.gateway.mercadopago.dto.request.MercadoPagoCreateOrderRequest;
 import br.com.accenture.payment.infrastructure.gateway.mercadopago.dto.response.MercadoPagoCreateOrderResponse;
 import br.com.accenture.payment.infrastructure.gateway.mercadopago.dto.response.MercadoPagoGetOrderResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -18,6 +22,7 @@ public class MercadoPagoWalletTopUpGateway implements WalletTopUpGateway {
 
     private static final String CREATE_ORDER_URI = "/v1/orders";
     private static final String GET_ORDER_URI = "/v1/orders/{orderId}";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final RestClient restClient;
     private final BigDecimal fixedChargeAmount;
@@ -34,13 +39,18 @@ public class MercadoPagoWalletTopUpGateway implements WalletTopUpGateway {
     public WalletTopUpGatewayResponse createOrder(WalletTopUpGatewayRequest request) {
         MercadoPagoCreateOrderRequest mercadoPagoRequest = buildCreateOrderRequest(request);
 
-        MercadoPagoCreateOrderResponse response = restClient.post()
-                .uri(CREATE_ORDER_URI)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Idempotency-Key", request.topUpId().toString())
-                .body(mercadoPagoRequest)
-                .retrieve()
-                .body(MercadoPagoCreateOrderResponse.class);
+        MercadoPagoCreateOrderResponse response;
+        try {
+            response = restClient.post()
+                    .uri(CREATE_ORDER_URI)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-Idempotency-Key", request.topUpId().toString())
+                    .body(mercadoPagoRequest)
+                    .retrieve()
+                    .body(MercadoPagoCreateOrderResponse.class);
+        } catch (HttpClientErrorException ex) {
+            throw new InvalidTopUpRequestException(extractErrorMessage(ex.getResponseBodyAsString()), ex);
+        }
 
         if (response == null) {
             throw new IllegalStateException("Mercado Pago did not return a response");
@@ -73,6 +83,28 @@ public class MercadoPagoWalletTopUpGateway implements WalletTopUpGateway {
                 response.totalAmount(),
                 response.totalPaidAmount()
         );
+    }
+
+    private static String extractErrorMessage(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return "Pagamento recusado pelo gateway de pagamento.";
+        }
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(responseBody);
+            JsonNode errors = root.path("errors");
+            if (errors.isArray() && !errors.isEmpty()) {
+                String message = errors.get(0).path("message").asText(null);
+                if (message != null && !message.isBlank()) {
+                    return message;
+                }
+            }
+            String rootMessage = root.path("message").asText(null);
+            if (rootMessage != null && !rootMessage.isBlank()) {
+                return rootMessage;
+            }
+        } catch (Exception ignored) {
+        }
+        return responseBody;
     }
 
     private MercadoPagoCreateOrderRequest buildCreateOrderRequest(WalletTopUpGatewayRequest request) {

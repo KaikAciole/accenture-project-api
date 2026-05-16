@@ -5,6 +5,7 @@ import br.com.accenture.payment.domain.payment.exception.InvalidPaymentStatusExc
 import br.com.accenture.payment.domain.payment.exception.PaymentNotFoundException;
 import br.com.accenture.payment.domain.wallet.exception.DuplicateWalletException;
 import br.com.accenture.payment.domain.wallet.exception.InsufficientWalletBalanceException;
+import br.com.accenture.payment.domain.wallet.exception.InvalidTopUpRequestException;
 import br.com.accenture.payment.domain.wallet.exception.InvalidWalletTransactionException;
 import br.com.accenture.payment.domain.wallet.exception.WalletNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -89,6 +90,16 @@ public class GlobalExceptionHandler {
         problemDetail.setTitle("Invalid wallet transaction");
         problemDetail.setDetail(exception.getMessage());
         problemDetail.setType(URI.create("/errors/invalid-wallet-transaction"));
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InvalidTopUpRequestException.class)
+    public ProblemDetail handleInvalidTopUpRequest(InvalidTopUpRequestException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+        problemDetail.setTitle("Invalid top-up request");
+        problemDetail.setDetail(exception.getMessage());
+        problemDetail.setType(URI.create("/errors/invalid-top-up-request"));
 
         return problemDetail;
     }

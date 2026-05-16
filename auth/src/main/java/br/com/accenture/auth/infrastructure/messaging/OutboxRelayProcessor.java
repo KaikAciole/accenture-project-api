@@ -27,7 +27,7 @@ public class OutboxRelayProcessor {
     @Scheduled(fixedDelayString = "${api.outbox.delay:5000}")
     @Transactional
     public void processOutbox() {
-        List<OutboxEventJpaEntity> events = outboxRepository.findAll();
+        List<OutboxEventJpaEntity> events = outboxRepository.findByProcessedFalseOrderByCreatedAtAsc();
 
         for (OutboxEventJpaEntity event : events) {
             try {
@@ -37,7 +37,8 @@ public class OutboxRelayProcessor {
                         .setContentEncoding(StandardCharsets.UTF_8.name())
                         .build();
                 rabbitTemplate.send(EXCHANGE, event.getEventType(), message);
-                outboxRepository.delete(event);
+                event.setProcessed(true);
+                outboxRepository.save(event);
             } catch (Exception e) {
                 log.error("Falha ao publicar evento da outbox. ID: {}", event.getId(), e);
                 break;

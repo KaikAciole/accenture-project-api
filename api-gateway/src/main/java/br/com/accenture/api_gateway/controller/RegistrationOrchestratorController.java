@@ -29,7 +29,7 @@ public class RegistrationOrchestratorController {
         this.webClientBuilder = webClientBuilder;
     }
 
-    @Value("${api.security.internal.secret:senha-secreta-microsservicos-123}")
+    @Value("${api.security.internal.secret:senha-secreta-microsservicos-1234}")
     private String internalSecret;
 
     @PostMapping("/register-flow")

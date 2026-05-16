@@ -7,4 +7,5 @@ public interface OrderEventPublisher {
     void publishOrderPaidEvent(Order order);
     void publishOrderCanceledEvent(Order order, String reason);
     void publishOrderReservedEvent(Order order);
+    void publishOrderRefundedEvent(Order order, String reason);
 }

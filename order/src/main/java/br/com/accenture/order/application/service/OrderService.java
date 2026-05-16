@@ -144,7 +144,9 @@ public class OrderService {
     public Order refundOrder(UUID id, String reason) {
         Order order = findById(id);
         order.markAsRefunded();
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+        eventPublisher.publishOrderRefundedEvent(savedOrder, reason);
+        return savedOrder;
     }
 
     @Transactional

@@ -3,6 +3,7 @@ package br.com.accenture.order.infrastructure.messaging;
 import br.com.accenture.order.application.dto.event.OrderCanceledEvent;
 import br.com.accenture.order.application.dto.event.OrderCreatedEvent;
 import br.com.accenture.order.application.dto.event.OrderPaidEvent;
+import br.com.accenture.order.application.dto.event.OrderRefundedEvent;
 import br.com.accenture.order.application.publisher.OrderEventPublisher;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.infrastructure.persistence.OutboxEventRepository;
@@ -65,6 +66,12 @@ public class OrderEventPublisherAdapter implements OrderEventPublisher {
     public void publishOrderCanceledEvent(Order order, String reason) {
         var event = new OrderCanceledEvent(order.getId(), order.getCustomerId(), reason);
         saveToOutbox("Order", order.getId().toString(), "order.canceled", event);
+    }
+
+    @Override
+    public void publishOrderRefundedEvent(Order order, String reason) {
+        var event = new OrderRefundedEvent(order.getId(), order.getCustomerId(), reason);
+        saveToOutbox("Order", order.getId().toString(), "order.refunded", event);
     }
 
     private void saveToOutbox(String aggregateType, String aggregateId, String eventType, Object payload) {

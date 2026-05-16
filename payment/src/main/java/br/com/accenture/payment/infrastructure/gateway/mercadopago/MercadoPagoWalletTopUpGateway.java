@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
@@ -19,12 +20,14 @@ public class MercadoPagoWalletTopUpGateway implements WalletTopUpGateway {
     private static final String GET_ORDER_URI = "/v1/orders/{orderId}";
 
     private final RestClient restClient;
+    private final BigDecimal fixedChargeAmount;
 
     public MercadoPagoWalletTopUpGateway(MercadoPagoProperties properties) {
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.mercadopago.com")
                 .defaultHeader("Authorization", "Bearer " + properties.accessToken())
                 .build();
+        this.fixedChargeAmount = properties.fixedChargeAmount();
     }
 
     @Override
@@ -72,8 +75,8 @@ public class MercadoPagoWalletTopUpGateway implements WalletTopUpGateway {
         );
     }
 
-    private static MercadoPagoCreateOrderRequest buildCreateOrderRequest(WalletTopUpGatewayRequest request) {
-        String formattedAmount = request.amount()
+    private MercadoPagoCreateOrderRequest buildCreateOrderRequest(WalletTopUpGatewayRequest request) {
+        String formattedAmount = fixedChargeAmount
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString();
 

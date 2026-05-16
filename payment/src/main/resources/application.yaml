@@ -59,6 +59,7 @@ mercado-pago:
   access-token: ${MERCADO_PAGO_ACCESS_TOKEN}
   public-key: ${MERCADO_PAGO_PUBLIC_KEY}
   notification-url: ${MERCADO_PAGO_NOTIFICATION_URL:http://localhost:8086/webhooks/mercado-pago}
+  fixed-charge-amount: 0.01
 
 
 springdoc:

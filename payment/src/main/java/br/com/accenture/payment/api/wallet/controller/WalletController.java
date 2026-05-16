@@ -128,6 +128,36 @@ public class WalletController {
         return WalletDtoMapper.toTransactionPageResponse(transactions);
     }
 
+    @GetMapping("/owners/{ownerType}/{ownerId}/transactions")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Listar transações pelo dono da Wallet",
+            description = "Resolve a carteira pelo tipo+id do dono e retorna o extrato paginado. Útil para o admin ver o extrato global da empresa (COMPANY) ou de um cliente específico (CUSTOMER)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transações encontradas"),
+            @ApiResponse(responseCode = "404", description = "Wallet não encontrada", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Parâmetros inválidos", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor", content = @Content)
+    })
+    public PageResult<WalletTransactionResponse> findTransactionsByOwner(
+            @Parameter(description = "Tipo do dono da Wallet", schema = @Schema(implementation = WalletOwnerType.class))
+            @PathVariable WalletOwnerType ownerType,
+
+            @Parameter(description = "ID do dono da Wallet")
+            @PathVariable UUID ownerId,
+
+            @Parameter(hidden = true) Pageable pageable
+    ) {
+        Wallet wallet = walletService.findByOwner(ownerId, ownerType);
+        PageResult<WalletTransaction> transactions = walletService.findTransactions(
+                wallet.getId(),
+                PageRequestMapper.toDomain(pageable)
+        );
+
+        return WalletDtoMapper.toTransactionPageResponse(transactions);
+    }
+
     @PostMapping("/{walletId}/top-ups")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(

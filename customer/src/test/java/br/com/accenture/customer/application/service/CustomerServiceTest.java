@@ -2,7 +2,9 @@ package br.com.accenture.customer.application.service;
 
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
+import br.com.accenture.customer.domain.exception.DuplicateEmailInAuthException;
 import br.com.accenture.customer.domain.exception.ImmutableFieldException;
+import br.com.accenture.customer.domain.gateway.AuthCredentialGateway;
 import br.com.accenture.customer.domain.model.Customer;
 import br.com.accenture.customer.domain.pagination.PageRequest;
 import br.com.accenture.customer.domain.pagination.PageResult;
@@ -22,8 +24,11 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +36,9 @@ class CustomerServiceTest {
 
     @Mock
     private CustomerRepository customerRepository;
+
+    @Mock
+    private AuthCredentialGateway authCredentialGateway;
 
     @InjectMocks
     private CustomerService customerService;
@@ -157,6 +165,54 @@ class CustomerServiceTest {
         assertThat(updated.getPhone()).isEqualTo("11988887777");
         assertThat(updated.getCpf()).isEqualTo("12345678901");
         verify(customerRepository).save(existing);
+        verifyNoInteractions(authCredentialGateway);
+    }
+
+    @Test
+    void update_shouldSyncEmailWithAuthWhenEmailChanges() {
+        Customer payload = Customer.restore(
+                null, null, "maria.updated@example.com", null, null, null, null
+        );
+        when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
+        when(customerRepository.existsByEmail("maria.updated@example.com")).thenReturn(false);
+        when(customerRepository.save(existing)).thenReturn(existing);
+
+        Customer updated = customerService.update(existingId, payload);
+
+        assertThat(updated.getEmail()).isEqualTo("maria.updated@example.com");
+        verify(customerRepository).save(existing);
+        verify(authCredentialGateway).updateEmail(eq(existingId), eq("maria.updated@example.com"));
+    }
+
+    @Test
+    void update_shouldFailWhenNewEmailIsTakenByAnotherCustomer() {
+        Customer payload = Customer.restore(
+                null, null, "taken@example.com", null, null, null, null
+        );
+        when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
+        when(customerRepository.existsByEmail("taken@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> customerService.update(existingId, payload))
+                .isInstanceOf(DuplicateCustomerException.class)
+                .hasMessageContaining("email");
+
+        verify(customerRepository, never()).save(any());
+        verifyNoInteractions(authCredentialGateway);
+    }
+
+    @Test
+    void update_shouldRollbackWhenAuthSyncReportsDuplicateEmail() {
+        Customer payload = Customer.restore(
+                null, null, "maria.updated@example.com", null, null, null, null
+        );
+        when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
+        when(customerRepository.existsByEmail("maria.updated@example.com")).thenReturn(false);
+        when(customerRepository.save(existing)).thenReturn(existing);
+        doThrow(new DuplicateEmailInAuthException("maria.updated@example.com"))
+                .when(authCredentialGateway).updateEmail(eq(existingId), eq("maria.updated@example.com"));
+
+        assertThatThrownBy(() -> customerService.update(existingId, payload))
+                .isInstanceOf(DuplicateEmailInAuthException.class);
     }
 
     @Test

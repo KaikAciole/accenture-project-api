@@ -20,4 +20,6 @@ public interface EmailSender {
     void sendPaymentCanceledEmail(String recipient, String orderId, BigDecimal amount, PaymentMethod method, String cancellationReason);
 
     void sendStockReservationFailedEmail(String recipient, String orderId, String sku, int quantity, String reason);
+
+    void sendPasswordResetEmail(String recipient, String resetLink);
 }

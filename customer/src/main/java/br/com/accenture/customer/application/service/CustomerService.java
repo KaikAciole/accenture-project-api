@@ -2,6 +2,7 @@ package br.com.accenture.customer.application.service;
 
 import br.com.accenture.customer.domain.exception.CustomerNotFoundException;
 import br.com.accenture.customer.domain.exception.DuplicateCustomerException;
+import br.com.accenture.customer.domain.gateway.AuthCredentialGateway;
 import br.com.accenture.customer.domain.model.Customer;
 import br.com.accenture.customer.domain.pagination.PageRequest;
 import br.com.accenture.customer.domain.pagination.PageResult;
@@ -15,9 +16,12 @@ import java.util.UUID;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final AuthCredentialGateway authCredentialGateway;
 
-    public CustomerService(CustomerRepository customerRepository) {
+    public CustomerService(CustomerRepository customerRepository,
+                           AuthCredentialGateway authCredentialGateway) {
         this.customerRepository = customerRepository;
+        this.authCredentialGateway = authCredentialGateway;
     }
 
     @Transactional(readOnly = true)
@@ -52,13 +56,23 @@ public class CustomerService {
 
         validateUniquenessOnUpdate(existing, updated);
 
+        boolean emailChanged = updated.getEmail() != null
+                && !updated.getEmail().equals(existing.getEmail());
+
         existing.updateProfile(
                 updated.getName(),
+                updated.getEmail(),
                 updated.getCpf(),
                 updated.getPhone()
         );
 
-        return customerRepository.save(existing);
+        Customer saved = customerRepository.save(existing);
+
+        if (emailChanged) {
+            authCredentialGateway.updateEmail(saved.getId(), saved.getEmail());
+        }
+
+        return saved;
     }
 
     @Transactional
@@ -69,6 +83,11 @@ public class CustomerService {
     }
 
     private void validateUniquenessOnUpdate(Customer existing, Customer updated) {
+        if (updated.getEmail() != null
+                && !updated.getEmail().equals(existing.getEmail())
+                && customerRepository.existsByEmail(updated.getEmail())) {
+            throw new DuplicateCustomerException("email", updated.getEmail());
+        }
         if (updated.getCpf() != null
                 && !updated.getCpf().equals(existing.getCpf())
                 && customerRepository.existsByCpf(updated.getCpf())) {

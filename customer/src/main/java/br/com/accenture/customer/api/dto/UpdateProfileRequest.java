@@ -1,6 +1,7 @@
 package br.com.accenture.customer.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -13,6 +14,13 @@ public record UpdateProfileRequest(
                 maxLength = 100)
         @Size(max = 100, message = "name must be at most 100 characters")
         String name,
+
+        @Schema(description = "Email do cliente. Quando alterado, é sincronizado com o serviço de auth.",
+                example = "maria.silva@example.com",
+                maxLength = 100)
+        @Email(message = "email must be a valid email address")
+        @Size(max = 100, message = "email must be at most 100 characters")
+        String email,
 
         @Schema(description = "CPF do cliente (apenas dígitos, exatamente 11). Imutável após a definição.",
                 example = "12345678901",

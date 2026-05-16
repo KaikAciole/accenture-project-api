@@ -1,6 +1,7 @@
 package br.com.accenture.order.infrastructure.persistence;
 
 import br.com.accenture.order.application.dto.PaginatedResult;
+import br.com.accenture.order.domain.model.DeliveryAddress;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.model.OrderItem;
 import org.junit.jupiter.api.DisplayName;
@@ -31,10 +32,16 @@ class OrderRepositoryAdapterTest {
     @Autowired
     private OrderRepositoryAdapter adapter;
 
+    private static DeliveryAddress sampleAddress() {
+        return new DeliveryAddress(
+                "Rua das Flores", "123", "Apto 1", "Centro", "São Paulo", "SP", "01001000"
+        );
+    }
+
     @Test
     @DisplayName("Deve persistir um pedido e seus itens com sucesso e cascade")
     void shouldPersistOrderAndItemsSuccessfully() {
-        Order order = Order.createNew(UUID.randomUUID());
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
         order.addItem(OrderItem.createNew("PROD-001", 2, new BigDecimal("75.00")));
 
         Order savedOrder = adapter.save(order);
@@ -43,13 +50,15 @@ class OrderRepositoryAdapterTest {
         assertThat(savedOrder.getTotalAmount()).isEqualByComparingTo(new BigDecimal("150.00"));
         assertThat(savedOrder.getItems()).hasSize(1);
         assertThat(savedOrder.getItems().get(0).getId()).isNotNull();
+        assertThat(savedOrder.getDeliveryAddress()).isNotNull();
+        assertThat(savedOrder.getDeliveryAddress().street()).isEqualTo("Rua das Flores");
     }
 
     @Test
     @DisplayName("Deve recuperar um pedido por ID com todos os itens mapeados")
     void shouldFindOrderById() {
         UUID customerId = UUID.randomUUID();
-        Order order = Order.createNew(customerId);
+        Order order = Order.createNew(customerId, sampleAddress());
         order.addItem(OrderItem.createNew("ITEM-1", 1, BigDecimal.TEN));
         UUID id = adapter.save(order).getId();
 
@@ -58,6 +67,7 @@ class OrderRepositoryAdapterTest {
         assertThat(foundOrder).isPresent();
         assertThat(foundOrder.get().getCustomerId()).isEqualTo(customerId);
         assertThat(foundOrder.get().getItems()).hasSize(1);
+        assertThat(foundOrder.get().getDeliveryAddress().city()).isEqualTo("São Paulo");
     }
 
     @Test
@@ -71,9 +81,9 @@ class OrderRepositoryAdapterTest {
     @DisplayName("Deve buscar pedidos paginados filtrando por customerId")
     void shouldFindOrdersByCustomerIdWithPagination() {
         UUID targetCustomer = UUID.randomUUID();
-        adapter.save(Order.createNew(targetCustomer));
-        adapter.save(Order.createNew(targetCustomer));
-        adapter.save(Order.createNew(UUID.randomUUID()));
+        adapter.save(Order.createNew(targetCustomer, sampleAddress()));
+        adapter.save(Order.createNew(targetCustomer, sampleAddress()));
+        adapter.save(Order.createNew(UUID.randomUUID(), sampleAddress()));
 
         PaginatedResult<Order> result = adapter.findByCustomerId(targetCustomer, 0, 10);
 
@@ -85,7 +95,7 @@ class OrderRepositoryAdapterTest {
     @Test
     @DisplayName("Deve deletar pedido e remover itens dependentes")
     void shouldDeleteOrderAndOrphanItems() {
-        Order order = Order.createNew(UUID.randomUUID());
+        Order order = Order.createNew(UUID.randomUUID(), sampleAddress());
         order.addItem(OrderItem.createNew("ITEM-X", 1, BigDecimal.ONE));
         Order saved = adapter.save(order);
 

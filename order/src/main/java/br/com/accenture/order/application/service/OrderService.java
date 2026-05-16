@@ -5,14 +5,19 @@ import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.application.publisher.OrderEventPublisher;
 import br.com.accenture.order.domain.enums.OrderStatus;
 import br.com.accenture.order.domain.exception.InsufficientStockException;
+import br.com.accenture.order.domain.exception.InvalidAddressException;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
+import br.com.accenture.order.domain.model.DeliveryAddress;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.model.OrderItem;
 import br.com.accenture.order.domain.repository.OrderRepository;
+import br.com.accenture.order.infrastructure.feign.CustomerClient;
 import br.com.accenture.order.infrastructure.feign.InventoryClient;
+import br.com.accenture.order.infrastructure.feign.dto.CustomerAddressResponse;
 import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityItemRequest;
 import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityItemResponse;
 import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityRequest;
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,20 +31,25 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderEventPublisher eventPublisher;
     private final InventoryClient inventoryClient;
+    private final CustomerClient customerClient;
 
     @Value("${api.security.internal.secret:senha-secreta-microsservicos-1234}")
     private String internalSecret;
 
     public OrderService(OrderRepository orderRepository,
                         OrderEventPublisher eventPublisher,
-                        InventoryClient inventoryClient) {
+                        InventoryClient inventoryClient,
+                        CustomerClient customerClient) {
         this.orderRepository = orderRepository;
         this.eventPublisher = eventPublisher;
         this.inventoryClient = inventoryClient;
+        this.customerClient = customerClient;
     }
 
     @Transactional
-    public Order createOrder(UUID customerId, List<OrderItemCommand> itemsRequest) {
+    public Order createOrder(UUID customerId, UUID addressId, List<OrderItemCommand> itemsRequest) {
+
+        DeliveryAddress deliveryAddress = fetchDeliveryAddress(customerId, addressId);
 
         List<ProductAvailabilityItemRequest> checkItems = itemsRequest.stream()
                 .map(item -> new ProductAvailabilityItemRequest(item.sku(), item.quantity()))
@@ -56,7 +66,7 @@ public class OrderService {
             }
         }
 
-        Order newOrder = Order.createNew(customerId);
+        Order newOrder = Order.createNew(customerId, deliveryAddress);
 
         itemsRequest.forEach(request -> {
             OrderItem item = OrderItem.createNew(request.sku(), request.quantity(), request.unitPrice());
@@ -69,6 +79,25 @@ public class OrderService {
         return savedOrder;
     }
 
+    private DeliveryAddress fetchDeliveryAddress(UUID customerId, UUID addressId) {
+        try {
+            CustomerAddressResponse response = customerClient.getAddress(customerId, addressId, internalSecret);
+            return new DeliveryAddress(
+                    response.street(),
+                    response.number(),
+                    response.complement(),
+                    response.neighborhood(),
+                    response.city(),
+                    response.state(),
+                    response.zipCode()
+            );
+        } catch (FeignException.NotFound ex) {
+            throw new InvalidAddressException(
+                    String.format("Endereço %s não encontrado para o cliente %s", addressId, customerId)
+            );
+        }
+    }
+
     @Transactional(readOnly = true)
     public Order findById(UUID id) {
         return orderRepository.findById(id)
@@ -78,6 +107,11 @@ public class OrderService {
     @Transactional(readOnly = true)
     public PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size) {
         return orderRepository.findByCustomerId(customerId, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public PaginatedResult<Order> findAll(int page, int size) {
+        return orderRepository.findAll(page, size);
     }
 
     @Transactional

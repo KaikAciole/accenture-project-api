@@ -35,14 +35,14 @@ class CustomerDtoMapperTest {
 
     @Test
     void toDomainForUpdate_shouldMapAllFields() {
-        UpdateProfileRequest request = new UpdateProfileRequest("Maria", "12345678901", "11999998888");
+        UpdateProfileRequest request = new UpdateProfileRequest("Maria", "maria@example.com", "12345678901", "11999998888");
 
         Customer customer = CustomerDtoMapper.toDomainForUpdate(request);
 
         assertThat(customer.getName()).isEqualTo("Maria");
+        assertThat(customer.getEmail()).isEqualTo("maria@example.com");
         assertThat(customer.getCpf()).isEqualTo("12345678901");
         assertThat(customer.getPhone()).isEqualTo("11999998888");
-        assertThat(customer.getEmail()).isNull();
         assertThat(customer.getId()).isNull();
     }
 
@@ -53,11 +53,12 @@ class CustomerDtoMapperTest {
 
     @Test
     void toDomainForUpdate_shouldPreserveNullFields() {
-        UpdateProfileRequest request = new UpdateProfileRequest("Maria", null, null);
+        UpdateProfileRequest request = new UpdateProfileRequest("Maria", null, null, null);
 
         Customer customer = CustomerDtoMapper.toDomainForUpdate(request);
 
         assertThat(customer.getName()).isEqualTo("Maria");
+        assertThat(customer.getEmail()).isNull();
         assertThat(customer.getCpf()).isNull();
         assertThat(customer.getPhone()).isNull();
     }

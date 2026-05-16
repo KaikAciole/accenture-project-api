@@ -42,6 +42,9 @@ public class OrderJpaEntity {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemJpaEntity> items = new ArrayList<>();
 
+    @Embedded
+    private DeliveryAddressEmbeddable deliveryAddress;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

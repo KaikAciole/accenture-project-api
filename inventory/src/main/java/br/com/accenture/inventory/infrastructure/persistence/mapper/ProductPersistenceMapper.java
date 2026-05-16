@@ -20,6 +20,7 @@ public final class ProductPersistenceMapper {
                 .category(product.getCategory())
                 .basePrice(product.getBasePrice())
                 .stockQuantity(product.getStockQuantity())
+                .imageUrl(product.getImageUrl())
                 .version(product.getVersion())
                 .build();
     }
@@ -36,6 +37,7 @@ public final class ProductPersistenceMapper {
                 entity.getCategory(),
                 entity.getBasePrice(),
                 entity.getStockQuantity(),
+                entity.getImageUrl(),
                 entity.getVersion()
         );
     }

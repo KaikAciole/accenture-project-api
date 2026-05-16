@@ -17,4 +17,6 @@ public interface OrderRepository {
 
     PaginatedResult<Order> findByCustomerId(UUID customerId, int page, int size);
 
+    PaginatedResult<Order> findAll(int page, int size);
+
 }

@@ -17,6 +17,7 @@ public class Order {
     private OrderStatus status;
     private BigDecimal totalAmount;
     private List<OrderItem> items;
+    private DeliveryAddress deliveryAddress;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -25,6 +26,7 @@ public class Order {
                   OrderStatus status,
                   BigDecimal totalAmount,
                   List<OrderItem> items,
+                  DeliveryAddress deliveryAddress,
                   Instant createdAt,
                   Instant updatedAt) {
         this.id = id;
@@ -32,14 +34,16 @@ public class Order {
         this.status = status;
         this.totalAmount = totalAmount;
         this.items = items != null ? items : new ArrayList<>();
+        this.deliveryAddress = deliveryAddress;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
-    public static Order createNew(UUID customerId) {
+    public static Order createNew(UUID customerId, DeliveryAddress deliveryAddress) {
         requireNotNull(customerId, "customerId");
+        requireNotNull(deliveryAddress, "deliveryAddress");
         Instant now = Instant.now();
-        return new Order(null, customerId, OrderStatus.PENDING, BigDecimal.ZERO, new ArrayList<>(), now, now);
+        return new Order(null, customerId, OrderStatus.PENDING, BigDecimal.ZERO, new ArrayList<>(), deliveryAddress, now, now);
     }
 
     public static Order restore(UUID id,
@@ -47,9 +51,10 @@ public class Order {
                                 OrderStatus status,
                                 BigDecimal totalAmount,
                                 List<OrderItem> items,
+                                DeliveryAddress deliveryAddress,
                                 Instant createdAt,
                                 Instant updatedAt) {
-        return new Order(id, customerId, status, totalAmount, items, createdAt, updatedAt);
+        return new Order(id, customerId, status, totalAmount, items, deliveryAddress, createdAt, updatedAt);
     }
 
     public void addItem(OrderItem item) {

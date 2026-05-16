@@ -17,7 +17,7 @@ public class UserCredential {
 
     private final UUID id;
     private final UUID customerId;
-    private final Email email;
+    private Email email;
     private Password password;
     private final Set<Role> roles;
     private boolean active;
@@ -73,6 +73,11 @@ public class UserCredential {
 
     public void changePassword(String newPassword, PasswordEncoder encoder) {
         this.password = Password.create(newPassword, encoder);
+        this.updatedAt = Instant.now();
+    }
+
+    public void changeEmail(String newRawEmail) {
+        this.email = new Email(newRawEmail);
         this.updatedAt = Instant.now();
     }
 

@@ -51,10 +51,14 @@ public class Customer {
         return new Customer(id, name, email, cpf, phone, createdAt, updatedAt);
     }
 
-    public void updateProfile(String name, String cpf, String phone) {
+    public void updateProfile(String name, String email, String cpf, String phone) {
         if (name != null) {
             requireNotBlank(name, "name");
             this.name = name;
+        }
+        if (email != null) {
+            requireNotBlank(email, "email");
+            this.email = email;
         }
         if (cpf != null) {
             requireNotBlank(cpf, "cpf");

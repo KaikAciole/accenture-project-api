@@ -23,6 +23,13 @@ spring:
 integration:
   viacep:
     base-url: https://viacep.com.br/ws
+  auth:
+    base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
+api:
+  security:
+    internal:
+      secret: ${INTERNAL_API_SECRET:senha-secreta-microsservicos-1234}
 
 springdoc:
   api-docs:

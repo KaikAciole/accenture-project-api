@@ -20,6 +20,9 @@ public class RabbitConfig {
     public static final String USER_REGISTERED_QUEUE = "auth.user_registered.queue";
     public static final String USER_REGISTERED_ROUTING_KEY = "user.registered";
 
+    public static final String PASSWORD_RESET_REQUESTED_QUEUE = "auth.password_reset_requested.queue";
+    public static final String PASSWORD_RESET_REQUESTED_ROUTING_KEY = "password.reset.requested";
+
     public static final String ORDER_EXCHANGE = "order.exchange";
     public static final String ORDER_CREATED_QUEUE = "notification.queue.created";
     public static final String ORDER_PAID_QUEUE = "notification.queue.paid";
@@ -58,6 +61,16 @@ public class RabbitConfig {
     @Bean
     public Binding userRegisteredBinding(Queue userRegisteredQueue, TopicExchange authExchange) {
         return BindingBuilder.bind(userRegisteredQueue).to(authExchange).with(USER_REGISTERED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue passwordResetRequestedQueue() {
+        return new Queue(PASSWORD_RESET_REQUESTED_QUEUE, true, false, false, dlxArgs());
+    }
+
+    @Bean
+    public Binding passwordResetRequestedBinding(Queue passwordResetRequestedQueue, TopicExchange authExchange) {
+        return BindingBuilder.bind(passwordResetRequestedQueue).to(authExchange).with(PASSWORD_RESET_REQUESTED_ROUTING_KEY);
     }
 
     @Bean

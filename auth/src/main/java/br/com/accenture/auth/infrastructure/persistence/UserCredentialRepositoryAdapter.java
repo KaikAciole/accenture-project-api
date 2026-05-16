@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +27,12 @@ public class UserCredentialRepositoryAdapter implements UserCredentialRepository
     @Override
     public Optional<UserCredential> findByEmail(Email email) {
         return jpaRepository.findByEmail(email.value())
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserCredential> findByCustomerId(UUID customerId) {
+        return jpaRepository.findByCustomerId(customerId)
                 .map(mapper::toDomain);
     }
 

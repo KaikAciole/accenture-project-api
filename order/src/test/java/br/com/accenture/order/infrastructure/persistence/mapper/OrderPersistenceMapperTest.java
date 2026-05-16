@@ -1,8 +1,10 @@
 package br.com.accenture.order.infrastructure.persistence.mapper;
 
 import br.com.accenture.order.domain.enums.OrderStatus;
+import br.com.accenture.order.domain.model.DeliveryAddress;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.model.OrderItem;
+import br.com.accenture.order.infrastructure.persistence.entity.DeliveryAddressEmbeddable;
 import br.com.accenture.order.infrastructure.persistence.entity.OrderJpaEntity;
 import br.com.accenture.order.infrastructure.persistence.entity.OrderItemJpaEntity;
 import org.junit.jupiter.api.DisplayName;
@@ -17,19 +19,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class OrderPersistenceMapperTest {
 
+    private static DeliveryAddress sampleAddress() {
+        return new DeliveryAddress(
+                "Rua das Flores", "123", "Apto 1", "Centro", "São Paulo", "SP", "01001000"
+        );
+    }
+
     @Test
     @DisplayName("Deve converter Domain para Entity corretamente")
     void shouldMapDomainToEntity() {
-        Order domainOrder = Order.createNew("customer-123");
+        UUID customerId = UUID.randomUUID();
+        Order domainOrder = Order.createNew(customerId, sampleAddress());
         domainOrder.addItem(OrderItem.createNew("SKU-99", 2, new BigDecimal("50.00")));
 
         OrderJpaEntity entity = OrderPersistenceMapper.toEntity(domainOrder);
 
         assertThat(entity).isNotNull();
-        assertThat(entity.getCustomerId()).isEqualTo("customer-123");
+        assertThat(entity.getCustomerId()).isEqualTo(customerId);
         assertThat(entity.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(entity.getTotalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
         assertThat(entity.getItems()).hasSize(1);
+        assertThat(entity.getDeliveryAddress()).isNotNull();
+        assertThat(entity.getDeliveryAddress().getStreet()).isEqualTo("Rua das Flores");
 
         assertThat(entity.getCreatedAt()).isEqualTo(domainOrder.getCreatedAt());
         assertThat(entity.getUpdatedAt()).isEqualTo(domainOrder.getUpdatedAt());
@@ -49,14 +60,21 @@ class OrderPersistenceMapperTest {
     @DisplayName("Deve converter Entity para Domain corretamente")
     void shouldMapEntityToDomain() {
         UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
         UUID itemId = UUID.randomUUID();
         Instant now = Instant.now();
 
+        DeliveryAddressEmbeddable embeddable = DeliveryAddressEmbeddable.builder()
+                .street("Rua das Flores").number("123").complement("Apto 1")
+                .neighborhood("Centro").city("São Paulo").state("SP").zipCode("01001000")
+                .build();
+
         OrderJpaEntity entity = OrderJpaEntity.builder()
                 .id(orderId)
-                .customerId("customer-123")
+                .customerId(customerId)
                 .status(OrderStatus.PAID)
                 .totalAmount(new BigDecimal("200.00"))
+                .deliveryAddress(embeddable)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -77,11 +95,13 @@ class OrderPersistenceMapperTest {
 
         assertThat(domainOrder).isNotNull();
         assertThat(domainOrder.getId()).isEqualTo(orderId);
-        assertThat(domainOrder.getCustomerId()).isEqualTo("customer-123");
+        assertThat(domainOrder.getCustomerId()).isEqualTo(customerId);
         assertThat(domainOrder.getStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(domainOrder.getTotalAmount()).isEqualByComparingTo(new BigDecimal("200.00"));
         assertThat(domainOrder.getCreatedAt()).isEqualTo(now);
         assertThat(domainOrder.getUpdatedAt()).isEqualTo(now);
+        assertThat(domainOrder.getDeliveryAddress()).isNotNull();
+        assertThat(domainOrder.getDeliveryAddress().city()).isEqualTo("São Paulo");
 
         assertThat(domainOrder.getItems()).hasSize(1);
         OrderItem domainItem = domainOrder.getItems().get(0);

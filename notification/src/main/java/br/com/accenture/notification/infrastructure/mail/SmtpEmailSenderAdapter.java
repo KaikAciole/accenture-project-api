@@ -30,6 +30,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
     private static final String PAYMENT_REFUSED_SUBJECT = "Pagamento recusado - AcceStore";
     private static final String PAYMENT_CANCELED_SUBJECT = "Pagamento cancelado - AcceStore";
     private static final String STOCK_RESERVATION_FAILED_SUBJECT = "Nao foi possivel reservar seu pedido - AcceStore";
+    private static final String PASSWORD_RESET_SUBJECT = "Redefinicao de senha - AcceStore";
 
     private static final NumberFormat BRL = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
@@ -100,6 +101,11 @@ public class SmtpEmailSenderAdapter implements EmailSender {
     @Override
     public void sendStockReservationFailedEmail(String recipient, String orderId, String sku, int quantity, String reason) {
         sendHtmlEmail(recipient, STOCK_RESERVATION_FAILED_SUBJECT, buildStockReservationFailedHtml(orderId, sku, quantity, reason));
+    }
+
+    @Override
+    public void sendPasswordResetEmail(String recipient, String resetLink) {
+        sendHtmlEmail(recipient, PASSWORD_RESET_SUBJECT, buildPasswordResetHtml(resetLink));
     }
 
     private void sendHtmlEmail(String recipient, String subject, String html) {
@@ -283,6 +289,41 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   </body>
                 </html>
                 """.formatted(LOGO_CID, orderId, BRL.format(amount), method.getLabel(), cancellationReason);
+    }
+
+    private static String buildPasswordResetHtml(String resetLink) {
+        return """
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                  <head><meta charset="UTF-8"></head>
+                  <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
+                    <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
+                      <div style="text-align:center; margin-bottom:24px;">
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                      </div>
+                      <h1 style="color:#1a1a1a; font-size:22px;">Redefinicao de senha</h1>
+                      <p style="font-size:15px; line-height:1.5;">
+                        Recebemos uma solicitacao para redefinir a senha da sua conta no AcceStore.
+                      </p>
+                      <p style="font-size:15px; line-height:1.5;">
+                        Clique no botao abaixo para escolher uma nova senha. O link e valido por tempo limitado.
+                      </p>
+                      <div style="text-align:center; margin:32px 0;">
+                        <a href="%s" style="background:#1a73e8; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:4px; display:inline-block; font-weight:bold;">
+                          Redefinir minha senha
+                        </a>
+                      </div>
+                      <p style="font-size:13px; line-height:1.5; color:#555;">
+                        Se voce nao solicitou esta mudanca, basta ignorar este e-mail. Sua senha permanecera a mesma.
+                      </p>
+                      <hr style="border:none; border-top:1px solid #eee; margin:24px 0;"/>
+                      <p style="font-size:12px; color:#888;">
+                        Esta e uma mensagem automatica do sistema AcceStore. Por favor, nao responda.
+                      </p>
+                    </div>
+                  </body>
+                </html>
+                """.formatted(LOGO_CID, resetLink);
     }
 
     private static String buildStockReservationFailedHtml(String orderId, String sku, int quantity, String reason) {

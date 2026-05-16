@@ -1,5 +1,6 @@
 package br.com.accenture.auth.infrastructure.messaging;
 
+import br.com.accenture.auth.application.event.PasswordResetRequestedEvent;
 import br.com.accenture.auth.application.event.UserRegisteredEvent;
 import br.com.accenture.auth.application.publisher.AuthEventPublisher;
 import br.com.accenture.auth.domain.model.UserCredential;
@@ -38,6 +39,27 @@ public class AuthEventPublisherAdapter implements AuthEventPublisher {
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Falha ao serializar evento de registro de usuário", e);
+        }
+    }
+
+    @Override
+    public void publishPasswordResetRequestedEvent(String email, String plainToken) {
+        try {
+            PasswordResetRequestedEvent event = new PasswordResetRequestedEvent(email, plainToken);
+
+            String jsonPayload = objectMapper.writeValueAsString(event);
+
+            OutboxEventJpaEntity outboxEntity = OutboxEventJpaEntity.create(
+                    "User",
+                    email,
+                    "password.reset.requested",
+                    jsonPayload
+            );
+
+            outboxRepository.save(outboxEntity);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Falha ao serializar evento de password reset", e);
         }
     }
 }

@@ -14,7 +14,7 @@ class StockReservationTest {
 
     @Test
     void createNewReservesStockAndStartsActive() {
-        Product product = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10);
+        Product product = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10, null);
         UUID orderId = UUID.randomUUID();
 
         StockReservation reservation = StockReservation.createNew(orderId, product, 4);
@@ -29,7 +29,7 @@ class StockReservationTest {
 
     @Test
     void createNewRejectsInvalidValues() {
-        Product product = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10);
+        Product product = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10, null);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> StockReservation.createNew(null, product, 1))
@@ -49,7 +49,7 @@ class StockReservationTest {
     void confirmChangesActiveReservationToConfirmed() {
         StockReservation reservation = StockReservation.createNew(
                 UUID.randomUUID(),
-                Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10),
+                Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10, null),
                 4
         );
 
@@ -60,9 +60,9 @@ class StockReservationTest {
 
     @Test
     void cancelAndExpireReturnStock() {
-        Product cancelProduct = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10);
+        Product cancelProduct = Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10, null);
         StockReservation canceled = StockReservation.createNew(UUID.randomUUID(), cancelProduct, 4);
-        Product expireProduct = Product.createNew("SKU-002", "Mouse", "Electronics", BigDecimal.TEN, 10);
+        Product expireProduct = Product.createNew("SKU-002", "Mouse", "Electronics", BigDecimal.TEN, 10, null);
         StockReservation expired = StockReservation.createNew(UUID.randomUUID(), expireProduct, 3);
 
         canceled.cancel();
@@ -79,7 +79,7 @@ class StockReservationTest {
         StockReservation reservation = StockReservation.restore(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10),
+                Product.createNew("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 10, null),
                 2,
                 ReservationStatus.CONFIRMED
         );

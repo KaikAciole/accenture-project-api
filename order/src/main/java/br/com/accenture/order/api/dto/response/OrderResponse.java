@@ -9,10 +9,11 @@ import java.util.UUID;
 
 public record OrderResponse(
         UUID orderId,
-        String customerId,
+        UUID customerId,
         String status,
         BigDecimal totalAmount,
         List<OrderItemResponse> items,
+        DeliveryAddressResponse deliveryAddress,
         Instant createdAt
 ) {
 
@@ -23,6 +24,7 @@ public record OrderResponse(
                 order.getStatus().name(),
                 order.getTotalAmount(),
                 order.getItems().stream().map(OrderItemResponse::new).toList(),
+                DeliveryAddressResponse.from(order.getDeliveryAddress()),
                 order.getCreatedAt()
         );
     }

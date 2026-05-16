@@ -5,12 +5,19 @@ import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.application.publisher.OrderEventPublisher;
 import br.com.accenture.order.domain.enums.OrderStatus;
 import br.com.accenture.order.domain.exception.InsufficientStockException;
+import br.com.accenture.order.domain.exception.InvalidAddressException;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
+import br.com.accenture.order.domain.model.DeliveryAddress;
 import br.com.accenture.order.domain.model.Order;
 import br.com.accenture.order.domain.repository.OrderRepository;
+import br.com.accenture.order.infrastructure.feign.CustomerClient;
 import br.com.accenture.order.infrastructure.feign.InventoryClient;
+import br.com.accenture.order.infrastructure.feign.dto.CustomerAddressResponse;
 import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityItemResponse;
 import br.com.accenture.order.infrastructure.feign.dto.ProductAvailabilityRequest;
+import feign.FeignException;
+import feign.Request;
+import feign.RequestTemplate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +26,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,16 +49,37 @@ class OrderServiceTest {
     @Mock
     private InventoryClient inventoryClient;
 
+    @Mock
+    private CustomerClient customerClient;
+
     @InjectMocks
     private OrderService orderService;
 
+    private static DeliveryAddress sampleAddress() {
+        return new DeliveryAddress(
+                "Rua das Flores", "123", "Apto 1", "Centro", "São Paulo", "SP", "01001000"
+        );
+    }
+
+    private static CustomerAddressResponse sampleAddressResponse(UUID customerId, UUID addressId) {
+        return new CustomerAddressResponse(
+                addressId, customerId,
+                "Rua das Flores", "123", "Apto 1",
+                "Centro", "São Paulo", "SP", "01001000"
+        );
+    }
+
     @Test
-    @DisplayName("Deve orquestrar a criacao de um pedido validando estoque em lote")
+    @DisplayName("Deve orquestrar a criacao de um pedido validando endereço e estoque em lote")
     void shouldCreateOrderAndSaveToRepositoryAndPublishEvent() {
         UUID customerId = UUID.randomUUID();
+        UUID addressId = UUID.randomUUID();
         List<OrderItemCommand> commands = List.of(
                 new OrderItemCommand("LAPTOP-XYZ", 1, new BigDecimal("5000.00"))
         );
+
+        when(customerClient.getAddress(eq(customerId), eq(addressId), any()))
+                .thenReturn(sampleAddressResponse(customerId, addressId));
 
         List<ProductAvailabilityItemResponse> mockAvailability = List.of(
                 new ProductAvailabilityItemResponse("LAPTOP-XYZ", 1, 10, true)
@@ -59,16 +89,43 @@ class OrderServiceTest {
 
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Order savedOrder = orderService.createOrder(customerId, commands);
+        Order savedOrder = orderService.createOrder(customerId, addressId, commands);
 
         assertThat(savedOrder).isNotNull();
         assertThat(savedOrder.getCustomerId()).isEqualTo(customerId);
         assertThat(savedOrder.getTotalAmount()).isEqualByComparingTo(new BigDecimal("5000.00"));
         assertThat(savedOrder.getItems()).hasSize(1);
+        assertThat(savedOrder.getDeliveryAddress()).isNotNull();
+        assertThat(savedOrder.getDeliveryAddress().street()).isEqualTo("Rua das Flores");
 
+        verify(customerClient, times(1)).getAddress(eq(customerId), eq(addressId), any());
         verify(inventoryClient, times(1)).checkAvailability(any(), any());
         verify(orderRepository, times(1)).save(any(Order.class));
         verify(eventPublisher, times(1)).publishOrderCreatedEvent(any(Order.class));
+    }
+
+    @Test
+    @DisplayName("Deve lancar InvalidAddressException quando o customer retorna 404 para o endereço")
+    void shouldThrowInvalidAddressWhenCustomerReturns404() {
+        UUID customerId = UUID.randomUUID();
+        UUID addressId = UUID.randomUUID();
+        List<OrderItemCommand> commands = List.of(
+                new OrderItemCommand("LAPTOP-XYZ", 1, new BigDecimal("5000.00"))
+        );
+
+        Request request = Request.create(Request.HttpMethod.GET, "/customers/x/addresses/y",
+                new HashMap<>(), null, new RequestTemplate());
+        FeignException notFound = new FeignException.NotFound("not found", request, null, null);
+
+        when(customerClient.getAddress(eq(customerId), eq(addressId), any())).thenThrow(notFound);
+
+        assertThatThrownBy(() -> orderService.createOrder(customerId, addressId, commands))
+                .isInstanceOf(InvalidAddressException.class)
+                .hasMessageContaining(addressId.toString());
+
+        verify(inventoryClient, never()).checkAvailability(any(), any());
+        verify(orderRepository, never()).save(any());
+        verify(eventPublisher, never()).publishOrderCreatedEvent(any());
     }
 
     @Test
@@ -76,7 +133,7 @@ class OrderServiceTest {
     void shouldFindOrderByIdSuccessfully() {
         UUID orderId = UUID.randomUUID();
         UUID customerId = UUID.randomUUID();
-        Order mockOrder = Order.createNew(customerId);
+        Order mockOrder = Order.createNew(customerId, sampleAddress());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
 
@@ -92,7 +149,7 @@ class OrderServiceTest {
     @DisplayName("Deve retornar o resultado paginado ao buscar historico do cliente")
     void shouldReturnPaginatedResultForCustomerHistory() {
         UUID customerId = UUID.randomUUID();
-        Order dummyOrder = Order.createNew(customerId);
+        Order dummyOrder = Order.createNew(customerId, sampleAddress());
 
         PaginatedResult<Order> expectedPage = new PaginatedResult<>(
                 List.of(dummyOrder), 0, 10, 1, 1
@@ -113,7 +170,7 @@ class OrderServiceTest {
     @DisplayName("Deve marcar o pedido como RESERVADO, salvar e publicar evento para iniciar pagamento")
     void shouldMarkOrderAsReservedAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
-        Order mockOrder = Order.createNew(UUID.randomUUID());
+        Order mockOrder = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -130,7 +187,7 @@ class OrderServiceTest {
     @DisplayName("Deve marcar o pedido como PAGO, salvar e publicar evento (transicao de RESERVED)")
     void shouldMarkOrderAsPaidAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
-        Order mockOrder = Order.createNew(UUID.randomUUID());
+        Order mockOrder = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         mockOrder.markAsReserved();
 
@@ -149,7 +206,7 @@ class OrderServiceTest {
     @DisplayName("Deve disparar evento de cancelamento sem alterar status se o pedido ja estiver PAGO")
     void shouldPublishCancelEventWhenOrderIsAlreadyPaid() {
         UUID orderId = UUID.randomUUID();
-        Order mockOrder = Order.createNew(UUID.randomUUID());
+        Order mockOrder = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         mockOrder.markAsReserved();
         mockOrder.markAsPaid();
@@ -167,7 +224,7 @@ class OrderServiceTest {
     @DisplayName("Deve marcar o pedido como REFUNDED apos o estorno no payment")
     void shouldMarkOrderAsRefunded() {
         UUID orderId = UUID.randomUUID();
-        Order mockOrder = Order.createNew(UUID.randomUUID());
+        Order mockOrder = Order.createNew(UUID.randomUUID(), sampleAddress());
         mockOrder.markAsReserved();
         mockOrder.markAsPaid();
 
@@ -184,7 +241,7 @@ class OrderServiceTest {
     @DisplayName("Deve cancelar o pedido, salvar e publicar evento com motivo")
     void shouldCancelOrderAndPublishEvent() {
         UUID orderId = UUID.randomUUID();
-        Order mockOrder = Order.createNew(UUID.randomUUID());
+        Order mockOrder = Order.createNew(UUID.randomUUID(), sampleAddress());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -215,20 +272,24 @@ class OrderServiceTest {
     @DisplayName("Deve lancar InsufficientStockException quando o estoque for menor que o solicitado na verificacao em lote")
     void shouldThrowExceptionWhenStockIsInsufficient() {
         UUID customerId = UUID.randomUUID();
+        UUID addressId = UUID.randomUUID();
         List<OrderItemCommand> commands = List.of(
                 new OrderItemCommand("LAPTOP-XYZ", 2, new BigDecimal("5000.00")),
                 new OrderItemCommand("MOUSE-ABC", 1, new BigDecimal("50.00"))
         );
 
+        when(customerClient.getAddress(eq(customerId), eq(addressId), any()))
+                .thenReturn(sampleAddressResponse(customerId, addressId));
+
         List<ProductAvailabilityItemResponse> mockAvailability = List.of(
                 new ProductAvailabilityItemResponse("LAPTOP-XYZ", 2, 10, true),
-                new ProductAvailabilityItemResponse("MOUSE-ABC", 1, 0, false) // Faltou estoque aqui!
+                new ProductAvailabilityItemResponse("MOUSE-ABC", 1, 0, false)
         );
 
         when(inventoryClient.checkAvailability(any(ProductAvailabilityRequest.class), any()))
                 .thenReturn(mockAvailability);
 
-        assertThatThrownBy(() -> orderService.createOrder(customerId, commands))
+        assertThatThrownBy(() -> orderService.createOrder(customerId, addressId, commands))
                 .isInstanceOf(InsufficientStockException.class)
                 .hasMessageContaining("Estoque insuficiente ou produto não encontrado para o SKU: MOUSE-ABC");
 

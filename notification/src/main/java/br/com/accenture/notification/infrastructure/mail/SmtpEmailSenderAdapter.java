@@ -6,16 +6,14 @@ import br.com.accenture.notification.domain.enums.PaymentMethod;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
-import java.util.Base64;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
@@ -23,19 +21,7 @@ import java.util.stream.Collectors;
 public class SmtpEmailSenderAdapter implements EmailSender {
 
     private static final String LOGO_RESOURCE = "images/accestore_logo.png";
-    private static final String LOGO_DATA_URI = loadLogoAsDataUri();
-
-    private static String loadLogoAsDataUri() {
-        try (InputStream stream = SmtpEmailSenderAdapter.class.getClassLoader().getResourceAsStream(LOGO_RESOURCE)) {
-            if (stream == null) {
-                throw new IllegalStateException("Logo resource not found: " + LOGO_RESOURCE);
-            }
-            String base64 = Base64.getEncoder().encodeToString(stream.readAllBytes());
-            return "data:image/png;base64," + base64;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to load logo resource " + LOGO_RESOURCE, e);
-        }
-    }
+    private static final String LOGO_CID = "accestoreLogo";
 
     private static final String WELCOME_SUBJECT = "Bem-vindo ao AcceStore!";
     private static final String ORDER_CREATED_SUBJECT = "Pedido recebido - AcceStore";
@@ -55,7 +41,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
               <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                 <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                   <div style="text-align:center; margin-bottom:24px;">
-                    <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                    <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                   </div>
                   <h1 style="color:#1a1a1a; font-size:22px;">Bem-vindo ao AcceStore!</h1>
                   <p style="font-size:15px; line-height:1.5;">
@@ -71,7 +57,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                 </div>
               </body>
             </html>
-            """.formatted(LOGO_DATA_URI);
+            """.formatted(LOGO_CID);
 
     private final JavaMailSender mailSender;
     private final String fromAddress;
@@ -130,6 +116,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
             helper.setTo(recipient);
             helper.setSubject(subject);
             helper.setText(html, true);
+            helper.addInline(LOGO_CID, new ClassPathResource(LOGO_RESOURCE));
             mailSender.send(message);
         } catch (MessagingException | MailException e) {
             throw new EmailDeliveryException("Failed to send email to " + recipient, e);
@@ -155,7 +142,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                     <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                       <div style="text-align:center; margin-bottom:24px;">
-                        <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                       </div>
                       <h1 style="color:#1a1a1a; font-size:22px;">Pedido recebido!</h1>
                       <p style="font-size:15px; line-height:1.5;">
@@ -182,7 +169,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                     </div>
                   </body>
                 </html>
-                """.formatted(LOGO_DATA_URI, data.orderId(), itemsRows, totalFormatted);
+                """.formatted(LOGO_CID, data.orderId(), itemsRows, totalFormatted);
     }
 
     private static String buildOrderPaidHtml(String orderId) {
@@ -193,7 +180,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                     <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                       <div style="text-align:center; margin-bottom:24px;">
-                        <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                       </div>
                       <h1 style="color:#1a1a1a; font-size:22px;">Pagamento confirmado!</h1>
                       <p style="font-size:15px; line-height:1.5;">
@@ -209,7 +196,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                     </div>
                   </body>
                 </html>
-                """.formatted(LOGO_DATA_URI, orderId);
+                """.formatted(LOGO_CID, orderId);
     }
 
     private static String buildOrderCanceledHtml(String orderId, String reason) {
@@ -220,7 +207,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                     <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                       <div style="text-align:center; margin-bottom:24px;">
-                        <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                       </div>
                       <h1 style="color:#1a1a1a; font-size:22px;">Pedido cancelado</h1>
                       <p style="font-size:15px; line-height:1.5;">
@@ -236,7 +223,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                     </div>
                   </body>
                 </html>
-                """.formatted(LOGO_DATA_URI, orderId, reason);
+                """.formatted(LOGO_CID, orderId, reason);
     }
 
     private static String buildPaymentRefusedHtml(String orderId, BigDecimal amount, PaymentMethod method, String failureReason) {
@@ -247,7 +234,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                     <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                       <div style="text-align:center; margin-bottom:24px;">
-                        <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                       </div>
                       <h1 style="color:#1a1a1a; font-size:22px;">Pagamento recusado</h1>
                       <p style="font-size:15px; line-height:1.5;">
@@ -270,7 +257,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                     </div>
                   </body>
                 </html>
-                """.formatted(LOGO_DATA_URI, orderId, BRL.format(amount), method.getLabel(), failureReason);
+                """.formatted(LOGO_CID, orderId, BRL.format(amount), method.getLabel(), failureReason);
     }
 
     private static String buildPaymentCanceledHtml(String orderId, BigDecimal amount, PaymentMethod method, String cancellationReason) {
@@ -281,7 +268,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                     <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                       <div style="text-align:center; margin-bottom:24px;">
-                        <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                       </div>
                       <h1 style="color:#1a1a1a; font-size:22px;">Pagamento cancelado</h1>
                       <p style="font-size:15px; line-height:1.5;">
@@ -301,7 +288,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                     </div>
                   </body>
                 </html>
-                """.formatted(LOGO_DATA_URI, orderId, BRL.format(amount), method.getLabel(), cancellationReason);
+                """.formatted(LOGO_CID, orderId, BRL.format(amount), method.getLabel(), cancellationReason);
     }
 
     private static String buildPasswordResetHtml(String resetLink) {
@@ -312,7 +299,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                     <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                       <div style="text-align:center; margin-bottom:24px;">
-                        <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                       </div>
                       <h1 style="color:#1a1a1a; font-size:22px;">Redefinicao de senha</h1>
                       <p style="font-size:15px; line-height:1.5;">
@@ -336,7 +323,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                     </div>
                   </body>
                 </html>
-                """.formatted(LOGO_DATA_URI, resetLink);
+                """.formatted(LOGO_CID, resetLink);
     }
 
     private static String buildStockReservationFailedHtml(String orderId, String sku, int quantity, String reason) {
@@ -347,7 +334,7 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                   <body style="font-family: Arial, sans-serif; color: #222; background:#f7f7f7; padding:24px;">
                     <div style="max-width:560px; margin:0 auto; background:#ffffff; padding:32px; border-radius:8px;">
                       <div style="text-align:center; margin-bottom:24px;">
-                        <img src="%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
+                        <img src="cid:%s" alt="AcceStore" style="max-width:220px; height:auto;"/>
                       </div>
                       <h1 style="color:#1a1a1a; font-size:22px;">Nao foi possivel reservar seu pedido</h1>
                       <p style="font-size:15px; line-height:1.5;">
@@ -370,6 +357,6 @@ public class SmtpEmailSenderAdapter implements EmailSender {
                     </div>
                   </body>
                 </html>
-                """.formatted(LOGO_DATA_URI, orderId, sku, quantity, reason);
+                """.formatted(LOGO_CID, orderId, sku, quantity, reason);
     }
 }

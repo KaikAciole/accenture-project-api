@@ -30,7 +30,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final List<String> publicRoutes = List.of(
             "/api/v1/auth/**",
-            "/api/v1/gateway/register-flow"
+            "/api/v1/gateway/register-flow",
+            "/api/v1/gateway/seed-data"
     );
 
     private final List<String> publicGetRoutes = List.of(

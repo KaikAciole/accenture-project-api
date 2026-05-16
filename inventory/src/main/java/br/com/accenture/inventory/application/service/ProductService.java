@@ -91,8 +91,13 @@ public class ProductService {
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
 
+        String description = (updated.getDescription() == null || updated.getDescription().isBlank())
+                ? existing.getDescription()
+                : updated.getDescription();
+
         existing.update(
                 updated.getName(),
+                description,
                 updated.getCategory(),
                 updated.getBasePrice(),
                 updated.getStockQuantity(),

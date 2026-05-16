@@ -21,7 +21,7 @@ class PersistenceMapperTest {
     @Test
     void productMapsBetweenDomainAndEntity() {
         UUID id = UUID.randomUUID();
-        Product product = Product.restore(id, "SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5, "https://cdn.example.com/img.jpg", 3L);
+        Product product = Product.restore(id, "SKU-001", "Notebook", "Sample description", "Electronics", BigDecimal.TEN, 5, "https://cdn.example.com/img.jpg", 3L);
 
         ProductJpaEntity entity = ProductPersistenceMapper.toEntity(product);
         Product domain = ProductPersistenceMapper.toDomain(entity);
@@ -30,15 +30,17 @@ class PersistenceMapperTest {
         assertThat(ProductPersistenceMapper.toDomain(null)).isNull();
         assertThat(entity.getId()).isEqualTo(id);
         assertThat(entity.getVersion()).isEqualTo(3L);
+        assertThat(entity.getDescription()).isEqualTo("Sample description");
         assertThat(entity.getImageUrl()).isEqualTo("https://cdn.example.com/img.jpg");
         assertThat(domain.getSku()).isEqualTo("SKU-001");
+        assertThat(domain.getDescription()).isEqualTo("Sample description");
         assertThat(domain.getStockQuantity()).isEqualTo(5);
         assertThat(domain.getImageUrl()).isEqualTo("https://cdn.example.com/img.jpg");
     }
 
     @Test
     void stockReservationMapsBetweenDomainAndEntity() {
-        Product product = Product.restore(UUID.randomUUID(), "SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5, null, 0L);
+        Product product = Product.restore(UUID.randomUUID(), "SKU-001", "Notebook", "Sample description", "Electronics", BigDecimal.TEN, 5, null, 0L);
         StockReservation reservation = StockReservation.restore(
                 UUID.randomUUID(),
                 UUID.randomUUID(),

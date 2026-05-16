@@ -16,6 +16,9 @@ public record ProductRequest(
         @NotBlank(message = "Name is required")
         String name,
 
+        @Size(max = 1000, message = "Description must be at most 1000 characters")
+        String description,
+
         @NotBlank(message = "Category is required")
         String category,
 

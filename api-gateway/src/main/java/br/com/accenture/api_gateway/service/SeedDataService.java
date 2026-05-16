@@ -340,14 +340,14 @@ public class SeedDataService {
 
     private List<ProductSeed> productSeeds() {
         return List.of(
-                new ProductSeed("NB-001", "Notebook Acer Aspire", "Notebooks", new BigDecimal("3500.00"), 20, "https://placehold.co/300x300?text=Notebook"),
-                new ProductSeed("MS-001", "Mouse Logitech M170", "Acessorios", new BigDecimal("80.00"), 100, "https://placehold.co/300x300?text=Mouse"),
-                new ProductSeed("KB-001", "Teclado Mecanico Redragon", "Acessorios", new BigDecimal("250.00"), 50, "https://placehold.co/300x300?text=Teclado"),
-                new ProductSeed("MN-001", "Monitor 24 LG IPS", "Monitores", new BigDecimal("1200.00"), 30, "https://placehold.co/300x300?text=Monitor"),
-                new ProductSeed("HS-001", "Headset HyperX Cloud", "Audio", new BigDecimal("450.00"), 40, "https://placehold.co/300x300?text=Headset"),
-                new ProductSeed("WC-001", "Webcam Logitech C920", "Acessorios", new BigDecimal("600.00"), 25, "https://placehold.co/300x300?text=Webcam"),
-                new ProductSeed("CB-001", "Cabo HDMI 2m", "Cabos", new BigDecimal("20.00"), 200, "https://placehold.co/300x300?text=HDMI"),
-                new ProductSeed("PD-001", "Pendrive Sandisk 64GB", "Armazenamento", new BigDecimal("70.00"), 80, "https://placehold.co/300x300?text=Pendrive")
+                new ProductSeed("NB-001", "Notebook Acer Aspire", "Notebook Acer Aspire com processador Intel, tela 15.6\" Full HD, SSD rapido e bateria de longa duracao. Ideal para trabalho e estudos.", "Notebooks", new BigDecimal("3500.00"), 20, "https://placehold.co/300x300?text=Notebook"),
+                new ProductSeed("MS-001", "Mouse Logitech M170", "Mouse optico Logitech M170 com conexao sem fio 2.4GHz. Design ambidestro e bateria com ate 12 meses de duracao.", "Acessorios", new BigDecimal("80.00"), 100, "https://placehold.co/300x300?text=Mouse"),
+                new ProductSeed("KB-001", "Teclado Mecanico Redragon", "Teclado mecanico Redragon com switches azuis, iluminacao RGB e estrutura reforcada. Ideal para gamers e digitacao intensa.", "Acessorios", new BigDecimal("250.00"), 50, "https://placehold.co/300x300?text=Teclado"),
+                new ProductSeed("MN-001", "Monitor 24 LG IPS", "Monitor LG IPS de 24 polegadas Full HD com tempo de resposta de 5ms. Tecnologia AH-IPS para cores precisas em qualquer angulo.", "Monitores", new BigDecimal("1200.00"), 30, "https://placehold.co/300x300?text=Monitor"),
+                new ProductSeed("HS-001", "Headset HyperX Cloud", "Headset gamer HyperX Cloud com som surround 7.1, microfone destacavel e almofadas em memory foam para uso prolongado.", "Audio", new BigDecimal("450.00"), 40, "https://placehold.co/300x300?text=Headset"),
+                new ProductSeed("WC-001", "Webcam Logitech C920", "Webcam Logitech C920 com gravacao Full HD 1080p, microfone estereo e correcao automatica de iluminacao. Otima para videochamadas.", "Acessorios", new BigDecimal("600.00"), 25, "https://placehold.co/300x300?text=Webcam"),
+                new ProductSeed("CB-001", "Cabo HDMI 2m", "Cabo HDMI 2.0 de 2 metros com suporte a 4K 60Hz e canal de retorno de audio (ARC). Conectores banhados a ouro.", "Cabos", new BigDecimal("20.00"), 200, "https://placehold.co/300x300?text=HDMI"),
+                new ProductSeed("PD-001", "Pendrive Sandisk 64GB", "Pendrive Sandisk 64GB USB 3.0 com velocidade de transferencia de ate 100MB/s. Design compacto e duravel.", "Armazenamento", new BigDecimal("70.00"), 80, "https://placehold.co/300x300?text=Pendrive")
         );
     }
 
@@ -360,6 +360,7 @@ public class SeedDataService {
                     .bodyValue(Map.of(
                             "sku", product.sku,
                             "name", product.name,
+                            "description", product.description,
                             "category", product.category,
                             "basePrice", product.basePrice,
                             "stockQuantity", product.stockQuantity,
@@ -525,7 +526,7 @@ public class SeedDataService {
     }
 
     private record ProductSeed(
-            String sku, String name, String category,
+            String sku, String name, String description, String category,
             BigDecimal basePrice, Integer stockQuantity, String imageUrl
     ) {}
 }

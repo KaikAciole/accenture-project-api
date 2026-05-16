@@ -17,6 +17,7 @@ public final class ProductDtoMapper {
         return Product.createNew(
                 request.sku(),
                 request.name(),
+                request.description(),
                 request.category(),
                 request.basePrice(),
                 request.stockQuantity(),
@@ -33,6 +34,7 @@ public final class ProductDtoMapper {
                 product.getId(),
                 product.getSku(),
                 product.getName(),
+                product.getDescription(),
                 product.getCategory(),
                 product.getBasePrice(),
                 product.getStockQuantity(),

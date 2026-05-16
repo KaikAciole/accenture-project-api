@@ -112,13 +112,15 @@ public class MercadoPagoWalletTopUpGateway implements WalletTopUpGateway {
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString();
 
+        String sandboxPayerEmail = request.customerId() + "@testuser.com";
+
         return new MercadoPagoCreateOrderRequest(
                 "online",
                 "manual",
                 request.topUpId().toString(),
                 formattedAmount,
                 new MercadoPagoCreateOrderRequest.Payer(
-                        request.customerEmail()
+                        sandboxPayerEmail
                 ),
                 List.of(
                         new MercadoPagoCreateOrderRequest.Item(

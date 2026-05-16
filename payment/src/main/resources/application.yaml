@@ -27,7 +27,7 @@ spring:
       path: /h2-console
 
   rabbitmq:
-    addresses: ${RABBITMQ_URL:amqps://seu-usuario:sua-senha@seu-host.rmq.cloudamqp.com/seu-vhost}
+    addresses: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672}
 
 payment:
   wallet:

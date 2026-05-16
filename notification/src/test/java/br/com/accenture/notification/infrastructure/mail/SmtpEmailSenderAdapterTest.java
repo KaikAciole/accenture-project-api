@@ -44,7 +44,7 @@ class SmtpEmailSenderAdapterTest {
         assertThat(sent.getSubject()).isEqualTo("Bem-vindo ao AcceStore!");
         String raw = extractRaw(sent);
         assertThat(raw).contains("Bem-vindo ao AcceStore!");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -67,7 +67,7 @@ class SmtpEmailSenderAdapterTest {
         assertThat(raw).contains("ORDER-42");
         assertThat(raw).contains("PROD-999").contains("PROD-888");
         assertThat(raw).contains("R$").contains("300,00");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -81,7 +81,7 @@ class SmtpEmailSenderAdapterTest {
         String raw = extractRaw(sent);
         assertThat(raw).contains("ORDER-77");
         assertThat(raw).contains("Pagamento confirmado!");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -96,7 +96,7 @@ class SmtpEmailSenderAdapterTest {
         assertThat(raw).contains("ORDER-99");
         assertThat(raw).contains("Pagamento recusado");
         assertThat(raw).contains("Pedido cancelado");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -113,7 +113,7 @@ class SmtpEmailSenderAdapterTest {
         assertThat(raw).contains("R$").contains("250,00");
         assertThat(raw).contains("Cartao de credito");
         assertThat(raw).contains("Cartao sem limite");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -130,7 +130,7 @@ class SmtpEmailSenderAdapterTest {
         assertThat(raw).contains("R$").contains("99,90");
         assertThat(raw).contains("PIX");
         assertThat(raw).contains("Cancelado pelo cliente");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -145,7 +145,7 @@ class SmtpEmailSenderAdapterTest {
         assertThat(raw).contains("ORDER-303");
         assertThat(raw).contains("PROD-555");
         assertThat(raw).contains("Estoque insuficiente");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -160,7 +160,7 @@ class SmtpEmailSenderAdapterTest {
         String raw = extractRaw(sent);
         assertThat(raw).contains(resetLink);
         assertThat(raw).contains("Redefinir minha senha");
-        assertThat(raw).contains("cid:accestoreLogo");
+        assertThat(raw).contains("data:image/png;base64,");
     }
 
     @Test
@@ -188,6 +188,6 @@ class SmtpEmailSenderAdapterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         message.writeTo(baos);
         String raw = baos.toString(StandardCharsets.UTF_8);
-        return raw.replace("=\r\n", "").replace("=\n", "");
+        return raw.replace("=\r\n", "").replace("=\n", "").replace("=3D", "=");
     }
 }

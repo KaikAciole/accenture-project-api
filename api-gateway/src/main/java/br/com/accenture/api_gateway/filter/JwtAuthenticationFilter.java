@@ -119,6 +119,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                     return super.getHeader(name);
                 }
+
+                @Override
+                public java.util.Enumeration<String> getHeaders(String name) {
+                    if ("X-Customer-Id".equalsIgnoreCase(name)) {
+                        return java.util.Collections.enumeration(java.util.Collections.singletonList(customerId));
+                    }
+                    if ("X-User-Roles".equalsIgnoreCase(name)) {
+                        return java.util.Collections.enumeration(java.util.Collections.singletonList(rolesHeader));
+                    }
+                    return super.getHeaders(name);
+                }
+
+                @Override
+                public java.util.Enumeration<String> getHeaderNames() {
+                    java.util.Set<String> names = new java.util.LinkedHashSet<>(
+                            java.util.Collections.list(super.getHeaderNames())
+                    );
+                    names.add("X-Customer-Id");
+                    names.add("X-User-Roles");
+                    return java.util.Collections.enumeration(names);
+                }
             };
 
             filterChain.doFilter(wrappedRequest, response);

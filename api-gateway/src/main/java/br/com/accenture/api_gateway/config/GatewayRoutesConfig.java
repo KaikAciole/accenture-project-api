@@ -8,6 +8,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.addRequestHeader;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.rewritePath;
+import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.setPath;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.uri;
 import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.route;
 import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.http;
@@ -29,8 +30,8 @@ public class GatewayRoutesConfig {
                 .build();
 
         RouterFunction<ServerResponse> cepRoute = route("cep-lookup")
-                .route(path("/api/v1/cep/lookup/**"), http())
-                .before(rewritePath("/api/v1/cep/lookup/(?<segment>.*)", "/cep/lookup/${segment}"))
+                .route(path("/api/v1/cep/lookup"), http())
+                .before(setPath("/cep/lookup"))
                 .before(addRequestHeader("X-Internal-Secret", internalSecret))
                 .before(uri("http://localhost:8082"))
                 .build();

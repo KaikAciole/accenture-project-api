@@ -57,4 +57,25 @@ public class OrderRepositoryAdapter implements OrderRepository {
                 entityPage.getTotalPages()
         );
     }
+
+    @Override
+    public PaginatedResult<Order> findAll(int page, int size) {
+        org.springframework.data.domain.PageRequest pageRequest =
+                org.springframework.data.domain.PageRequest.of(page, size);
+
+        org.springframework.data.domain.Page<OrderJpaEntity> entityPage =
+                jpaRepository.findAll(pageRequest);
+
+        List<Order> domainOrders = entityPage.getContent().stream()
+                .map(OrderPersistenceMapper::toDomain)
+                .toList();
+
+        return new PaginatedResult<>(
+                domainOrders,
+                entityPage.getNumber(),
+                entityPage.getSize(),
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages()
+        );
+    }
 }

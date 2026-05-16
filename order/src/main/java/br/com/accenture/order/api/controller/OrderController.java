@@ -45,6 +45,28 @@ public class OrderController {
         return ResponseEntity.created(location).body(new OrderResponse(savedOrder));
     }
 
+    @GetMapping
+    public ResponseEntity<PaginatedResult<OrderResponse>> listAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        PaginatedResult<Order> paginatedOrders = orderService.findAll(page, size);
+
+        List<OrderResponse> responses = paginatedOrders.data().stream()
+                .map(OrderResponse::new)
+                .toList();
+
+        PaginatedResult<OrderResponse> responsePage = new PaginatedResult<>(
+                responses,
+                paginatedOrders.page(),
+                paginatedOrders.size(),
+                paginatedOrders.totalElements(),
+                paginatedOrders.totalPages()
+        );
+
+        return ResponseEntity.ok(responsePage);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getOrderById(@PathVariable UUID id) {
         Order order = orderService.findById(id);

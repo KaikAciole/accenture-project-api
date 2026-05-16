@@ -109,6 +109,11 @@ public class OrderService {
         return orderRepository.findByCustomerId(customerId, page, size);
     }
 
+    @Transactional(readOnly = true)
+    public PaginatedResult<Order> findAll(int page, int size) {
+        return orderRepository.findAll(page, size);
+    }
+
     @Transactional
     public Order markOrderAsReserved(UUID id) {
         Order order = findById(id);

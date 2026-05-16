@@ -6,6 +6,7 @@ import br.com.accenture.order.application.publisher.OrderEventPublisher;
 import br.com.accenture.order.domain.enums.OrderStatus;
 import br.com.accenture.order.domain.exception.InsufficientStockException;
 import br.com.accenture.order.domain.exception.InvalidAddressException;
+import br.com.accenture.order.domain.exception.InventoryUnavailableException;
 import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.DeliveryAddress;
 import br.com.accenture.order.domain.model.Order;
@@ -55,8 +56,15 @@ public class OrderService {
                 .map(item -> new ProductAvailabilityItemRequest(item.sku(), item.quantity()))
                 .toList();
 
-        List<ProductAvailabilityItemResponse> availabilityList = inventoryClient.checkAvailability(
-                new ProductAvailabilityRequest(checkItems), internalSecret);
+        List<ProductAvailabilityItemResponse> availabilityList;
+        try {
+            availabilityList = inventoryClient.checkAvailability(
+                    new ProductAvailabilityRequest(checkItems), internalSecret);
+        } catch (FeignException ex) {
+            throw new InventoryUnavailableException(
+                    "Não foi possível verificar disponibilidade de estoque: " + ex.getMessage(), ex
+            );
+        }
 
         for (ProductAvailabilityItemResponse response : availabilityList) {
             if (!response.available()) {

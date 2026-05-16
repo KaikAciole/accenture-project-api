@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 public class AuthEventPublisherAdapter implements AuthEventPublisher {
@@ -43,15 +45,15 @@ public class AuthEventPublisherAdapter implements AuthEventPublisher {
     }
 
     @Override
-    public void publishPasswordResetRequestedEvent(String email, String plainToken) {
+    public void publishPasswordResetRequestedEvent(UUID customerId, String email, String plainToken) {
         try {
-            PasswordResetRequestedEvent event = new PasswordResetRequestedEvent(email, plainToken);
+            PasswordResetRequestedEvent event = new PasswordResetRequestedEvent(customerId, email, plainToken);
 
             String jsonPayload = objectMapper.writeValueAsString(event);
 
             OutboxEventJpaEntity outboxEntity = OutboxEventJpaEntity.create(
                     "User",
-                    email,
+                    customerId.toString(),
                     "password.reset.requested",
                     jsonPayload
             );

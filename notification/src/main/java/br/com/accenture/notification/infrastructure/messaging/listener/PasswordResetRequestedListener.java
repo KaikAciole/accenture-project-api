@@ -19,7 +19,7 @@ public class PasswordResetRequestedListener {
 
     @RabbitListener(queues = RabbitConfig.PASSWORD_RESET_REQUESTED_QUEUE)
     public void handle(PasswordResetRequestedEvent event) {
-        log.info("Received password.reset.requested event for email={}", event.email());
-        service.sendPasswordReset(event.email(), event.token());
+        log.info("Received password.reset.requested event for customerId={}", event.customerId());
+        service.sendPasswordReset(event.customerId(), event.email(), event.token());
     }
 }

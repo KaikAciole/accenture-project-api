@@ -80,7 +80,7 @@ class RequestPasswordResetUseCaseTest {
         assertThat(tokenCaptor.getValue().getTokenHash()).startsWith("hashed:");
         assertThat(tokenCaptor.getValue().getExpiresAt()).isAfter(Instant.now());
 
-        verify(eventPublisher).publishPasswordResetRequestedEvent(eq("user@example.com"), any());
+        verify(eventPublisher).publishPasswordResetRequestedEvent(eq(customerId), eq("user@example.com"), any());
     }
 
     @Test
@@ -90,6 +90,6 @@ class RequestPasswordResetUseCaseTest {
         useCase.execute(new RequestPasswordResetCommand("unknown@example.com"));
 
         verify(tokenRepository, never()).save(any());
-        verify(eventPublisher, never()).publishPasswordResetRequestedEvent(any(), any());
+        verify(eventPublisher, never()).publishPasswordResetRequestedEvent(any(), any(), any());
     }
 }

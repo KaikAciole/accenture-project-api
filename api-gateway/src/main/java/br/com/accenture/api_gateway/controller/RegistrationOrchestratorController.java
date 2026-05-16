@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -83,6 +84,10 @@ public class RegistrationOrchestratorController {
                                         .then(Mono.error(new RuntimeException("Registration failed: " + throwable.getMessage())));
                             });
                 })
-                .map(res -> ResponseEntity.status(HttpStatus.CREATED).build());
+                .<ResponseEntity<Void>>map(res -> ResponseEntity.status(HttpStatus.CREATED).build())
+                .onErrorResume(WebClientResponseException.Conflict.class, ex -> {
+                    log.warn("Conflito ao registrar {}: {}", request.email(), ex.getStatusText());
+                    return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build());
+                });
     }
 }

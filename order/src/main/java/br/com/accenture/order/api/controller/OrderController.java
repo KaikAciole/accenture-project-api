@@ -6,6 +6,7 @@ import br.com.accenture.order.api.dto.response.OrderResponse;
 import br.com.accenture.order.application.dto.OrderItemCommand;
 import br.com.accenture.order.application.dto.PaginatedResult;
 import br.com.accenture.order.application.service.OrderService;
+import br.com.accenture.order.domain.exception.OrderNotFoundException;
 import br.com.accenture.order.domain.model.Order;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -68,8 +69,12 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable UUID id) {
+    public ResponseEntity<OrderResponse> getOrderById(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID customerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles) {
         Order order = orderService.findById(id);
+        validateOwnership(order, customerId, roles);
         return ResponseEntity.ok(new OrderResponse(order));
     }
 
@@ -97,8 +102,24 @@ public class OrderController {
     }
 
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable UUID id) {
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID customerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles) {
+        if (customerId != null) {
+            validateOwnership(orderService.findById(id), customerId, roles);
+        }
         Order canceledOrder = orderService.cancelOrder(id, "Cancelamento solicitado pelo cliente via API");
         return ResponseEntity.ok(new OrderResponse(canceledOrder));
+    }
+
+    private void validateOwnership(Order order, UUID customerId, String roles) {
+        if (customerId == null) {
+            return;
+        }
+        boolean isAdmin = roles != null && roles.contains("ADMIN");
+        if (!isAdmin && !order.getCustomerId().equals(customerId)) {
+            throw new OrderNotFoundException(order.getId());
+        }
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Slf4j
 @Service
 public class PasswordResetNotificationService {
@@ -28,13 +30,13 @@ public class PasswordResetNotificationService {
     }
 
     @Transactional
-    public void sendPasswordReset(String email, String token) {
+    public void sendPasswordReset(UUID customerId, String email, String token) {
         String separator = resetUrlBase.contains("?") ? "&" : "?";
         String resetLink = resetUrlBase + separator + "token=" + token + "&email=" + email;
 
         emailSender.sendPasswordResetEmail(email, resetLink);
 
-        Notification notification = Notification.create(email, email, PASSWORD_RESET_SUBJECT, PASSWORD_RESET_BODY);
+        Notification notification = Notification.create(customerId.toString(), email, PASSWORD_RESET_SUBJECT, PASSWORD_RESET_BODY);
         notification.markAsSent();
         repository.save(notification);
     }

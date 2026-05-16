@@ -2,10 +2,12 @@ package br.com.accenture.payment.application.service.wallet;
 
 import br.com.accenture.payment.api.webhook.dto.MercadoPagoWebhookRequest;
 import br.com.accenture.payment.application.port.WalletTopUpGateway;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class WalletTopUpWebhookService {
 
@@ -38,8 +40,24 @@ public class WalletTopUpWebhookService {
         );
 
         if (isApproved(order)) {
-            UUID topUpId = UUID.fromString(order.externalReference());
+            UUID topUpId = parseTopUpId(order.externalReference());
+            if (topUpId == null) {
+                return;
+            }
             transactionService.approveTopUpAndCreditWallet(topUpId, order.totalPaidAmount());
+        }
+    }
+
+    private UUID parseTopUpId(String externalReference) {
+        if (externalReference == null || externalReference.isBlank()) {
+            log.warn("Webhook Mercado Pago recebido sem externalReference; ignorando.");
+            return null;
+        }
+        try {
+            return UUID.fromString(externalReference);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Webhook Mercado Pago com externalReference inválido: {}", externalReference);
+            return null;
         }
     }
 

@@ -27,6 +27,7 @@ public final class OrderPersistenceMapper {
                 .deliveryAddress(toEmbeddable(order.getDeliveryAddress()))
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .version(order.getVersion())
                 .build();
 
         var itemEntities = order.getItems().stream()
@@ -70,7 +71,8 @@ public final class OrderPersistenceMapper {
                 new ArrayList<>(items),
                 toDomain(entity.getDeliveryAddress()),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVersion()
         );
     }
 

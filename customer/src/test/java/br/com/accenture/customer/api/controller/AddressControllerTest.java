@@ -188,4 +188,36 @@ class AddressControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void delete_shouldReturn404WhenCustomerIdInHeaderDoesNotMatchPath() throws Exception {
+        UUID otherCustomerId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/customers/{customerId}/addresses/{addressId}", customerId, addressId)
+                        .header("X-Customer-Id", otherCustomerId.toString())
+                        .header("X-User-Roles", "CUSTOMER"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Address not found"));
+    }
+
+    @Test
+    void delete_shouldAllowAdminEvenWithDifferentCustomerIdInHeader() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        doNothing().when(addressService).delete(customerId, addressId);
+
+        mockMvc.perform(delete("/customers/{customerId}/addresses/{addressId}", customerId, addressId)
+                        .header("X-Customer-Id", adminId.toString())
+                        .header("X-User-Roles", "ADMIN"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void delete_shouldAllowSameCustomerInHeader() throws Exception {
+        doNothing().when(addressService).delete(customerId, addressId);
+
+        mockMvc.perform(delete("/customers/{customerId}/addresses/{addressId}", customerId, addressId)
+                        .header("X-Customer-Id", customerId.toString())
+                        .header("X-User-Roles", "CUSTOMER"))
+                .andExpect(status().isNoContent());
+    }
+
 }

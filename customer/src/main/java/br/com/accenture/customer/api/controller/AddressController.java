@@ -6,6 +6,7 @@ import br.com.accenture.customer.api.dto.PageResponse;
 import br.com.accenture.customer.api.mapper.AddressDtoMapper;
 import br.com.accenture.customer.api.mapper.PageRequestMapper;
 import br.com.accenture.customer.application.service.AddressService;
+import br.com.accenture.customer.domain.exception.AddressNotFoundException;
 import br.com.accenture.customer.domain.model.Address;
 import br.com.accenture.customer.domain.pagination.PageRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -62,7 +64,10 @@ public class AddressController {
             @Parameter(description = "Identificador do cliente",
                     example = "550e8400-e29b-41d4-a716-446655440000")
             @PathVariable UUID customerId,
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID xCustomerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles,
             @Valid @RequestBody AddressRequest request) {
+        validateCustomerAccess(customerId, xCustomerId, roles);
         Address created = addressService.create(AddressDtoMapper.toDomain(request, customerId));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
@@ -87,7 +92,10 @@ public class AddressController {
             @Parameter(description = "Identificador do cliente",
                     example = "550e8400-e29b-41d4-a716-446655440000")
             @PathVariable UUID customerId,
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID xCustomerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles,
             @Parameter(hidden = true) Pageable pageable) {
+        validateCustomerAccess(customerId, xCustomerId, roles);
         PageRequest pageRequest = PageRequestMapper.toDomain(pageable);
         return PageResponse.from(
                 addressService.findByCustomerId(customerId, pageRequest)
@@ -114,7 +122,10 @@ public class AddressController {
             @PathVariable UUID customerId,
             @Parameter(description = "Identificador do endereço",
                     example = "1d2e8400-e29b-41d4-a716-446655441111")
-            @PathVariable UUID addressId) {
+            @PathVariable UUID addressId,
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID xCustomerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles) {
+        validateCustomerAccess(customerId, xCustomerId, roles);
         return AddressDtoMapper.toResponse(addressService.findByCustomerAndId(customerId, addressId));
     }
 
@@ -140,7 +151,10 @@ public class AddressController {
             @Parameter(description = "Identificador do endereço",
                     example = "1d2e8400-e29b-41d4-a716-446655441111")
             @PathVariable UUID addressId,
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID xCustomerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles,
             @Valid @RequestBody AddressRequest request) {
+        validateCustomerAccess(customerId, xCustomerId, roles);
         Address updated = addressService.update(
                 customerId,
                 addressId,
@@ -167,9 +181,25 @@ public class AddressController {
             @PathVariable UUID customerId,
             @Parameter(description = "Identificador do endereço",
                     example = "1d2e8400-e29b-41d4-a716-446655441111")
-            @PathVariable UUID addressId) {
+            @PathVariable UUID addressId,
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID xCustomerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles) {
+        validateCustomerAccess(customerId, xCustomerId, roles);
         addressService.delete(customerId, addressId);
         return ResponseEntity.noContent().build();
+    }
+
+    private static void validateCustomerAccess(UUID customerIdFromPath, UUID customerIdFromHeader, String roles) {
+        if (customerIdFromHeader == null) {
+            return;
+        }
+        boolean isAdmin = roles != null && roles.contains("ADMIN");
+        if (isAdmin) {
+            return;
+        }
+        if (!customerIdFromPath.equals(customerIdFromHeader)) {
+            throw new AddressNotFoundException("Address not found");
+        }
     }
 
 }

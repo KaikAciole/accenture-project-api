@@ -18,6 +18,12 @@ public class InternalTrafficFilter extends OncePerRequestFilter {
     private String internalSecret;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path != null && path.startsWith("/webhooks");
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,

@@ -12,6 +12,7 @@ public class Product {
     private UUID id;
     private String sku;
     private String name;
+    private String description;
     private String category;
     private BigDecimal basePrice;
     private Integer stockQuantity;
@@ -21,6 +22,7 @@ public class Product {
     private Product(UUID id,
                     String sku,
                     String name,
+                    String description,
                     String category,
                     BigDecimal basePrice,
                     Integer stockQuantity,
@@ -29,6 +31,7 @@ public class Product {
         this.id = id;
         this.sku = sku;
         this.name = name;
+        this.description = description;
         this.category = category;
         this.basePrice = basePrice;
         this.stockQuantity = stockQuantity;
@@ -38,41 +41,47 @@ public class Product {
 
     public static Product createNew(String sku,
                                     String name,
+                                    String description,
                                     String category,
                                     BigDecimal basePrice,
                                     Integer stockQuantity,
                                     String imageUrl) {
         requireNotBlank(sku, "sku");
         requireNotBlank(name, "name");
+        requireNotBlank(description, "description");
         requireNotBlank(category, "category");
         requirePositive(basePrice);
         requirePositiveOrZero(stockQuantity);
 
-        return new Product(null, sku, name, category, basePrice, stockQuantity, imageUrl, null);
+        return new Product(null, sku, name, description, category, basePrice, stockQuantity, imageUrl, null);
     }
 
     public static Product restore(UUID id,
                                   String sku,
                                   String name,
+                                  String description,
                                   String category,
                                   BigDecimal basePrice,
                                   Integer stockQuantity,
                                   String imageUrl,
                                   Long version) {
-        return new Product(id, sku, name, category, basePrice, stockQuantity, imageUrl, version);
+        return new Product(id, sku, name, description, category, basePrice, stockQuantity, imageUrl, version);
     }
 
     public void update(String name,
+                       String description,
                        String category,
                        BigDecimal basePrice,
                        Integer stockQuantity,
                        String imageUrl) {
         requireNotBlank(name, "name");
+        requireNotBlank(description, "description");
         requireNotBlank(category, "category");
         requirePositive(basePrice);
         requirePositiveOrZero(stockQuantity);
 
         this.name = name;
+        this.description = description;
         this.category = category;
         this.basePrice = basePrice;
         this.stockQuantity = stockQuantity;

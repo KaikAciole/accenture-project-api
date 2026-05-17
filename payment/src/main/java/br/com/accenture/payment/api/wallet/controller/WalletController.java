@@ -7,6 +7,7 @@ import br.com.accenture.payment.api.wallet.dto.request.WalletDebitRequest;
 import br.com.accenture.payment.api.wallet.dto.request.WalletTopUpRequest;
 import br.com.accenture.payment.api.wallet.dto.request.WalletTransferRequest;
 import br.com.accenture.payment.api.wallet.dto.response.WalletResponse;
+import br.com.accenture.payment.api.wallet.dto.response.TopUpSubmitResponse;
 import br.com.accenture.payment.api.wallet.dto.response.WalletTopUpResponse;
 import br.com.accenture.payment.api.wallet.dto.response.WalletTransactionResponse;
 import br.com.accenture.payment.api.wallet.mapper.WalletDtoMapper;
@@ -15,6 +16,7 @@ import br.com.accenture.payment.application.service.wallet.WalletService;
 import br.com.accenture.payment.application.service.wallet.WalletTopUpService;
 import br.com.accenture.payment.domain.pagination.PageResult;
 import br.com.accenture.payment.domain.wallet.enums.WalletOwnerType;
+import br.com.accenture.payment.domain.wallet.exception.WalletNotFoundException;
 import br.com.accenture.payment.domain.wallet.model.Wallet;
 import br.com.accenture.payment.domain.wallet.model.WalletTopUp;
 import br.com.accenture.payment.domain.wallet.model.WalletTransaction;
@@ -147,8 +149,13 @@ public class WalletController {
             @Parameter(description = "ID do dono da Wallet")
             @PathVariable UUID ownerId,
 
+            @RequestHeader(value = "X-Customer-Id", required = false) UUID customerId,
+            @RequestHeader(value = "X-User-Roles", required = false) String roles,
+
             @Parameter(hidden = true) Pageable pageable
     ) {
+        validateTransactionsOwnership(ownerType, ownerId, customerId, roles);
+
         Wallet wallet = walletService.findByOwner(ownerId, ownerType);
         PageResult<WalletTransaction> transactions = walletService.findTransactions(
                 wallet.getId(),
@@ -156,6 +163,19 @@ public class WalletController {
         );
 
         return WalletDtoMapper.toTransactionPageResponse(transactions);
+    }
+
+    private void validateTransactionsOwnership(WalletOwnerType ownerType, UUID ownerId, UUID customerId, String roles) {
+        if (customerId == null) {
+            return;
+        }
+        boolean isAdmin = roles != null && roles.contains("ADMIN");
+        if (isAdmin) {
+            return;
+        }
+        if (ownerType != WalletOwnerType.CUSTOMER || !customerId.equals(ownerId)) {
+            throw WalletNotFoundException.byOwner(ownerId, ownerType);
+        }
     }
 
     @PostMapping("/{walletId}/top-ups")
@@ -176,14 +196,41 @@ public class WalletController {
 
             @RequestBody @Valid WalletTopUpRequest request
     ) {
-        WalletTopUp topUp = walletTopUpService.startTopUp(
+        WalletTopUp topUp = walletTopUpService.createPendingTopUp(
                 walletId,
                 request.customerId(),
-                request.amount(),
-                request.customerEmail()
+                request.amount()
         );
 
         return WalletTopUpDtoMapper.toResponse(topUp);
+    }
+
+    @PostMapping("/top-ups/{topUpId}/submit")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Submeter recarga ao Mercado Pago",
+            description = "Dispara a criação da order no Mercado Pago para uma recarga pendente e retorna o QR Code do PIX."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Recarga submetida com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Recarga não encontrada", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Mercado Pago recusou a recarga", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor", content = @Content)
+    })
+    public TopUpSubmitResponse submitTopUp(
+            @Parameter(description = "ID da recarga pendente")
+            @PathVariable UUID topUpId
+    ) {
+        WalletTopUpService.TopUpSubmissionResult result = walletTopUpService.submitToMercadoPago(topUpId);
+        WalletTopUp topUp = result.topUp();
+        return new TopUpSubmitResponse(
+                topUp.getId(),
+                topUp.getExternalOrderId(),
+                topUp.getStatus().name(),
+                result.qrCode(),
+                result.qrCodeBase64(),
+                result.ticketUrl()
+        );
     }
 
     @PatchMapping("/{walletId}/credit")

@@ -32,7 +32,7 @@ class ProductControllerTest {
     void createReturnsCreatedResponseWithLocation() {
         Product saved = TestFixtures.restoredProduct();
         when(service.create(any(Product.class))).thenReturn(saved);
-        ProductRequest request = new ProductRequest("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5, null);
+        ProductRequest request = new ProductRequest("SKU-001", "Notebook", "Sample description", "Electronics", BigDecimal.TEN, 5, null);
         MockHttpServletRequest servletRequest = new MockHttpServletRequest("POST", "/products");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(servletRequest));
 
@@ -64,7 +64,7 @@ class ProductControllerTest {
     @Test
     void updateAndDeleteDelegateToService() {
         Product saved = TestFixtures.restoredProduct();
-        ProductRequest request = new ProductRequest("SKU-001", "Notebook", "Electronics", BigDecimal.TEN, 5, null);
+        ProductRequest request = new ProductRequest("SKU-001", "Notebook", "Sample description", "Electronics", BigDecimal.TEN, 5, null);
         when(service.update(any(), any(Product.class))).thenReturn(saved);
 
         var updated = controller.update(TestFixtures.PRODUCT_ID, request);

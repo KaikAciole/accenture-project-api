@@ -8,4 +8,8 @@ public class AddressNotFoundException extends RuntimeException {
         super("Address not found with id: " + id);
     }
 
+    public AddressNotFoundException(String message) {
+        super(message);
+    }
+
 }

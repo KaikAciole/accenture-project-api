@@ -17,6 +17,7 @@ public final class ProductPersistenceMapper {
                 .id(product.getId())
                 .sku(product.getSku())
                 .name(product.getName())
+                .description(product.getDescription())
                 .category(product.getCategory())
                 .basePrice(product.getBasePrice())
                 .stockQuantity(product.getStockQuantity())
@@ -34,6 +35,7 @@ public final class ProductPersistenceMapper {
                 entity.getId(),
                 entity.getSku(),
                 entity.getName(),
+                entity.getDescription(),
                 entity.getCategory(),
                 entity.getBasePrice(),
                 entity.getStockQuantity(),

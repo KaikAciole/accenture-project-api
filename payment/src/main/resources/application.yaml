@@ -55,10 +55,10 @@ payment:
       routing-key:
         created: user.registered
 
-mercado-pago:
-  access-token: ${MERCADO_PAGO_ACCESS_TOKEN}
-  public-key: ${MERCADO_PAGO_PUBLIC_KEY}
-  notification-url: ${MERCADO_PAGO_NOTIFICATION_URL:http://localhost:8086/webhooks/mercado-pago}
+abacate-pay:
+  api-key: ${ABACATEPAY_API_KEY:}
+  webhook-secret: ${ABACATEPAY_WEBHOOK_SECRET:}
+  fixed-charge-amount: 1.00
 
 
 springdoc:

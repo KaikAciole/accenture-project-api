@@ -1,68 +1,77 @@
 package br.com.accenture.payment.application.service.wallet;
 
-import br.com.accenture.payment.api.webhook.dto.MercadoPagoWebhookRequest;
-import br.com.accenture.payment.application.port.WalletTopUpGateway;
+import br.com.accenture.payment.api.webhook.dto.AbacatePayWebhookRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @Service
 public class WalletTopUpWebhookService {
 
-    private static final String ORDER_TYPE = "order";
-    private static final String PROCESSED_STATUS = "processed";
-    private static final String ACCREDITED_STATUS_DETAIL = "accredited";
+    private static final String PAID_EVENT = "transparent.completed";
+    private static final String METADATA_TOP_UP_ID_KEY = "topUpId";
 
-    private final WalletTopUpGateway walletTopUpGateway;
     private final WalletTopUpTransactionService transactionService;
 
-    public WalletTopUpWebhookService(
-            WalletTopUpGateway walletTopUpGateway,
-            WalletTopUpTransactionService transactionService
-    ) {
-        this.walletTopUpGateway = walletTopUpGateway;
+    public WalletTopUpWebhookService(WalletTopUpTransactionService transactionService) {
         this.transactionService = transactionService;
     }
 
-    public void processOrderNotification(MercadoPagoWebhookRequest request) {
-        if (request == null || request.data() == null || request.data().id() == null) {
+    public void processNotification(AbacatePayWebhookRequest request) {
+        if (request == null || request.data() == null || request.data().transparent() == null) {
             return;
         }
 
-        if (!ORDER_TYPE.equalsIgnoreCase(request.type())) {
+        if (!PAID_EVENT.equalsIgnoreCase(request.event())) {
             return;
         }
 
-        WalletTopUpGateway.WalletTopUpOrderResponse order = walletTopUpGateway.getOrderById(
-                request.data().id()
-        );
+        AbacatePayWebhookRequest.Transparent transparent = request.data().transparent();
 
-        if (isApproved(order)) {
-            UUID topUpId = parseTopUpId(order.externalReference());
-            if (topUpId == null) {
-                return;
-            }
-            transactionService.approveTopUpAndCreditWallet(topUpId, order.totalPaidAmount());
+        UUID topUpId = resolveTopUpId(transparent);
+        if (topUpId == null) {
+            return;
         }
+
+        BigDecimal paidAmount = centsToAmount(transparent.amount());
+
+        transactionService.approveTopUpAndCreditWallet(topUpId, paidAmount);
     }
 
-    private UUID parseTopUpId(String externalReference) {
-        if (externalReference == null || externalReference.isBlank()) {
-            log.warn("Webhook Mercado Pago recebido sem externalReference; ignorando.");
+    private UUID resolveTopUpId(AbacatePayWebhookRequest.Transparent transparent) {
+        String externalId = transparent.externalId();
+        if (externalId == null || externalId.isBlank()) {
+            externalId = extractTopUpIdFromMetadata(transparent.metadata());
+        }
+        if (externalId == null || externalId.isBlank()) {
+            log.warn("Webhook AbacatePay sem externalId nem metadata.topUpId; ignorando.");
             return null;
         }
         try {
-            return UUID.fromString(externalReference);
+            return UUID.fromString(externalId);
         } catch (IllegalArgumentException ex) {
-            log.warn("Webhook Mercado Pago com externalReference inválido: {}", externalReference);
+            log.warn("Webhook AbacatePay com identificador invalido: {}", externalId);
             return null;
         }
     }
 
-    private boolean isApproved(WalletTopUpGateway.WalletTopUpOrderResponse order) {
-        return PROCESSED_STATUS.equalsIgnoreCase(order.status())
-                && ACCREDITED_STATUS_DETAIL.equalsIgnoreCase(order.statusDetail());
+    private String extractTopUpIdFromMetadata(Map<String, Object> metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        Object value = metadata.get(METADATA_TOP_UP_ID_KEY);
+        return value == null ? null : value.toString();
+    }
+
+    private BigDecimal centsToAmount(Integer amountInCents) {
+        if (amountInCents == null) {
+            return BigDecimal.ZERO;
+        }
+        return new BigDecimal(amountInCents).movePointLeft(2).setScale(2, RoundingMode.HALF_UP);
     }
 }

@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.retry.annotation.EnableRetry;
 
-@EnableConfigurationProperties({PaymentWalletProperties.class, PaymentMessagingProperties.class, PaymentOrderMessagingProperties.class, PaymentCustomerMessagingProperties.class, MercadoPagoProperties.class})
+@EnableConfigurationProperties({PaymentWalletProperties.class, PaymentMessagingProperties.class, PaymentOrderMessagingProperties.class, PaymentCustomerMessagingProperties.class, AbacatePayProperties.class})
 @SpringBootApplication
 @EnableRetry
 public class PaymentApplication {

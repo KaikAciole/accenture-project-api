@@ -5,6 +5,7 @@ import br.com.accenture.payment.domain.wallet.model.WalletTopUp;
 import br.com.accenture.payment.domain.wallet.enums.WalletTopUpStatus;
 import br.com.accenture.payment.domain.wallet.enums.WalletTransactionReason;
 import br.com.accenture.payment.domain.wallet.repository.WalletTopUpRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,13 +17,16 @@ public class WalletTopUpTransactionService {
 
     private final WalletService walletService;
     private final WalletTopUpRepository walletTopUpRepository;
+    private final BigDecimal fixedChargeAmount;
 
     public WalletTopUpTransactionService(
             WalletService walletService,
-            WalletTopUpRepository walletTopUpRepository
+            WalletTopUpRepository walletTopUpRepository,
+            @Value("${abacate-pay.fixed-charge-amount}") BigDecimal fixedChargeAmount
     ) {
         this.walletService = walletService;
         this.walletTopUpRepository = walletTopUpRepository;
+        this.fixedChargeAmount = fixedChargeAmount;
     }
 
     @Transactional
@@ -65,8 +69,8 @@ public class WalletTopUpTransactionService {
             return;
         }
 
-        if (paidAmount == null || paidAmount.compareTo(topUp.getAmount()) < 0) {
-            throw new IllegalArgumentException("Paid amount is lower than top-up amount");
+        if (paidAmount == null || paidAmount.compareTo(fixedChargeAmount) < 0) {
+            throw new IllegalArgumentException("Paid amount is lower than the configured charge amount");
         }
 
         walletService.credit(

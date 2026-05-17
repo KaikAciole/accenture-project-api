@@ -44,9 +44,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             new RouteRule("PUT", "/products/**"),
             new RouteRule("DELETE", "/products/**"),
             new RouteRule("GET", "/customers"),
-            new RouteRule("DELETE", "/customers/**"),
-            new RouteRule("GET", "/orders"),
-            new RouteRule("GET", "/wallets/owners/*/*/transactions")
+            new RouteRule("DELETE", "/customers/*"),
+            new RouteRule("GET", "/orders")
     );
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();

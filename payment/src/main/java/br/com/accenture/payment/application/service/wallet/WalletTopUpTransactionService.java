@@ -22,7 +22,7 @@ public class WalletTopUpTransactionService {
     public WalletTopUpTransactionService(
             WalletService walletService,
             WalletTopUpRepository walletTopUpRepository,
-            @Value("${mercado-pago.fixed-charge-amount}") BigDecimal fixedChargeAmount
+            @Value("${abacate-pay.fixed-charge-amount}") BigDecimal fixedChargeAmount
     ) {
         this.walletService = walletService;
         this.walletTopUpRepository = walletTopUpRepository;

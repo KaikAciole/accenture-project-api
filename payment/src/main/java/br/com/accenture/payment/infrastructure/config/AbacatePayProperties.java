@@ -4,11 +4,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.math.BigDecimal;
 
-@ConfigurationProperties(prefix = "mercado-pago")
-public record MercadoPagoProperties(
-        String accessToken,
-        String publicKey,
-        String notificationUrl,
+@ConfigurationProperties(prefix = "abacate-pay")
+public record AbacatePayProperties(
+        String apiKey,
+        String webhookSecret,
         BigDecimal fixedChargeAmount
 ) {
 }

@@ -7,6 +7,7 @@ import br.com.accenture.payment.api.wallet.dto.request.WalletDebitRequest;
 import br.com.accenture.payment.api.wallet.dto.request.WalletTopUpRequest;
 import br.com.accenture.payment.api.wallet.dto.request.WalletTransferRequest;
 import br.com.accenture.payment.api.wallet.dto.response.WalletResponse;
+import br.com.accenture.payment.api.wallet.dto.response.TopUpSubmitResponse;
 import br.com.accenture.payment.api.wallet.dto.response.WalletTopUpResponse;
 import br.com.accenture.payment.api.wallet.dto.response.WalletTransactionResponse;
 import br.com.accenture.payment.api.wallet.mapper.WalletDtoMapper;
@@ -195,14 +196,41 @@ public class WalletController {
 
             @RequestBody @Valid WalletTopUpRequest request
     ) {
-        WalletTopUp topUp = walletTopUpService.startTopUp(
+        WalletTopUp topUp = walletTopUpService.createPendingTopUp(
                 walletId,
                 request.customerId(),
-                request.amount(),
-                request.customerEmail()
+                request.amount()
         );
 
         return WalletTopUpDtoMapper.toResponse(topUp);
+    }
+
+    @PostMapping("/top-ups/{topUpId}/submit")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Submeter recarga ao Mercado Pago",
+            description = "Dispara a criação da order no Mercado Pago para uma recarga pendente e retorna o QR Code do PIX."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Recarga submetida com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Recarga não encontrada", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Mercado Pago recusou a recarga", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor", content = @Content)
+    })
+    public TopUpSubmitResponse submitTopUp(
+            @Parameter(description = "ID da recarga pendente")
+            @PathVariable UUID topUpId
+    ) {
+        WalletTopUpService.TopUpSubmissionResult result = walletTopUpService.submitToMercadoPago(topUpId);
+        WalletTopUp topUp = result.topUp();
+        return new TopUpSubmitResponse(
+                topUp.getId(),
+                topUp.getExternalOrderId(),
+                topUp.getStatus().name(),
+                result.qrCode(),
+                result.qrCodeBase64(),
+                result.ticketUrl()
+        );
     }
 
     @PatchMapping("/{walletId}/credit")

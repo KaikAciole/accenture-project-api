@@ -97,10 +97,6 @@ public class WalletTopUp {
             throw new IllegalArgumentException("External order id is required");
         }
 
-        if (clientToken == null || clientToken.isBlank()) {
-            throw new IllegalArgumentException("Client token is required");
-        }
-
         this.externalOrderId = externalOrderId;
         this.clientToken = clientToken;
         this.updatedAt = Instant.now();

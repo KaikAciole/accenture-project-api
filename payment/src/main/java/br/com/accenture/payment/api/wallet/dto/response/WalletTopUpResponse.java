@@ -8,8 +8,6 @@ public record WalletTopUpResponse(
         UUID walletId,
         UUID customerId,
         BigDecimal amount,
-        String status,
-        String externalOrderId,
-        String clientToken
+        String status
 ) {
 }

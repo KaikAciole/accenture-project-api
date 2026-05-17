@@ -14,9 +14,7 @@ public class WalletTopUpDtoMapper {
                 walletTopUp.getWalletId(),
                 walletTopUp.getCustomerId(),
                 walletTopUp.getAmount(),
-                walletTopUp.getStatus().name(),
-                walletTopUp.getExternalOrderId(),
-                walletTopUp.getClientToken()
+                walletTopUp.getStatus().name()
         );
     }
 }

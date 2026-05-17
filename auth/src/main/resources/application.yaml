@@ -31,3 +31,14 @@ api:
 
 password-reset:
   token-ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:30}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  show-actuator: false
+  default-produces-media-type: application/json

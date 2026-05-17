@@ -75,9 +75,6 @@ class BucketRegistryTest {
 
     @Test
     void minuteBucketFor_shouldReuseExistingBucketIgnoringUserKeyFlagOnSubsequentCalls() {
-        // computeIfAbsent usa apenas a key, então o userKey define a capacidade
-        // somente na primeira criação do bucket. Chamadas posteriores com a mesma
-        // key reusam o bucket original independentemente do userKey passado.
         Bucket created = registry.minuteBucketFor("shared-key", true);
         Bucket reused = registry.minuteBucketFor("shared-key", false);
 

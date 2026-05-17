@@ -104,4 +104,34 @@ class OrderRepositoryAdapterTest {
         Optional<Order> found = adapter.findById(saved.getId());
         assertThat(found).isEmpty();
     }
+
+    @Test
+    @DisplayName("Deve listar todos os pedidos paginados independente do cliente")
+    void shouldFindAllOrdersWithPagination() {
+        adapter.save(Order.createNew(UUID.randomUUID(), sampleAddress()));
+        adapter.save(Order.createNew(UUID.randomUUID(), sampleAddress()));
+        adapter.save(Order.createNew(UUID.randomUUID(), sampleAddress()));
+
+        PaginatedResult<Order> result = adapter.findAll(0, 10);
+
+        assertThat(result.data()).hasSize(3);
+        assertThat(result.totalElements()).isEqualTo(3);
+        assertThat(result.page()).isZero();
+        assertThat(result.size()).isEqualTo(10);
+        assertThat(result.totalPages()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Deve respeitar tamanho da pagina ao listar todos os pedidos")
+    void shouldRespectPageSizeWhenListingAllOrders() {
+        adapter.save(Order.createNew(UUID.randomUUID(), sampleAddress()));
+        adapter.save(Order.createNew(UUID.randomUUID(), sampleAddress()));
+        adapter.save(Order.createNew(UUID.randomUUID(), sampleAddress()));
+
+        PaginatedResult<Order> firstPage = adapter.findAll(0, 2);
+
+        assertThat(firstPage.data()).hasSize(2);
+        assertThat(firstPage.totalElements()).isEqualTo(3);
+        assertThat(firstPage.totalPages()).isEqualTo(2);
+    }
 }

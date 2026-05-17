@@ -79,6 +79,14 @@ public class GatewayRoutesConfig {
                 .before(uri("http://localhost:8087"))
                 .build();
 
+        RouterFunction<ServerResponse> authDocsRoute = docsRoute("auth-docs", "/auth", "http://localhost:8081");
+        RouterFunction<ServerResponse> customerDocsRoute = docsRoute("customer-docs", "/customer", "http://localhost:8082");
+        RouterFunction<ServerResponse> inventoryDocsRoute = docsRoute("inventory-docs", "/inventory", "http://localhost:8083");
+        RouterFunction<ServerResponse> notificationDocsRoute = docsRoute("notification-docs", "/notification", "http://localhost:8084");
+        RouterFunction<ServerResponse> orderDocsRoute = docsRoute("order-docs", "/order", "http://localhost:8085");
+        RouterFunction<ServerResponse> paymentDocsRoute = docsRoute("payment-docs", "/payment", "http://localhost:8086");
+        RouterFunction<ServerResponse> assistantDocsRoute = docsRoute("assistant-docs", "/assistant", "http://localhost:8087");
+
         return authRoute
                 .and(cepRoute)
                 .and(orderPublicRoute)
@@ -87,6 +95,27 @@ public class GatewayRoutesConfig {
                 .and(notificationRoute)
                 .and(orderRoute)
                 .and(paymentRoute)
-                .and(assistantRoute);
+                .and(assistantRoute)
+                .and(authDocsRoute)
+                .and(customerDocsRoute)
+                .and(inventoryDocsRoute)
+                .and(notificationDocsRoute)
+                .and(orderDocsRoute)
+                .and(paymentDocsRoute)
+                .and(assistantDocsRoute);
+    }
+
+    private RouterFunction<ServerResponse> docsRoute(String id, String prefix, String targetUri) {
+        return route(id)
+                .route(path(prefix + "/swagger-ui/**")
+                        .or(path(prefix + "/swagger-ui.html"))
+                        .or(path(prefix + "/v3/api-docs/**"))
+                        .or(path(prefix + "/v3/api-docs"))
+                        .or(path(prefix + "/h2-console/**"))
+                        .or(path(prefix + "/h2-console")), http())
+                .before(rewritePath(prefix + "/(?<segment>.*)", "/${segment}"))
+                .before(addRequestHeader("X-Internal-Secret", internalSecret))
+                .before(uri(targetUri))
+                .build();
     }
 }

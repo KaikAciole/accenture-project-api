@@ -240,6 +240,20 @@ class CustomerServiceTest {
     }
 
     @Test
+    void update_shouldFailWhenNewCpfIsTakenByAnotherCustomer() {
+        Customer payload = Customer.restore(null, null, null, "99999999999", null, null, null);
+        when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));
+        when(customerRepository.existsByCpf("99999999999")).thenReturn(true);
+
+        assertThatThrownBy(() -> customerService.update(existingId, payload))
+                .isInstanceOf(DuplicateCustomerException.class)
+                .hasMessageContaining("cpf");
+
+        verify(customerRepository, never()).save(any());
+        verifyNoInteractions(authCredentialGateway);
+    }
+
+    @Test
     void update_shouldFailWhenNewPhoneIsTakenByAnotherCustomer() {
         Customer payload = Customer.restore(null, null, null, null, "11900000000", null, null);
         when(customerRepository.findById(existingId)).thenReturn(Optional.of(existing));

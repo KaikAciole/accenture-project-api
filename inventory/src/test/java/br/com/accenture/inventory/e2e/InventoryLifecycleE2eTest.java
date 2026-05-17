@@ -140,6 +140,7 @@ class InventoryLifecycleE2eTest {
         ProductRequest request = new ProductRequest(
                 sku,
                 "Produto " + sku,
+                "Descrição " + sku,
                 "Categoria",
                 new BigDecimal("10.00"),
                 stockQuantity,

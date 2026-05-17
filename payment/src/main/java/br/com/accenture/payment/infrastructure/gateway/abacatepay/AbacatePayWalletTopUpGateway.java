@@ -7,6 +7,7 @@ import br.com.accenture.payment.infrastructure.gateway.abacatepay.dto.request.Ab
 import br.com.accenture.payment.infrastructure.gateway.abacatepay.dto.response.AbacatePayCreateBillingResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -27,9 +28,14 @@ public class AbacatePayWalletTopUpGateway implements WalletTopUpGateway {
     private final RestClient restClient;
     private final BigDecimal fixedChargeAmount;
 
+    @Autowired
     public AbacatePayWalletTopUpGateway(AbacatePayProperties properties) {
-        this.restClient = RestClient.builder()
-                .baseUrl("https://api.abacatepay.com")
+        this(RestClient.builder(), properties, "https://api.abacatepay.com");
+    }
+
+    AbacatePayWalletTopUpGateway(RestClient.Builder builder, AbacatePayProperties properties, String baseUrl) {
+        this.restClient = builder
+                .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + properties.apiKey())
                 .build();
         this.fixedChargeAmount = properties.fixedChargeAmount();

@@ -1,103 +1,241 @@
 package br.com.accenture.payment.application.service.wallet;
 
-import br.com.accenture.payment.api.webhook.dto.MercadoPagoWebhookRequest;
-import br.com.accenture.payment.application.port.WalletTopUpGateway;
+import br.com.accenture.payment.api.webhook.dto.AbacatePayWebhookRequest;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class WalletTopUpWebhookServiceTest {
 
+    private static final UUID TOP_UP_ID = UUID.fromString("1779bfb5-b06a-445e-a57d-f6b5e5701770");
+
     @Test
-    void processOrderNotificationApprovesTopUpWhenOrderIsProcessedAndAccredited() {
-        UUID topUpId = UUID.fromString("1779bfb5-b06a-445e-a57d-f6b5e5701770");
-        FakeWalletTopUpGateway gateway = new FakeWalletTopUpGateway(
-                new WalletTopUpGateway.WalletTopUpOrderResponse(
-                        "mp-order-1",
-                        topUpId.toString(),
-                        "processed",
-                        "accredited",
-                        new BigDecimal("80.00"),
-                        new BigDecimal("80.00")
-                )
-        );
+    void processNotificationApprovesTopUpWhenEventIsCompletedAndExternalIdIsAValidUuid() {
         FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
-        WalletTopUpWebhookService service = new WalletTopUpWebhookService(gateway, transactionService);
-        MercadoPagoWebhookRequest request = new MercadoPagoWebhookRequest(
-                "payment.updated",
-                "order",
-                new MercadoPagoWebhookRequest.MercadoPagoWebhookData("mp-order-1")
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = webhookRequest(
+                "transparent.completed",
+                "bill-1",
+                8000,
+                TOP_UP_ID.toString(),
+                null
         );
 
-        service.processOrderNotification(request);
+        service.processNotification(request);
 
-        assertThat(gateway.lastOrderIdRequested).isEqualTo("mp-order-1");
-        assertThat(transactionService.approveTopUpId).isEqualTo(topUpId);
-        assertThat(transactionService.approvePaidAmount).isEqualByComparingTo("80.00");
+        assertThat(transactionService.approveCalls).hasSize(1);
+        assertThat(transactionService.approveCalls.getFirst().topUpId()).isEqualTo(TOP_UP_ID);
+        assertThat(transactionService.approveCalls.getFirst().paidAmount()).isEqualByComparingTo("80.00");
     }
 
     @Test
-    void processOrderNotificationIgnoresInvalidPayloadOrNonOrderTypeOrNonApprovedOrder() {
-        FakeWalletTopUpGateway gateway = new FakeWalletTopUpGateway(
-                new WalletTopUpGateway.WalletTopUpOrderResponse(
-                        "mp-order-2",
-                        UUID.randomUUID().toString(),
-                        "pending",
-                        "waiting_payment",
-                        new BigDecimal("80.00"),
-                        BigDecimal.ZERO
-                )
-        );
+    void processNotificationFallsBackToMetadataTopUpIdWhenExternalIdIsBlank() {
         FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
-        WalletTopUpWebhookService service = new WalletTopUpWebhookService(gateway, transactionService);
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("topUpId", TOP_UP_ID.toString());
+        AbacatePayWebhookRequest request = webhookRequest(
+                "transparent.completed",
+                "bill-1",
+                12345,
+                "",
+                metadata
+        );
 
-        service.processOrderNotification(null);
-        service.processOrderNotification(new MercadoPagoWebhookRequest("x", "order", null));
-        service.processOrderNotification(new MercadoPagoWebhookRequest("x", "payment", new MercadoPagoWebhookRequest.MercadoPagoWebhookData("mp-order-2")));
-        service.processOrderNotification(new MercadoPagoWebhookRequest("x", "order", new MercadoPagoWebhookRequest.MercadoPagoWebhookData("mp-order-2")));
+        service.processNotification(request);
 
-        assertThat(gateway.lastOrderIdRequested).isEqualTo("mp-order-2");
-        assertThat(transactionService.approveTopUpId).isNull();
-        assertThat(transactionService.approvePaidAmount).isNull();
+        assertThat(transactionService.approveCalls).hasSize(1);
+        assertThat(transactionService.approveCalls.getFirst().topUpId()).isEqualTo(TOP_UP_ID);
+        assertThat(transactionService.approveCalls.getFirst().paidAmount()).isEqualByComparingTo("123.45");
     }
 
-    private static final class FakeWalletTopUpGateway implements WalletTopUpGateway {
+    @Test
+    void processNotificationMatchesEventCaseInsensitively() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = webhookRequest(
+                "TRANSPARENT.COMPLETED",
+                "bill-1",
+                500,
+                TOP_UP_ID.toString(),
+                null
+        );
 
-        private final WalletTopUpOrderResponse orderResponse;
-        private String lastOrderIdRequested;
+        service.processNotification(request);
 
-        private FakeWalletTopUpGateway(WalletTopUpOrderResponse orderResponse) {
-            this.orderResponse = orderResponse;
-        }
+        assertThat(transactionService.approveCalls).hasSize(1);
+        assertThat(transactionService.approveCalls.getFirst().paidAmount()).isEqualByComparingTo("5.00");
+    }
 
-        @Override
-        public WalletTopUpGatewayResponse createOrder(WalletTopUpGatewayRequest request) {
-            throw new UnsupportedOperationException("Not used in this test");
-        }
+    @Test
+    void processNotificationConvertsNullAmountToZero() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = webhookRequest(
+                "transparent.completed",
+                "bill-1",
+                null,
+                TOP_UP_ID.toString(),
+                null
+        );
 
-        @Override
-        public WalletTopUpOrderResponse getOrderById(String externalOrderId) {
-            this.lastOrderIdRequested = externalOrderId;
-            return orderResponse;
-        }
+        service.processNotification(request);
+
+        assertThat(transactionService.approveCalls).hasSize(1);
+        assertThat(transactionService.approveCalls.getFirst().paidAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void processNotificationIgnoresNullRequest() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+
+        service.processNotification(null);
+
+        assertThat(transactionService.approveCalls).isEmpty();
+    }
+
+    @Test
+    void processNotificationIgnoresRequestWithoutData() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = new AbacatePayWebhookRequest("id", "transparent.completed", 1, false, null);
+
+        service.processNotification(request);
+
+        assertThat(transactionService.approveCalls).isEmpty();
+    }
+
+    @Test
+    void processNotificationIgnoresRequestWithoutTransparent() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = new AbacatePayWebhookRequest(
+                "id",
+                "transparent.completed",
+                1,
+                false,
+                new AbacatePayWebhookRequest.Data(null)
+        );
+
+        service.processNotification(request);
+
+        assertThat(transactionService.approveCalls).isEmpty();
+    }
+
+    @Test
+    void processNotificationIgnoresUnknownEvents() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = webhookRequest(
+                "transparent.refused",
+                "bill-1",
+                8000,
+                TOP_UP_ID.toString(),
+                null
+        );
+
+        service.processNotification(request);
+
+        assertThat(transactionService.approveCalls).isEmpty();
+    }
+
+    @Test
+    void processNotificationIgnoresPayloadWithoutAnyIdentifier() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = webhookRequest(
+                "transparent.completed",
+                "bill-1",
+                8000,
+                null,
+                null
+        );
+
+        service.processNotification(request);
+
+        assertThat(transactionService.approveCalls).isEmpty();
+    }
+
+    @Test
+    void processNotificationIgnoresPayloadWithMetadataMissingTopUpId() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("other", "value");
+        AbacatePayWebhookRequest request = webhookRequest(
+                "transparent.completed",
+                "bill-1",
+                8000,
+                "",
+                metadata
+        );
+
+        service.processNotification(request);
+
+        assertThat(transactionService.approveCalls).isEmpty();
+    }
+
+    @Test
+    void processNotificationIgnoresInvalidUuid() {
+        FakeWalletTopUpTransactionService transactionService = new FakeWalletTopUpTransactionService();
+        WalletTopUpWebhookService service = new WalletTopUpWebhookService(transactionService);
+        AbacatePayWebhookRequest request = webhookRequest(
+                "transparent.completed",
+                "bill-1",
+                8000,
+                "not-a-uuid",
+                null
+        );
+
+        service.processNotification(request);
+
+        assertThat(transactionService.approveCalls).isEmpty();
+    }
+
+    private static AbacatePayWebhookRequest webhookRequest(
+            String event,
+            String billId,
+            Integer amountInCents,
+            String externalId,
+            Map<String, Object> metadata
+    ) {
+        return new AbacatePayWebhookRequest(
+                "evt_1",
+                event,
+                1,
+                false,
+                new AbacatePayWebhookRequest.Data(
+                        new AbacatePayWebhookRequest.Transparent(
+                                billId,
+                                "PAID",
+                                amountInCents,
+                                externalId,
+                                metadata
+                        )
+                )
+        );
+    }
+
+    private record ApproveCall(UUID topUpId, BigDecimal paidAmount) {
     }
 
     private static final class FakeWalletTopUpTransactionService extends WalletTopUpTransactionService {
 
-        private UUID approveTopUpId;
-        private BigDecimal approvePaidAmount;
+        private final java.util.List<ApproveCall> approveCalls = new java.util.ArrayList<>();
 
         private FakeWalletTopUpTransactionService() {
-            super(null, null);
+            super(null, null, BigDecimal.ZERO);
         }
 
         @Override
         public void approveTopUpAndCreditWallet(UUID topUpId, BigDecimal paidAmount) {
-            this.approveTopUpId = topUpId;
-            this.approvePaidAmount = paidAmount;
+            approveCalls.add(new ApproveCall(topUpId, paidAmount));
         }
     }
 }

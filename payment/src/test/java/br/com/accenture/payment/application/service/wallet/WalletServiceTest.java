@@ -78,6 +78,38 @@ class WalletServiceTest {
     }
 
     @Test
+    void createCompanyWalletIfNotExistsIsIdempotent() {
+        UUID companyOwnerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        walletRepository.walletByOwner = Optional.of(
+                TestFixtures.walletWithBalance(
+                        UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                        companyOwnerId,
+                        WalletOwnerType.COMPANY,
+                        BigDecimal.ZERO
+                )
+        );
+
+        service.createCompanyWalletIfNotExists(companyOwnerId);
+
+        assertThat(walletRepository.savedWallets).isEmpty();
+    }
+
+    @Test
+    void createCompanyWalletIfNotExistsPersistsWalletWhenMissing() {
+        UUID companyOwnerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        walletRepository.walletByOwner = Optional.empty();
+
+        service.createCompanyWalletIfNotExists(companyOwnerId);
+
+        assertThat(walletRepository.savedWallets)
+                .singleElement()
+                .satisfies(wallet -> {
+                    assertThat(wallet.getOwnerId()).isEqualTo(companyOwnerId);
+                    assertThat(wallet.getOwnerType()).isEqualTo(WalletOwnerType.COMPANY);
+                });
+    }
+
+    @Test
     void findByIdAndFindByOwnerReturnWalletOrThrowWhenMissing() {
         walletRepository.walletById = Optional.of(TestFixtures.walletWithBalance());
         walletRepository.walletByOwner = Optional.of(TestFixtures.walletWithBalance());

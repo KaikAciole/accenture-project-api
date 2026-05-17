@@ -1,7 +1,30 @@
 server:
   port: 8080
 
+spring:
+  main:
+    web-application-type: servlet
+
 api:
   security:
     token:
       secret: ${JWT_SECRET:my-super-secret-key-change-me-in-production}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: auth
+        url: /auth/v3/api-docs
+      - name: customer
+        url: /customer/v3/api-docs
+      - name: inventory
+        url: /inventory/v3/api-docs
+      - name: notification
+        url: /notification/v3/api-docs
+      - name: order
+        url: /order/v3/api-docs
+      - name: payment
+        url: /payment/v3/api-docs
+      - name: assistant
+        url: /assistant/v3/api-docs

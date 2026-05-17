@@ -31,7 +31,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final List<String> publicRoutes = List.of(
             "/api/v1/auth/**",
             "/api/v1/gateway/register-flow",
-            "/api/v1/gateway/seed-data"
+            "/api/v1/gateway/seed-data",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
+            "/v3/api-docs",
+            "/v3/api-docs.yaml",
+            "/*/swagger-ui/**",
+            "/*/swagger-ui.html",
+            "/*/v3/api-docs/**",
+            "/*/v3/api-docs",
+            "/*/h2-console/**",
+            "/*/h2-console"
     );
 
     private final List<String> publicGetRoutes = List.of(

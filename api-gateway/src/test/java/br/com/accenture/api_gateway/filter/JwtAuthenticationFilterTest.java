@@ -58,6 +58,50 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void swaggerUiAggregatorShouldPassWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/swagger-ui.html");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void servicePrefixedSwaggerShouldPassWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/customer/swagger-ui/index.html");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void servicePrefixedApiDocsShouldPassWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/inventory/v3/api-docs");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void servicePrefixedH2ConsoleShouldPassWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/payment/h2-console/login.jsp");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
     void protectedRouteWithoutTokenShouldReturn401() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/orders/123");
         MockHttpServletResponse response = new MockHttpServletResponse();

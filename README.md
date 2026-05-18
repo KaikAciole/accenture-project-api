@@ -198,3 +198,14 @@ accenture-project-api/
 ```
 
 Cada pasta é um projeto Maven independente, com seu próprio `pom.xml`, `mvnw` e `src/`.
+
+## Povoar sistema
+
+Para criação de conta de admin, produtos, dentre outros, é necessário rodar essa rota:
+
+http://localhost:8080/api/v1/gateway/seed-data
+Método: POST
+Sem nenhum token de autorização
+
+Email admin: admin@accestore.com
+Senha admin: Admin@123

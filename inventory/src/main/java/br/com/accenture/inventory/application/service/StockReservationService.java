@@ -169,9 +169,9 @@ public class StockReservationService {
 
     @Transactional
     public void cancelByOrderId(UUID orderId) {
-        List<StockReservation> reservations = stockReservationRepository.findAllByOrderIdAndStatus(
+        List<StockReservation> reservations = stockReservationRepository.findAllByOrderIdAndStatusIn(
                 orderId,
-                ReservationStatus.ACTIVE
+                List.of(ReservationStatus.ACTIVE, ReservationStatus.CONFIRMED)
         );
 
         if (reservations.isEmpty()) {
@@ -179,7 +179,7 @@ public class StockReservationService {
         }
 
         reservations.forEach(reservation -> {
-            reservation.cancel();
+            reservation.release();
 
             productRepository.save(reservation.getProduct());
 

@@ -5,6 +5,7 @@ import br.com.accenture.inventory.domain.model.StockReservation;
 import br.com.accenture.inventory.domain.pagination.PageRequest;
 import br.com.accenture.inventory.domain.pagination.PageResult;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,8 @@ public interface StockReservationRepository {
     PageResult<StockReservation> findAll(PageRequest pageRequest);
 
     List<StockReservation> findAllByOrderIdAndStatus(UUID orderId, ReservationStatus status);
+
+    List<StockReservation> findAllByOrderIdAndStatusIn(UUID orderId, Collection<ReservationStatus> statuses);
 
     void deleteById(UUID id);
 }

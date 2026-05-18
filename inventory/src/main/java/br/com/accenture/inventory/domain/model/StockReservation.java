@@ -72,6 +72,15 @@ public class StockReservation {
         this.status = ReservationStatus.CANCELED;
     }
 
+    public void release() {
+        if (this.status != ReservationStatus.ACTIVE && this.status != ReservationStatus.CONFIRMED) {
+            throw new InvalidReservationStatusException(this.status, "release");
+        }
+
+        this.product.increaseStock(this.reservedQuantity);
+        this.status = ReservationStatus.CANCELED;
+    }
+
     public void expire() {
         validateActive("expire");
 

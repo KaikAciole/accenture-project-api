@@ -177,8 +177,10 @@ class StockReservationServiceTest {
     void cancelByOrderIdCancelsActiveReservationsAndPublishesEvents() {
         StockReservation first = TestFixtures.activeReservation();
         StockReservation second = TestFixtures.activeReservation();
-        when(reservationRepository.findAllByOrderIdAndStatus(TestFixtures.ORDER_ID, ReservationStatus.ACTIVE))
-                .thenReturn(List.of(first, second));
+        when(reservationRepository.findAllByOrderIdAndStatusIn(
+                TestFixtures.ORDER_ID,
+                List.of(ReservationStatus.ACTIVE, ReservationStatus.CONFIRMED)
+        )).thenReturn(List.of(first, second));
         when(reservationRepository.save(any(StockReservation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.cancelByOrderId(TestFixtures.ORDER_ID);
@@ -192,9 +194,30 @@ class StockReservationServiceTest {
     }
 
     @Test
+    void cancelByOrderIdReleasesConfirmedReservationsAndRestoresStock() {
+        StockReservation confirmed = TestFixtures.confirmedReservation();
+        when(reservationRepository.findAllByOrderIdAndStatusIn(
+                TestFixtures.ORDER_ID,
+                List.of(ReservationStatus.ACTIVE, ReservationStatus.CONFIRMED)
+        )).thenReturn(List.of(confirmed));
+        when(reservationRepository.save(any(StockReservation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.cancelByOrderId(TestFixtures.ORDER_ID);
+
+        assertThat(confirmed.getStatus()).isEqualTo(ReservationStatus.CANCELED);
+        assertThat(confirmed.getProduct().getStockQuantity()).isEqualTo(13);
+        verify(productRepository).save(confirmed.getProduct());
+        verify(stockEventPublisher).publishStockReservationCanceled(confirmed);
+    }
+
+    @Test
     void confirmAndCancelByOrderIdIgnoreWhenNoActiveReservationExists() {
         when(reservationRepository.findAllByOrderIdAndStatus(TestFixtures.ORDER_ID, ReservationStatus.ACTIVE))
                 .thenReturn(List.of());
+        when(reservationRepository.findAllByOrderIdAndStatusIn(
+                TestFixtures.ORDER_ID,
+                List.of(ReservationStatus.ACTIVE, ReservationStatus.CONFIRMED)
+        )).thenReturn(List.of());
 
         service.confirmByOrderId(TestFixtures.ORDER_ID);
         service.cancelByOrderId(TestFixtures.ORDER_ID);

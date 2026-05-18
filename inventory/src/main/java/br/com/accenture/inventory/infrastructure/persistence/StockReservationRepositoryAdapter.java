@@ -11,6 +11,7 @@ import br.com.accenture.inventory.infrastructure.persistence.mapper.StockReserva
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -90,6 +91,14 @@ public class StockReservationRepositoryAdapter implements StockReservationReposi
     @Override
     public List<StockReservation> findAllByOrderIdAndStatus(UUID orderId, ReservationStatus status) {
         return jpaRepository.findAllByOrderIdAndStatus(orderId, status)
+                .stream()
+                .map(StockReservationPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<StockReservation> findAllByOrderIdAndStatusIn(UUID orderId, Collection<ReservationStatus> statuses) {
+        return jpaRepository.findAllByOrderIdAndStatusIn(orderId, statuses)
                 .stream()
                 .map(StockReservationPersistenceMapper::toDomain)
                 .toList();

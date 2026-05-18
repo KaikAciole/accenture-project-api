@@ -88,4 +88,52 @@ class StockReservationTest {
                 .isThrownBy(reservation::cancel)
                 .withMessage("Cannot cancel reservation with status: CONFIRMED");
     }
+
+    @Test
+    void releaseReturnsStockFromActiveReservation() {
+        Product product = Product.createNew("SKU-001", "Notebook", "Sample description", "Electronics", BigDecimal.TEN, 10, null);
+        StockReservation reservation = StockReservation.createNew(UUID.randomUUID(), product, 4);
+
+        reservation.release();
+
+        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.CANCELED);
+        assertThat(product.getStockQuantity()).isEqualTo(10);
+    }
+
+    @Test
+    void releaseReturnsStockFromConfirmedReservation() {
+        Product product = Product.createNew("SKU-001", "Notebook", "Sample description", "Electronics", BigDecimal.TEN, 10, null);
+        StockReservation reservation = StockReservation.createNew(UUID.randomUUID(), product, 4);
+        reservation.confirm();
+
+        reservation.release();
+
+        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.CANCELED);
+        assertThat(product.getStockQuantity()).isEqualTo(10);
+    }
+
+    @Test
+    void releaseRejectsAlreadyCanceledOrExpiredReservation() {
+        StockReservation canceled = StockReservation.restore(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Product.createNew("SKU-001", "Notebook", "Sample description", "Electronics", BigDecimal.TEN, 10, null),
+                2,
+                ReservationStatus.CANCELED
+        );
+        StockReservation expired = StockReservation.restore(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Product.createNew("SKU-002", "Mouse", "Sample description", "Electronics", BigDecimal.TEN, 10, null),
+                2,
+                ReservationStatus.EXPIRED
+        );
+
+        assertThatExceptionOfType(InvalidReservationStatusException.class)
+                .isThrownBy(canceled::release)
+                .withMessage("Cannot release reservation with status: CANCELED");
+        assertThatExceptionOfType(InvalidReservationStatusException.class)
+                .isThrownBy(expired::release)
+                .withMessage("Cannot release reservation with status: EXPIRED");
+    }
 }

@@ -4,6 +4,9 @@ Plataforma de e-commerce educacional construída como projeto final do treinamen
 
 A comunicação entre os serviços é **síncrona** (Feign/WebClient — usada quando uma resposta imediata é necessária, ex.: `order` consultando `customer` e `inventory`) e **assíncrona** (RabbitMQ — usada para propagar eventos como "pedido criado", "pagamento aprovado", "estoque reservado").
 
+## Slide de apresentação do projeto 
+link: https://canva.link/aovoa2e3t5x9dy0
+
 ## Serviços
 
 | Serviço | Porta | Descrição |
